@@ -1,0 +1,359 @@
+# BaseMind — plan prac
+
+> **Jak korzystać z tego pliku (także po wyczyszczeniu kontekstu):**
+> 1. Przeczytaj `projekt.md` (wizja, ustalenia, architektura, model danych, bezpieczeństwo, zasady współpracy).
+> 2. Sprawdź sekcję **„Stan bieżący”** poniżej — na czym skończyliśmy i co jest następne.
+> 3. Przejrzyj **„Dziennik zmian”** na końcu pliku.
+> 4. **Nic nie rób bez akceptacji użytkownika** — zaproponuj kolejny krok i zapytaj.
+> 5. Po każdej sesji: odhacz zrobione punkty (`[x]`), zaktualizuj „Stan bieżący” i dopisz wpis do „Dziennika zmian”.
+>
+> Legenda: `[ ]` do zrobienia · `[~]` w trakcie · `[x]` zrobione · `[-]` porzucone (z uzasadnieniem) · 🔒 wymaga decyzji użytkownika
+
+---
+
+## Stan bieżący
+
+- **Faza:** Etap 0 — decyzje zatwierdzone, środowisko prawie gotowe.
+- **Zrobione ostatnio:** krok 0.3 punkty 1–2: repozytorium git, Laravel 13 w `api/` z konfiguracją MySQL, utwardzeniem PHP/Apache, kontrolą wersji PHP, nagłówkami bezpieczeństwa, `/api/health` i testami (21/21 OK). MariaDB związana z 127.0.0.1.
+- **Czeka na użytkownika:** nic — gotowe do kolejnego kroku.
+- **Następny krok:** VirtualHost Apache `localhost:8080` → potem `web/` (React PWA) → test na telefonie. Przed startem zapytać o zgodę.
+- **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia MariaDB tylko na czas pracy (testy, migracje) i ją zatrzymuje.
+- **Kod:** `api/` (Laravel). `web/` jeszcze nie istnieje.
+
+---
+
+## Przegląd etapów
+
+| Etap | Nazwa | Zakres | Status |
+|---|---|---|---|
+| 0 | Przygotowanie | Decyzje, środowisko, szkielet (Laravel + React PWA), design system | 🟡 w trakcie |
+| 1 | Fundament | Auth, przestrzenie, szyfrowanie, PWA, offline + sync, nawigacja, wyszukiwanie, tagi/powiązania, przypomnienia, dashboard (szkielet) | ⬜ |
+| 2 | Codzienność | Zadania, kalendarz, notatki Markdown z backlinkami, szybka notatka | ⬜ |
+| 3 | Pieniądze | Finanse (portfele, kategorie, transakcje, raporty, wykresy, budżety), subskrypcje | ⬜ |
+| 4 | Schowek | Zakładki z podglądem (rich links) + Share Target, listy mediów, baza kodów | ⬜ |
+| 5 | Życie | Grafik pracy, nawyki, CRM bliskich, bank prezentów | ⬜ |
+| 6 | Rzeczy | Paszport pojazdu, gwarancje, daty ważności, lokalizator, publiczne linki do plików | ⬜ |
+| 7 | Dopracowanie i wdrożenie | 2FA, PIN, eksport/backup, audyty, wybór hostingu i wdrożenie | ⬜ |
+
+**Zasada każdego etapu:** każdy moduł od razu jest: offline + zsynchronizowany, przeszukiwalny, linkowalny (backlinki/tagi), z datami w kalendarzu i przypomnieniach (jeśli dotyczy), z widżetem dashboardu (jeśli ma sens), z oznaczonymi i zaszyfrowanymi polami 🔐, zaprojektowany najpierw na telefon.
+
+**Definicja „gotowe” (DoD) dla każdej funkcji:**
+- działa offline i po synchronizacji w drugiej przeglądarce/urządzeniu,
+- wygląda i działa dobrze na 360–412 px (Android) i poprawnie na desktopie,
+- tryb jasny i ciemny,
+- walidacja danych po obu stronach (zod + Laravel Validation),
+- autoryzacja po stronie API (Policy przestrzeni) + test dostępu,
+- wrażliwe pola zaszyfrowane (sprawdzone w bazie, że są szyfrogramem),
+- testy logiki (Pest / Vitest): kwoty, rrule, nadgodziny, sync, szyfrowanie,
+- użytkownik przetestował na telefonie i zaakceptował.
+
+---
+
+## Etap 0 — Przygotowanie
+
+### 0.1 Zatwierdzenie decyzji
+- [x] Stack: PHP + Laravel + MySQL/MariaDB (backend), React + Vite + TS PWA (frontend), TanStack Router.
+- [x] Hosting współdzielony PHP (bez VPS); lokalnie XAMPP.
+- [x] Szyfrowanie: libsodium po stronie serwera dla pól wrażliwych.
+- [x] Testy na telefonie: kabel USB + Chrome port forwarding.
+- [x] Design: propozycja Claude, ocena po zobaczeniu.
+- [x] 2FA na końcu (Etap 7).
+- [x] Nazwa: BaseMind.
+
+### 0.2 Środowisko
+- [x] Node.js 24.21.0, Git 2.56 — były zainstalowane.
+- [x] XAMPP: PHP 8.5.12 (z poprawką PHP2Shell), MariaDB 10.11.16, wymagane rozszerzenia obecne.
+- [x] PHP (`C:\xampp\php`) dodane do PATH użytkownika.
+- [x] Composer 2.11.1 (`%LOCALAPPDATA%\Programs\composer`, w PATH).
+- [x] pnpm 12.16.1 (globalnie przez npm).
+- [-] **Mailpit** — decyzja użytkownika: na razie **`MAIL_MAILER=log`** (maile lądują w `api/storage/logs/laravel.log`). Mailpit ewentualnie później.
+- [x] Utwardzenie `C:\xampp\php\php.ini` (kopia: `php.ini.bak-basemind-20261103`): `expose_php=Off`, `fatal_error_backtraces = Off`; `session.upload_progress.enabled = Off` było już ustawione przez XAMPP. Zweryfikowane przez `ini_get`.
+- [x] Bazy `basemind` i `basemind_test` (utf8mb4_unicode_ci). Lokalnie użytkownik **root bez hasła** (decyzja użytkownika — root dostępny tylko z localhost). Na produkcji zawsze dedykowany użytkownik z hasłem (zapewnia hosting).
+- [x] Lokalny adres backendu: **VirtualHost Apache na `localhost:8080` → `BaseMind/api/public`** (konfiguracja przy 0.3, gdy powstanie folder `api/`).
+- [x] `bind-address="127.0.0.1"` w `C:\xampp\mysql\bin\my.ini` (kopia: `my.ini.bak-basemind-20261103`) — MariaDB nasłuchuje tylko lokalnie. Laravel łączy się przez `127.0.0.1` (root@::1 już nieosiągalny — to OK).
+- [ ] Na później (Etap 1.4, sync): `max_allowed_packet=1M` w `my.ini` jest mały — przy partiach synchronizacji może trzeba podnieść (np. 16M). Na hostingu sprawdzić wartość.
+- [ ] Telefon: włączone debugowanie USB, test `chrome://inspect` → Port forwarding `5173`.
+
+### 0.3 Szkielet projektu
+- [x] `git init` (gałąź `main`), `.gitignore`, `.gitattributes` (LF). Autor commitów (lokalnie w repo): **Marcin Wójcik <mgrnewsl@gmail.com>**.
+- [x] `api/` — Laravel **13.40.0** (`composer create-project`). `.env` i `.env.example`: `APP_NAME=BaseMind`, `APP_URL=http://localhost:8080`, `APP_LOCALE=pl`, `APP_FAKER_LOCALE=pl_PL`, `DB_CONNECTION=mysql` (baza `basemind`, root bez hasła), `SESSION_ENCRYPT=true`, `HASH_DRIVER=argon2id` (wspierany przez PHP z XAMPP), `MAIL_MAILER=log`, `SANCTUM_STATEFUL_DOMAINS=localhost:5173,localhost:8080`, `BASEMIND_OWNER_EMAIL=mgrnewsl@gmail.com`, checklista produkcyjna w `.env.example`. Usunięty plik SQLite. Migracje wykonane na MariaDB.
+- [~] Pakiety: **Sanctum 4.3 zainstalowany** (`php artisan install:api` nie potrafił wywołać Composera na Windows — zainstalowany ręcznie `composer require laravel/sanctum` + `vendor:publish`), `statefulApi()` włączone. Pint jest w szkielecie. Do zrobienia: Fortify (Etap 1.1), `minishlink/web-push` (Etap 1.8), Pest + Larastan.
+- [x] `api/public/.htaccess` (utwardzony: blokada plików ukrytych i każdego PHP poza `index.php`, `php_flag` dla mod_php, nagłówki), `api/public/.user.ini` (dla CGI/FPM), `api/.htaccess` (awaryjny, gdy hosting nie pozwala ustawić document root na `public/`). `public/index.php`: `ini_set('fatal_error_backtraces','0')` na PHP 8.5+.
+- [x] Bezpieczeństwo runtime: `config/basemind.php` (minimalne bezpieczne wersje PHP per gałąź), `App\Support\PhpSecurity` (wersja + ustawienia ini), middleware `EnsureSecureRuntime` (na produkcji 503 przy krytycznym problemie, poza `/api/health`), `App\Support\SecurityAlert` (log + e-mail do właściciela max 1×/dzień), komenda `php artisan basemind:security-check [--notify]`, harmonogram codziennie 06:00 (`routes/console.php`).
+- [x] Middleware `SecurityHeaders` (nosniff, X-Frame-Options DENY, Referrer-Policy, COOP, Permissions-Policy, HSTS przy HTTPS, CSP dla JSON). **TODO:** CSP dla HTML aplikacji PWA (przy `web/`).
+- [x] `GET /api/health` (throttle 30/min): publicznie tylko `{"status":"ok"}`, w `APP_ENV=local` dodatkowo wersja PHP, baza, raport bezpieczeństwa. Usunięty domyślny `/up` Laravela (jeden health-check).
+- [x] CORS wyłączony (`config/cors.php`: `allowed_origins => []`) — PWA i API na tej samej domenie (dev: proxy Vite).
+- [x] Testy (PHPUnit, baza `basemind_test` na MariaDB — **MariaDB musi być uruchomiona**): `tests/Unit/PhpSecurityTest.php`, `tests/Feature/HealthAndSecurityTest.php` — 21 testów OK; Pint OK.
+- [x] Usunięte `api/CLAUDE.md` i `api/AGENTS.md` (instrukcje Laravel Boost z instalatora) — decyzja użytkownika; wytyczne trzymamy w `projekt.md` i `plan.md`.
+- [ ] VirtualHost Apache `localhost:8080` → `api/public` (kopie `httpd.conf`, `httpd-vhosts.conf`) + test `.htaccess` (np. `/.env`, `/.user.ini` → 403).
+- [ ] `web/` — Vite + React + TS, Tailwind v4, shadcn/ui, TanStack Router, vite-plugin-pwa (manifest + SW „hello world”).
+- [ ] Proxy Vite → Apache (`/api`, `/sanctum`, `/s`); build do `api/public/`; fallback SPA w Laravelu.
+- [ ] ESLint + Prettier + `tsc` + Vitest (web); Pint + Larastan + Pest (api).
+- [ ] README: uruchomienie lokalne od zera (XAMPP, Composer, pnpm, `schedule:work`, Mailpit, telefon po USB).
+
+### 0.4 Design system
+- [ ] Tokeny: kolory (jasny/ciemny, akcent indygo), typografia (Inter), odstępy, promienie, cienie.
+- [ ] Komponenty: Button, Input, AmountInput, DatePicker (pl), Select, Checkbox, Switch, BottomSheet, Dialog, Toast, EmptyState, ListItem ze swipe, Card, Badge, Tabs, FAB.
+- [ ] Layout mobile: górny pasek z wyszukiwarką, dolna nawigacja (Dziś · Zadania · [+] · Kalendarz · Więcej), safe-area.
+- [ ] Layout desktop: sidebar + treść.
+- [ ] Strona „Więcej” — siatka modułów.
+- [ ] Przełącznik motywu (system/jasny/ciemny).
+- [ ] **Pokaz użytkownikowi na telefonie → poprawki wg uwag.**
+
+---
+
+## Etap 1 — Fundament
+
+### 1.1 Uwierzytelnianie i przestrzenie
+- [ ] Migracje: `users`, `sessions`, `spaces`, `space_members`, `user_settings`, `sync_counter`.
+- [ ] Fortify (headless) + Sanctum SPA: logowanie, wylogowanie, reset hasła e-mailem.
+- [ ] 🔒 Rejestracja: tylko pierwszy użytkownik / kod zaproszenia.
+- [ ] argon2id (jeśli dostępny) / bcrypt; rate limiting logowania.
+- [ ] Automatyczna przestrzeń prywatna przy rejestracji.
+- [ ] Policies przestrzeni (członkostwo + rola) — wspólny trait dla modeli z `space_id`.
+- [ ] Ekran logowania (mobile-first) + ekran „Sesje i urządzenia”.
+- [ ] Testy Pest: użytkownik A nie ma dostępu do danych przestrzeni B.
+- [-] 2FA — przeniesione do Etapu 7 (decyzja użytkownika).
+
+### 1.2 Szyfrowanie
+- [ ] Serwis `Crypto` (libsodium): secretbox dla pól, secretstream dla plików, identyfikator klucza w szyfrogramie.
+- [ ] Casty Eloquent: `SodiumEncrypted`, `SodiumEncryptedJson`.
+- [ ] Komenda `php artisan basemind:key` (generowanie `SODIUM_KEY`) + instrukcja bezpiecznej kopii klucza.
+- [ ] Komenda rotacji klucza (przeszyfrowanie danych).
+- [ ] Testy: zapis → w bazie szyfrogram, odczyt → tekst jawny; zły klucz → błąd.
+
+### 1.3 Warstwa danych offline (klient)
+- [ ] Dexie: schemat, wersjonowanie, tabele `outbox`, `meta` (kursor sync, user).
+- [ ] Generyczne repozytorium encji (`create/update/softDelete/get/list`) → Dexie + outbox, pola wspólne (UUIDv7, space_id, timestamps, version).
+- [ ] Hooki React (`useLiveQuery`).
+- [ ] Czyszczenie danych przy wylogowaniu.
+
+### 1.4 Synchronizacja
+- [ ] Rejestr encji sync w Laravelu (model, reguły walidacji, policy, pola dozwolone).
+- [ ] `POST /api/sync/push` — partie, walidacja, uprawnienia, wersje, LWW per pole, kopie konfliktów notatek, idempotentność (`sync_ops`).
+- [ ] `GET /api/sync/pull?cursor=` — stronicowanie, nagrobki, odszyfrowanie pól 🔐.
+- [ ] Globalny licznik `rev` (`sync_counter`, atomowo w transakcji).
+- [ ] Klient: silnik sync (start, `online`, debounce, interwał, Background Sync w SW).
+- [ ] Wskaźnik stanu sync w UI.
+- [ ] Testy: zapis offline → sync → widoczne w drugiej przeglądarce; konflikt dwóch edycji; ponowne wysłanie tej samej partii.
+
+### 1.5 PWA
+- [ ] Manifest: ikony (192, 512, maskable), `shortcuts`, kolory, `standalone`.
+- [ ] Service Worker (`injectManifest`): precache, cache obrazów, fallback offline.
+- [ ] Baner instalacji (Android) + instrukcja iOS.
+- [ ] Meta tagi iOS, apple-touch-icon, splash.
+- [ ] Aktualizacja aplikacji („Nowa wersja — odśwież”).
+- [ ] Test instalacji na telefonie (USB).
+
+### 1.6 Tagi i powiązania
+- [ ] Migracje i sync: `tags`, `entity_tags`, `entity_links`.
+- [ ] Komponent wyboru tagów; komponent „Powiązania” (linki wychodzące + backlinki, dodawanie ręczne).
+- [ ] Parser treści `[[tytuł]]`, `@osoba`, `#tag` → `entity_links` (`origin=parsed`).
+
+### 1.7 Globalne wyszukiwanie
+- [ ] Worker MiniSearch: indeks wszystkich encji z Dexie, aktualizacja przy zmianach.
+- [ ] Normalizacja polskich znaków, wyszukiwanie prefiksowe i rozmyte.
+- [ ] UI: pasek u góry (mobile — pełnoekranowe wyniki), `Ctrl+K` (desktop), wyniki pogrupowane po modułach, ostatnie wyszukiwania.
+- [ ] Rejestr: każdy moduł deklaruje pola indeksowane, ikonę i widok wyniku.
+
+### 1.8 Przypomnienia i powiadomienia
+- [ ] Migracje: `reminders`, `push_subscriptions`, `jobs`, `failed_jobs`.
+- [ ] Klucze VAPID (komenda), endpoint subskrypcji push, ekran zgody na powiadomienia (w odpowiednim momencie).
+- [ ] Scheduler (`routes/console.php`): co minutę — wybór przypomnień do wysłania, cykliczne i „X dni przed”; `queue:work --stop-when-empty`.
+- [ ] Wysyłka push (web-push) z akcjami („Zrobione”, „Odłóż”) + obsługa w SW; usuwanie wygasłych subskrypcji (410).
+- [ ] Wysyłka e-mail (Laravel Mail, szablony; lokalnie Mailpit).
+- [ ] Ustawienia: kanały per typ, godziny ciszy.
+- [ ] 🔒 Daily digest (godzina, zawartość).
+- [ ] Badging API.
+- [ ] Lokalnie: `php artisan schedule:work`; produkcyjnie: instrukcja crona.
+
+### 1.9 Dashboard „Dziś” (szkielet)
+- [ ] System widżetów (rejestr, kolejność i widoczność w ustawieniach).
+- [ ] Widżet powitania (data, imieniny — opcjonalnie).
+- [ ] Widżet „Szybka notatka”.
+
+### 1.10 Szybkie dodawanie [+]
+- [ ] Bottom sheet z wyborem typu (rozszerzany w kolejnych etapach).
+- [ ] Szkielet parsera tekstu (reguły dodawane przez moduły).
+
+---
+
+## Etap 2 — Codzienność
+
+### 2.1 Zadania (Todo)
+- [ ] Encje `task_lists`, `tasks` (+ sync, wyszukiwanie, powiązania).
+- [ ] Widoki: Dziś, Nadchodzące, Zaległe, Listy, Ukończone.
+- [ ] Priorytety P1–P4, termin (data + opcjonalnie godzina), podzadania, notatka Markdown.
+- [ ] Cykliczność (rrule; „od terminu” vs „od ukończenia”).
+- [ ] Przypomnienia.
+- [ ] Swipe: odhacz / na jutro / usuń; sortowanie przeciąganiem.
+- [ ] Parser języka naturalnego (pl): „jutro”, „w piątek”, „co tydzień”, „!1”.
+- [ ] Widżet dashboardu: dziś + zaległe.
+
+### 2.2 Kalendarz
+- [ ] Encja `events` (rrule, przypomnienia).
+- [ ] Widoki: Agenda (domyślny mobile), Dzień, Tydzień, Miesiąc.
+- [ ] Agregator „dostawców dat” z filtrem warstw (zadania; kolejne moduły dopisują się później).
+- [ ] Polskie święta ustawowe.
+- [ ] Widżet dashboardu: dziś i jutro.
+- [ ] (Później, 🔒) eksport iCal.
+
+### 2.3 Notatki Markdown z backlinkami
+- [ ] Encje `notes` (content 🔐), `note_folders`.
+- [ ] Edytor CodeMirror 6 z paskiem narzędzi nad klawiaturą, tryb podglądu.
+- [ ] Autouzupełnianie `[[`, `@`, `#`.
+- [ ] Panel backlinków; tworzenie notatki z nieistniejącego `[[linku]]`.
+- [ ] Przypinanie, foldery, archiwum.
+- [ ] Kopia konfliktu przy sync.
+- [ ] Szybka notatka z dashboardu → „Inbox”.
+- [ ] (Opcjonalnie) graf powiązań, notatki dzienne.
+
+---
+
+## Etap 3 — Pieniądze
+
+### 3.1 Manager finansów
+- [ ] Encje `wallets`, `categories`, `transactions`, `budgets`.
+- [ ] Domyślne kategorie PL (edytowalne).
+- [ ] Portfele z saldem, przelewy między portfelami.
+- [ ] **Szybkie dodawanie** (priorytet UX): duża klawiatura kwoty → kategoria (ostatnio używane) → zapisz; parser `-45 paliwo karta`.
+- [ ] Lista transakcji z filtrami, grupowanie po dniach.
+- [ ] Raporty: wydatki per kategoria (donut), wpływy/wydatki miesięcznie (słupki), trend salda, porównanie miesięcy.
+- [ ] Budżety miesięczne z ostrzeżeniami.
+- [ ] 🔒 Waluty obce.
+- [ ] Widżet dashboardu: ostatnie wydatki + wydano w miesiącu vs budżet.
+- [-] Import wyciągów bankowych — **odrzucone przez użytkownika**.
+
+### 3.2 Agregator subskrypcji
+- [ ] Encja `subscriptions`.
+- [ ] Lista z sumą miesięczną/roczną, sortowanie wg najbliższej płatności.
+- [ ] Cykle (miesięczny, roczny, kwartalny, co X tygodni, własny), okres próbny.
+- [ ] Przypomnienia przed pobraniem i przed końcem okresu próbnego.
+- [ ] Automatyczna transakcja w dniu pobrania (🔒 klient czy serwer — bez dublowania).
+- [ ] Płatności w kalendarzu; widżet „najbliższe płatności”.
+
+---
+
+## Etap 4 — Schowek
+
+### 4.1 Zakładki (rich links)
+- [ ] Encja `bookmarks`.
+- [ ] `/api/link-preview`: OG/Twitter Card/oEmbed (YouTube), favicon, **ochrona SSRF**, timeouty, cache, zapis miniatury.
+- [ ] Offline: link zapisany od razu, podgląd pobierany po sync.
+- [ ] **Android Share Target** → zapis do schowka (z tagiem/notatką).
+- [ ] Widoki: Inbox / Przeczytane / Archiwum / Ulubione; filtr artykuły/filmy; karty z miniaturami.
+- [ ] (iOS, później) instrukcja Skrótu.
+
+### 4.2 Listy: do obejrzenia / przeczytania / zagrania
+- [ ] Encja `media_items`; zakładki Filmy, Seriale, Książki, Gry; statusy, oceny.
+- [ ] 🔒 Automatyczne okładki (TMDB / OpenLibrary / IGDB).
+- [ ] Konwersja zakładki w element listy.
+
+### 4.3 Baza kodów i szybkich danych
+- [ ] Encja `quick_codes` (value 🔐).
+- [ ] Kategorie, kopiowanie jednym dotknięciem, ukrywanie wartości wrażliwych.
+- [ ] (Opcjonalnie) QR Wi-Fi dla gości, karty lojalnościowe jako kod kreskowy.
+
+---
+
+## Etap 5 — Życie
+
+### 5.1 Grafik pracy i godziny
+- [ ] Encje `work_profiles`, `shift_templates`, `work_entries`.
+- [ ] Tryb stały (jedno dotknięcie „dzień standardowy”) i zmianowy (szablony zmian).
+- [ ] Start/stop lub wpis ręczny.
+- [ ] 🔒 Reguły nadgodzin (norma, dodatki 50%/100%, noc, święta), wynagrodzenie.
+- [ ] Typy dni: praca, urlop, L4, święto, wolne; licznik urlopu.
+- [ ] Podsumowania tydzień/miesiąc, szacowana wypłata.
+- [ ] Warstwa w kalendarzu; widżet dashboardu.
+
+### 5.2 Strażnik nawyków
+- [ ] Encje `habits`, `habit_logs`.
+- [ ] Odhaczanie dnia (także wartości liczbowe), harmonogramy, seria, heatmapa, statystyki.
+- [ ] Przypomnienia; widżet dashboardu.
+
+### 5.3 CRM bliskich
+- [ ] Encja `contacts` (pola 🔐 wg `projekt.md`), zawsze w przestrzeni prywatnej.
+- [ ] Profil: zdjęcie, relacja, urodziny, imieniny, rozmiary, lubi/nie lubi, jedzenie, alkohole, alergie, rodzina i zwierzęta, ważne daty, notatki.
+- [ ] Urodziny/imieniny w kalendarzu + przypomnienia.
+- [ ] Wzmianki `@osoba` → backlinki na profilu.
+- [ ] Widżet: nadchodzące urodziny/imieniny.
+
+### 5.4 Bank pomysłów na prezenty
+- [ ] Encja `gift_ideas` (pola 🔐) powiązana z `contacts`.
+- [ ] Szybkie dodanie z profilu osoby i z [+].
+- [ ] Statusy pomysł → kupione → wręczone; okazja, cena, link.
+- [ ] Przypomnienie przed okazją: „Masz X pomysłów na prezent dla …”.
+- [ ] Historia wręczonych prezentów.
+
+---
+
+## Etap 6 — Rzeczy
+
+### 6.1 Paszport pojazdu
+- [ ] Encje `vehicles`, `vehicle_records`, `vehicle_documents`.
+- [ ] Karta pojazdu (VIN 🔐, rejestracja 🔐, opony, olej…), historia serwisowa, dokumenty (OC/AC, przegląd).
+- [ ] Przypomnienia: przegląd, OC, olej (data lub przebieg), sezonowa zmiana opon.
+- [ ] Koszt → transakcja; terminy w kalendarzu.
+
+### 6.2 Rejestr sprzętów i gwarancji
+- [ ] Encja `assets` + załączniki (szyfrowane na dysku).
+- [ ] Zdjęcie paragonu z aparatu (kompresja na kliencie, offline do czasu uploadu).
+- [ ] Koniec gwarancji (wyliczany), rękojmia jako informacja, przypomnienia, lista „kończy się wkrótce”.
+- [ ] Powiązania z lokalizacją i transakcją.
+
+### 6.3 Strażnik dat ważności
+- [ ] Encja `expiry_items`.
+- [ ] Kategorie z domyślnymi wyprzedzeniami przypomnień (np. paszport — 6 miesięcy).
+- [ ] Lista wg terminu z kolorami; terminy w kalendarzu.
+
+### 6.4 Lokalizator rzeczy
+- [ ] Encje `locations` (drzewo), `stored_items`.
+- [ ] Nawigacja z okruszkami, zdjęcia.
+- [ ] Etykiety QR do druku + skanowanie QR w aplikacji.
+
+### 6.5 Publiczne linki do plików
+- [ ] Encje `attachments`, `file_shares`.
+- [ ] Generowanie linku: czas ważności (1 h / 24 h / 7 dni), hasło, limit pobrań.
+- [ ] Publiczna strona `/s/{token}`, unieważnianie, lista aktywnych linków, rate limit.
+- [ ] Sprzątanie wygasłych (scheduler).
+- [ ] Web Share API (Android).
+
+---
+
+## Etap 7 — Dopracowanie i wdrożenie
+
+- [ ] **2FA TOTP** (Fortify) + kody zapasowe.
+- [ ] Blokada aplikacji PIN-em / biometrią (WebAuthn — do sprawdzenia).
+- [ ] Eksport wszystkich danych (JSON + ZIP) i import kopii.
+- [ ] Audyt wydajności (Lighthouse mobile ≥ 90), wirtualizacja list, rozmiar paczek.
+- [ ] Audyt bezpieczeństwa: nagłówki, CSP, rate limity, testy autoryzacji, SSRF, `/.env` niedostępne, aktualne advisory PHP/Laravel (aktualizacja tabeli w `projekt.md` 8.1).
+- [ ] Dostępność (kontrast, czytniki ekranu, rozmiary dotyku).
+- [ ] 🔒 **Wybór hostingu** wg checklisty `projekt.md` pkt 11.
+- [ ] Wdrożenie: struktura katalogów na hostingu, `.env` produkcyjne, `SODIUM_KEY` + kopia w menedżerze haseł, migracje, cron, SMTP, SSL, test push na produkcji.
+- [ ] Instrukcja aktualizacji (build lokalny → upload → migracje) w README.
+- [ ] Współdzielenie (gdy będzie potrzebne): zaproszenia do przestrzeni wspólnej, role, udostępnianie elementów, wybór przestrzeni przy tworzeniu.
+
+---
+
+## Pomysły na przyszłość (niezaplanowane)
+
+- Eksport/subskrypcja kalendarza iCal (Google Calendar).
+- Podsumowanie roku (wydatki, nawyki, przeczytane książki).
+- Szablony notatek, notatki dzienne, graf powiązań.
+- Lista zakupów współdzielona w przestrzeni wspólnej.
+- Skróty iOS do udostępniania linków.
+- Bot Telegram (obecnie nie wybrany).
+- OCR paragonów (obecnie nie planowany).
+
+---
+
+## Dziennik zmian
+
+| Data | Co zrobiono | Następny krok |
+|---|---|---|
+| 2026-11-03 | Zebrane wymagania, utworzone `projekt.md` i `plan.md`. | Zatwierdzenie stacku. |
+| 2026-11-03 | Zmiana architektury na hosting współdzielony PHP: Laravel + MySQL, lokalnie XAMPP. Szyfrowanie libsodium, 2FA na końcu, nazwa BaseMind, testy przez USB. Analiza luk PHP2Shell i CVE-2026-115560 → sekcja bezpieczeństwa w `projekt.md`. Zainstalowano Composer 2.11.1 i pnpm 12.16.1, PHP i Composer w PATH. Pobranie Mailpit zablokowane przez zabezpieczenia sesji. | Mailpit, utwardzenie php.ini XAMPP, adres lokalny backendu, potem szkielet projektu (0.3). |
+| 2026-11-03 | Mail lokalnie przez `log` (bez Mailpit). Utwardzony `php.ini` (z kopią). Utworzone bazy `basemind`, `basemind_test`; lokalnie root bez hasła. Ustalony adres backendu `localhost:8080`. | Szkielet projektu (0.3) — po zgodzie użytkownika. |
+| 2026-11-03 | `bind-address=127.0.0.1` dla MariaDB. `git init` + `.gitignore`/`.gitattributes` (commit czeka na autora). Laravel 13.40 w `api/`: MySQL, argon2id, szyfrowane sesje, Sanctum (stateful API), CORS wyłączony, utwardzone `.htaccess`/`.user.ini`, `PhpSecurity` + `EnsureSecureRuntime` + `basemind:security-check`, `SecurityHeaders`, `/api/health`. 21 testów OK, Pint OK. | Autor commitów, e-mail właściciela, decyzja o `api/CLAUDE.md`; potem VirtualHost i `web/`. |
+| 2026-11-03 | Autor git: Marcin Wójcik <mgrnewsl@gmail.com>; e-mail alertów = ten sam. Usunięte `api/CLAUDE.md`, `api/AGENTS.md`. Pierwsze commity. | VirtualHost Apache `localhost:8080`, potem `web/` (React PWA). |

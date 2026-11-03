@@ -1,0 +1,34 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Node / frontend
+node_modules/
+web/dist/
+*.log
+.pnpm-store/
+coverage/
+playwright-report/
+test-results/
+
+# Laravel (api/ has its own .gitignore as well)
+api/vendor/
+api/storage/*.key
+api/.phpunit.result.cache
+
+# Built PWA copied into Laravel public/
+api/public/assets/
+api/public/index.html
+api/public/sw.js
+api/public/manifest.webmanifest
+api/public/workbox-*.js
