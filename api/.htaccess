@@ -1,0 +1,19 @@
+# BaseMind — fallback for hosting where the document root CANNOT be set to public/.
+# Everything is routed into public/; nothing outside it (.env, storage, vendor,
+# app code) is ever served. When the document root IS public/, this file is unused.
+
+Options -Indexes
+
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Without mod_rewrite we cannot route safely -> deny everything.
+<IfModule !mod_rewrite.c>
+    Require all denied
+</IfModule>
