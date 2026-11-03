@@ -11,15 +11,27 @@
 
 ---
 
-## Stan bieżący
+## Stan bieżący (ostatnia sesja: 2026-11-04)
 
-- **Faza:** Etap 0 — decyzje zatwierdzone, środowisko prawie gotowe.
-- **Zrobione ostatnio:** krok 0.3 punkty 1–2: repozytorium git, Laravel 13 w `api/` z konfiguracją MySQL, utwardzeniem PHP/Apache, kontrolą wersji PHP, nagłówkami bezpieczeństwa, `/api/health` i testami (21/21 OK). MariaDB związana z 127.0.0.1.
-- **Czeka na użytkownika:** nic — gotowe do kolejnego kroku.
-- **Następny krok:** `web/` (React + Vite + TS + Tailwind + shadcn/ui + PWA) z ekranem „Dziś” i dolną nawigacją → test na telefonie przez USB. Przed startem zapytać o zgodę.
-- **Jak uruchomić lokalnie:** panel XAMPP → Start Apache + MySQL → `http://localhost:8080/api/health`.
-- **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia MariaDB tylko na czas pracy (testy, migracje) i ją zatrzymuje.
-- **Kod:** `api/` (Laravel). `web/` jeszcze nie istnieje.
+- **Faza:** Etap 0 — decyzje zatwierdzone (0.1), środowisko gotowe (0.2), **backend gotowy i przetestowany** (część 0.3). Frontend jeszcze nie istnieje.
+- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>.
+- **Zrobione:** dokumentacja; Laravel 13.40 w `api/` (MySQL, Sanctum, utwardzenie PHP/Apache, kontrola luk PHP, nagłówki, `/api/health`, 21 testów OK); Apache VirtualHost `127.0.0.1:8080` → `api/public`; testy HTTP reguł dostępu (brak wycieku plików).
+- **Czeka na użytkownika:** nic. Użytkownik zakończył sesję i poprosił, by frontend zacząć **następnym razem**.
+- **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje.
+
+### ▶ Wznowienie pracy — od czego zacząć następną sesję
+1. Przeczytać `projekt.md` (szczególnie pkt 0, 3, 8, 14 „Konfiguracja poza repozytorium”, 15 „Pułapki”) i ten plik.
+2. Szybko sprawdzić stan: `git status`, `git log --oneline -5`, czy XAMPP (Apache + MySQL) działa → `http://localhost:8080/api/health` zwraca `{"status":"ok",...}`; testy: `cd api && php artisan test` (wymaga działającej MariaDB).
+3. **Zapytać użytkownika o zgodę** i zacząć **krok 0.3 — frontend `web/`**:
+   - `pnpm create vite web --template react-ts` (lub równoważnie ręcznie), Tailwind v4, shadcn/ui, TanStack Router, vite-plugin-pwa (`injectManifest`), font Inter, akcent indygo, tryb jasny/ciemny,
+   - Vite dev server `localhost:5173` z proxy `/api`, `/sanctum`, `/s` → `http://localhost:8080`,
+   - build do `api/public/` + fallback SPA w Laravelu (`routes/web.php`: wszystko poza `/api`, `/sanctum`, `/s` → `index.html`) + usunięcie strony powitalnej Laravela,
+   - CSP dla HTML aplikacji (TODO w `SecurityHeaders`),
+   - ekran „Dziś” (pusty szkielet), dolna nawigacja (Dziś · Zadania · [+] · Kalendarz · Więcej), strona „Więcej” z siatką modułów,
+   - ESLint + Prettier + Vitest.
+4. **Test na telefonie przez USB** — poprosić użytkownika o: włączenie opcji programistycznych i debugowania USB na Androidzie, podłączenie kabla, zgodę na komputerze; potem Chrome `chrome://inspect` → Port forwarding `5173 → localhost:5173`, na telefonie `http://localhost:5173`.
+5. Potem: 0.4 design system → pokaz użytkownikowi → Etap 1.
+6. Po sesji: zaktualizować ten plik („Stan bieżący”, checklisty, „Dziennik zmian”), commit i `git push`.
 
 ---
 
@@ -27,7 +39,7 @@
 
 | Etap | Nazwa | Zakres | Status |
 |---|---|---|---|
-| 0 | Przygotowanie | Decyzje, środowisko, szkielet (Laravel + React PWA), design system | 🟡 w trakcie |
+| 0 | Przygotowanie | Decyzje, środowisko, szkielet (Laravel + React PWA), design system | 🟡 w trakcie (backend ✅, frontend ⬜, design ⬜) |
 | 1 | Fundament | Auth, przestrzenie, szyfrowanie, PWA, offline + sync, nawigacja, wyszukiwanie, tagi/powiązania, przypomnienia, dashboard (szkielet) | ⬜ |
 | 2 | Codzienność | Zadania, kalendarz, notatki Markdown z backlinkami, szybka notatka | ⬜ |
 | 3 | Pieniądze | Finanse (portfele, kategorie, transakcje, raporty, wykresy, budżety), subskrypcje | ⬜ |
@@ -94,7 +106,9 @@
 - [ ] `web/` — Vite + React + TS, Tailwind v4, shadcn/ui, TanStack Router, vite-plugin-pwa (manifest + SW „hello world”).
 - [ ] Proxy Vite → Apache (`/api`, `/sanctum`, `/s`); build do `api/public/`; fallback SPA w Laravelu.
 - [ ] ESLint + Prettier + `tsc` + Vitest (web); Pint + Larastan + Pest (api).
-- [ ] README: uruchomienie lokalne od zera (XAMPP, Composer, pnpm, `schedule:work`, Mailpit, telefon po USB).
+- [~] `README.md` (główny) — utworzony: uruchomienie backendu od zera po sklonowaniu. Do uzupełnienia po powstaniu `web/` (pnpm, dev server, build, telefon po USB).
+- [x] `CLAUDE.md` (główny) — krótki wskaźnik dla Claude: zasady współpracy + „czytaj `projekt.md` i `plan.md`”.
+- [x] Repozytorium zdalne: `origin` = https://github.com/mwojcik7/BaseMind.git, wypchnięta gałąź `main`.
 
 ### 0.4 Design system
 - [ ] Tokeny: kolory (jasny/ciemny, akcent indygo), typografia (Inter), odstępy, promienie, cienie.
@@ -363,3 +377,4 @@
 | 2026-11-03 | `bind-address=127.0.0.1` dla MariaDB. `git init` + `.gitignore`/`.gitattributes` (commit czeka na autora). Laravel 13.40 w `api/`: MySQL, argon2id, szyfrowane sesje, Sanctum (stateful API), CORS wyłączony, utwardzone `.htaccess`/`.user.ini`, `PhpSecurity` + `EnsureSecureRuntime` + `basemind:security-check`, `SecurityHeaders`, `/api/health`. 21 testów OK, Pint OK. | Autor commitów, e-mail właściciela, decyzja o `api/CLAUDE.md`; potem VirtualHost i `web/`. |
 | 2026-11-03 | Autor git: Marcin Wójcik <mgrnewsl@gmail.com>; e-mail alertów = ten sam. Usunięte `api/CLAUDE.md`, `api/AGENTS.md`. Pierwsze commity. | VirtualHost Apache `localhost:8080`, potem `web/` (React PWA). |
 | 2026-11-04 | VirtualHost Apache `127.0.0.1:8080` → `api/public` (kopie konfiguracji XAMPP). Poprawki `.htaccess` (`php_module`, bez duplikatów nagłówków, `DirectorySlash Off` w trybie awaryjnym). Testy HTTP reguł dostępu w obu trybach (docroot `public/` i cały `api/`) — brak wycieku plików. | `web/` (React PWA) + test na telefonie. |
+| 2026-11-04 | Przygotowanie do przerwy: sekcja „Wznowienie pracy” w `plan.md`; w `projekt.md` pkt 14 (konfiguracja poza repo — XAMPP, PATH, `.env`) i 15 (pułapki); `README.md` i `CLAUDE.md` w katalogu głównym; remote `origin` → GitHub, push `main`. | Następna sesja: frontend `web/` (krok 0.3) — po zgodzie użytkownika. |

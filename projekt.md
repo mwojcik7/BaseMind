@@ -175,7 +175,7 @@ Kluczowe cechy:
 | Testy | Pest (PHP), Vitest (front), Playwright (e2e, emulacja mobile) | |
 | Jakość | Laravel Pint, Larastan (PHPStan); ESLint + Prettier + `tsc` | |
 
-### 3.3 Środowisko lokalne (Windows 11) — stan na 2026-11-03
+### 3.3 Środowisko lokalne (Windows 11) — stan na 2026-11-04
 
 | Narzędzie | Stan | Ścieżka / uwagi |
 |---|---|---|
@@ -189,13 +189,16 @@ Kluczowe cechy:
 | Mailpit | — | na razie nie; lokalnie `MAIL_MAILER=log` (decyzja użytkownika) |
 | php.ini XAMPP | ✅ utwardzony | `expose_php=Off`, `fatal_error_backtraces = Off`, `session.upload_progress.enabled = Off`; kopia `php.ini.bak-basemind-20261103` |
 | Bazy danych | ✅ | `basemind`, `basemind_test` (utf8mb4_unicode_ci); lokalnie użytkownik `root` bez hasła |
+| MariaDB `my.ini` | ✅ | `bind-address="127.0.0.1"` (tylko lokalnie); kopia `my.ini.bak-basemind-20261103` |
+| Apache | ✅ 2.4.65 | VirtualHost `127.0.0.1:8080` → `api/public`, `Require local`; PHP jako `php_module` (mod_php) |
+| Laravel | ✅ 13.40.0 | w `api/`; Sanctum 4.3 |
 | Docker | — | niepotrzebny |
 | adb | — | niepotrzebny (Chrome ma wbudowane przekierowanie portów) |
 
 > Uwaga: nowe wpisy w PATH działają w **nowo otwartych** terminalach.
 
-**Konfiguracja lokalna (plan):**
-- Apache (XAMPP): VirtualHost na porcie **8080** → `BaseMind/api/public` (ustalone).
+**Konfiguracja lokalna:**
+- Apache (XAMPP): VirtualHost **`127.0.0.1:8080`** → `BaseMind/api/public` ✅ (szczegóły i treść konfiguracji: pkt 14).
 - Vite dev server na `localhost:5173` z proxy `/api`, `/sanctum`, `/s` → `localhost:8080`.
 - Telefon: USB + debugowanie USB na telefonie + Chrome na PC `chrome://inspect` → Port forwarding `5173 → localhost:5173` (i `8080` jeśli potrzebne). Na telefonie `http://localhost:5173` — to „bezpieczny kontekst”, więc Service Worker i push działają bez certyfikatu.
 - Harmonogram lokalnie: `php artisan schedule:work` w osobnym terminalu.
@@ -403,7 +406,8 @@ BaseMind/
 ├─ projekt.md              ← ten plik
 ├─ plan.md                 ← plan i postęp
 ├─ README.md               ← jak uruchomić lokalnie i wdrożyć
-├─ .gitignore
+├─ CLAUDE.md               ← wskaźnik dla Claude (zasady + czytaj projekt.md/plan.md)
+├─ .gitignore, .gitattributes
 ├─ api/                    ← Laravel (backend; na hostingu: katalog aplikacji)
 │  ├─ app/
 │  │  ├─ Casts/            ← SodiumEncrypted, SodiumEncryptedJson
@@ -499,3 +503,76 @@ Hosting musi zapewniać:
 | 2026-11-03 | Lokalny backend: `localhost:8080` | Użytkownik |
 | 2026-11-03 | Lokalna baza: root bez hasła (tylko dev); produkcja — dedykowany użytkownik z hasłem | Użytkownik |
 | 2026-11-03 | Utwardzenie php.ini XAMPP (zgodność z produkcją) | Użytkownik / Claude |
+| 2026-11-03 | MariaDB `bind-address=127.0.0.1` | Użytkownik |
+| 2026-11-03 | Usunięte `api/CLAUDE.md` i `api/AGENTS.md` z instalatora Laravela (Laravel Boost) — nie instalujemy Boost; wytyczne w `projekt.md`/`plan.md` | Użytkownik |
+| 2026-11-03 | Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>; e-mail alertów bezpieczeństwa: ten sam | Użytkownik |
+| 2026-11-04 | Apache VirtualHost `127.0.0.1:8080` → `api/public` | Użytkownik |
+| 2026-11-04 | Repozytorium zdalne: https://github.com/mwojcik7/BaseMind.git (gałąź `main`) | Użytkownik |
+| 2026-11-04 | Frontend (`web/`) zaczynamy w następnej sesji | Użytkownik |
+
+---
+
+## 14. Konfiguracja poza repozytorium (do odtworzenia na nowym komputerze)
+
+Te zmiany są w plikach XAMPP i systemu, **nie ma ich w git**. Przy reinstalacji XAMPP / nowym komputerze trzeba je powtórzyć.
+
+**1. `C:\xampp\php\php.ini`** (kopia oryginału: `php.ini.bak-basemind-20261103`):
+```ini
+expose_php=Off
+fatal_error_backtraces = Off
+session.upload_progress.enabled = Off   ; XAMPP miał to już ustawione
+```
+
+**2. `C:\xampp\mysql\bin\my.ini`** (kopia: `my.ini.bak-basemind-20261103`), sekcja `[mysqld]`:
+```ini
+bind-address="127.0.0.1"
+```
+
+**3. `C:\xampp\apache\conf\httpd.conf`** (kopia: `httpd.conf.bak-basemind-20261104`), zaraz po `Listen 80`:
+```apache
+# BaseMind (local only)
+Listen 127.0.0.1:8080
+```
+
+**4. `C:\xampp\apache\conf\extra\httpd-vhosts.conf`** (kopia: `httpd-vhosts.conf.bak-basemind-20261104`), na końcu:
+```apache
+<VirtualHost 127.0.0.1:8080>
+    ServerName localhost
+    DocumentRoot "C:/Users/Praca/Documents/Kodowanie/BaseMind/api/public"
+    <Directory "C:/Users/Praca/Documents/Kodowanie/BaseMind/api/public">
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require local
+    </Directory>
+    ErrorLog "logs/basemind-error.log"
+    CustomLog "logs/basemind-access.log" common
+</VirtualHost>
+```
+
+**5. Bazy danych** (MariaDB, root bez hasła):
+```sql
+CREATE DATABASE basemind CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE basemind_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+**6. Narzędzia i PATH użytkownika:** Composer w `%LOCALAPPDATA%\Programs\composer\` (`composer.phar` + `composer.bat` wywołujący `C:\xampp\php\php.exe`); pnpm: `npm install -g pnpm`; do PATH użytkownika dodane `%LOCALAPPDATA%\Programs\composer` i `C:\xampp\php`.
+
+**7. Pliki tylko lokalne w projekcie (w `.gitignore`):** `api/.env` (zawiera `APP_KEY` — **bez niego nie odczytamy zaszyfrowanych sesji/cookies**; później także `SODIUM_KEY` — **utrata = utrata zaszyfrowanych danych**, trzymać kopię w menedżerze haseł), `api/vendor/`, `node_modules/`.
+Po świeżym `git clone`: `cd api && composer install && copy .env.example .env && php artisan key:generate && php artisan migrate` (+ uzupełnić `BASEMIND_OWNER_EMAIL`).
+
+**8. Git (lokalnie w repo):** `user.name = Marcin Wójcik`, `user.email = mgrnewsl@gmail.com`; `origin` = https://github.com/mwojcik7/BaseMind.git.
+
+---
+
+## 15. Pułapki i wnioski z dotychczasowej pracy
+
+- **`php artisan install:api` (i inne komendy artisan wywołujące Composera) nie działają na tym Windows** — artisan szuka Composera pod złą ścieżką. Obejście: wykonać krok ręcznie (`composer require …` + `php artisan vendor:publish …`).
+- **Composer w PowerShell:** wywoływać `composer` (z PATH, w nowym terminalu) lub pełną ścieżką `& "$env:LOCALAPPDATA\Programs\composer\composer.bat"`. W Git Bash `php` z XAMPP jest w PATH.
+- **Testy (`php artisan test`) wymagają uruchomionej MariaDB** (baza `basemind_test`, nie SQLite — dla zgodności z produkcją).
+- **Moduł PHP w Apache XAMPP to `php_module`** — w `.htaccess` używać `<IfModule php_module>`, nie `mod_php.c`. `.user.ini` działa tylko pod CGI/FPM, `php_flag` w `.htaccess` tylko pod mod_php — dlatego mamy oba.
+- **`Header always set` w `.htaccess` dubluje nagłówki ustawione przez PHP** — używać `Header set`.
+- **Instalator Laravela tworzy `CLAUDE.md`/`AGENTS.md` (Laravel Boost)** — usunięte; nie odtwarzać bez zgody użytkownika.
+- **Pobieranie programów z internetu (np. Mailpit) może zostać zablokowane** przez zabezpieczenia sesji Claude — wtedy poprosić użytkownika o ręczne pobranie lub zgodę.
+- **MariaDB nasłuchuje tylko na 127.0.0.1** — łączyć się przez `127.0.0.1`, nie `::1`/`localhost` z IPv6.
+- `max_allowed_packet=1M` w `my.ini` — może trzeba podnieść przy synchronizacji (Etap 1.4).
+- Na hostingu: zweryfikować wariant document root (najlepiej `api/public`; awaryjnie cały `api/` — przetestowany lokalnie, bezpieczny).
