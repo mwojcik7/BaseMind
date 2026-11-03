@@ -16,7 +16,8 @@
 - **Faza:** Etap 0 — decyzje zatwierdzone, środowisko prawie gotowe.
 - **Zrobione ostatnio:** krok 0.3 punkty 1–2: repozytorium git, Laravel 13 w `api/` z konfiguracją MySQL, utwardzeniem PHP/Apache, kontrolą wersji PHP, nagłówkami bezpieczeństwa, `/api/health` i testami (21/21 OK). MariaDB związana z 127.0.0.1.
 - **Czeka na użytkownika:** nic — gotowe do kolejnego kroku.
-- **Następny krok:** VirtualHost Apache `localhost:8080` → potem `web/` (React PWA) → test na telefonie. Przed startem zapytać o zgodę.
+- **Następny krok:** `web/` (React + Vite + TS + Tailwind + shadcn/ui + PWA) z ekranem „Dziś” i dolną nawigacją → test na telefonie przez USB. Przed startem zapytać o zgodę.
+- **Jak uruchomić lokalnie:** panel XAMPP → Start Apache + MySQL → `http://localhost:8080/api/health`.
 - **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia MariaDB tylko na czas pracy (testy, migracje) i ją zatrzymuje.
 - **Kod:** `api/` (Laravel). `web/` jeszcze nie istnieje.
 
@@ -85,7 +86,11 @@
 - [x] CORS wyłączony (`config/cors.php`: `allowed_origins => []`) — PWA i API na tej samej domenie (dev: proxy Vite).
 - [x] Testy (PHPUnit, baza `basemind_test` na MariaDB — **MariaDB musi być uruchomiona**): `tests/Unit/PhpSecurityTest.php`, `tests/Feature/HealthAndSecurityTest.php` — 21 testów OK; Pint OK.
 - [x] Usunięte `api/CLAUDE.md` i `api/AGENTS.md` (instrukcje Laravel Boost z instalatora) — decyzja użytkownika; wytyczne trzymamy w `projekt.md` i `plan.md`.
-- [ ] VirtualHost Apache `localhost:8080` → `api/public` (kopie `httpd.conf`, `httpd-vhosts.conf`) + test `.htaccess` (np. `/.env`, `/.user.ini` → 403).
+- [x] VirtualHost Apache **`127.0.0.1:8080`** → `api/public` (`Require local`, logi `logs/basemind-*.log`). Zmiany: `httpd.conf` (+`Listen 127.0.0.1:8080` po linii `Listen 80`), `extra/httpd-vhosts.conf` (+blok BaseMind); kopie `*.bak-basemind-20261104`. Port niedostępny z sieci LAN (sprawdzone).
+- [x] Poprawka `.htaccess`: Apache z XAMPP ładuje PHP jako `php_module` → `<IfModule php_module>` (wcześniej `mod_php.c` nie pasowało). Nagłówki dla plików statycznych przez `Header set` (bez duplikatów z nagłówkami aplikacji).
+- [x] Test reguł (docroot = `public/`): `/api/health` 200; `/.env`, `/.user.ini`, `/.htaccess`, `/.git/config`, `/info.php`, `/storage/logs/laravel.log`, `/%2e%2e/.env` → 403; `/.well-known/acme-challenge/*` → 200 (SSL), `/.well-known/.hidden` → 403.
+- [x] Test trybu awaryjnego (docroot = cały `api/`, tymczasowy vhost 8081 — usunięty po teście): `.env`, `.env.example`, `.git`, logi → 403; `composer.json`, `artisan`, `config/`, `app/`, `vendor/`, `phpunit.xml` → 404 (Laravel); `/api/health` działa. Dodane `DirectorySlash Off` w `api/.htaccess` (301 zdradzało istnienie katalogów).
+- [ ] Na później: Laravelowa strona powitalna pod `/` zostanie zastąpiona przez PWA (fallback SPA).
 - [ ] `web/` — Vite + React + TS, Tailwind v4, shadcn/ui, TanStack Router, vite-plugin-pwa (manifest + SW „hello world”).
 - [ ] Proxy Vite → Apache (`/api`, `/sanctum`, `/s`); build do `api/public/`; fallback SPA w Laravelu.
 - [ ] ESLint + Prettier + `tsc` + Vitest (web); Pint + Larastan + Pest (api).
@@ -357,3 +362,4 @@
 | 2026-11-03 | Mail lokalnie przez `log` (bez Mailpit). Utwardzony `php.ini` (z kopią). Utworzone bazy `basemind`, `basemind_test`; lokalnie root bez hasła. Ustalony adres backendu `localhost:8080`. | Szkielet projektu (0.3) — po zgodzie użytkownika. |
 | 2026-11-03 | `bind-address=127.0.0.1` dla MariaDB. `git init` + `.gitignore`/`.gitattributes` (commit czeka na autora). Laravel 13.40 w `api/`: MySQL, argon2id, szyfrowane sesje, Sanctum (stateful API), CORS wyłączony, utwardzone `.htaccess`/`.user.ini`, `PhpSecurity` + `EnsureSecureRuntime` + `basemind:security-check`, `SecurityHeaders`, `/api/health`. 21 testów OK, Pint OK. | Autor commitów, e-mail właściciela, decyzja o `api/CLAUDE.md`; potem VirtualHost i `web/`. |
 | 2026-11-03 | Autor git: Marcin Wójcik <mgrnewsl@gmail.com>; e-mail alertów = ten sam. Usunięte `api/CLAUDE.md`, `api/AGENTS.md`. Pierwsze commity. | VirtualHost Apache `localhost:8080`, potem `web/` (React PWA). |
+| 2026-11-04 | VirtualHost Apache `127.0.0.1:8080` → `api/public` (kopie konfiguracji XAMPP). Poprawki `.htaccess` (`php_module`, bez duplikatów nagłówków, `DirectorySlash Off` w trybie awaryjnym). Testy HTTP reguł dostępu w obu trybach (docroot `public/` i cały `api/`) — brak wycieku plików. | `web/` (React PWA) + test na telefonie. |

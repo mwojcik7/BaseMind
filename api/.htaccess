@@ -4,6 +4,12 @@
 
 Options -Indexes
 
+# Don't let mod_dir answer "301 add a slash" for real directories outside
+# public/ (it would reveal that e.g. /database/migrations exists).
+<IfModule mod_dir.c>
+    DirectorySlash Off
+</IfModule>
+
 <FilesMatch "^\.">
     Require all denied
 </FilesMatch>
