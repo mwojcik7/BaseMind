@@ -1,5 +1,7 @@
 import { format } from 'date-fns'
 import { pl as dateLocale } from 'date-fns/locale'
+import { PageHeader } from '@/components/PageHeader'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { pl } from '@/i18n/pl'
 
 const SECTIONS = [
@@ -14,15 +16,17 @@ export function TodayPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">{pl.nav.today}</h1>
-      <p className="mt-1 text-sm text-muted-foreground first-letter:uppercase">{date}</p>
-
+      <PageHeader title={pl.nav.today} description={date} />
       <div className="mt-6 flex flex-col gap-3">
         {SECTIONS.map(({ title, empty }) => (
-          <section key={title} className="rounded-lg bg-card p-4 text-card-foreground">
-            <h2 className="text-sm font-semibold">{title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{empty}</p>
-          </section>
+          <Card key={title}>
+            <CardHeader>
+              <CardTitle>
+                <h2 className="text-sm font-semibold">{title}</h2>
+              </CardTitle>
+              <CardDescription>{empty}</CardDescription>
+            </CardHeader>
+          </Card>
         ))}
       </div>
     </>

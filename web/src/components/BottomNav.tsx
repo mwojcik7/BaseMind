@@ -38,7 +38,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label={pl.nav.label}
-      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-40 border-t lg:hidden bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
       <div className="mx-auto grid max-w-2xl grid-cols-5 items-center">
         <NavLink to="/" label={pl.nav.today} icon={Sun} exact />

@@ -1,5 +1,5 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { createAppRouter } from '@/app/router'
@@ -15,16 +15,37 @@ function heading(name: string) {
   return screen.findByRole('heading', { level: 1, name })
 }
 
+// Both navigations are in the document: CSS shows one of them, and tests don't load CSS.
+function bottomNav() {
+  return within(screen.getByRole('navigation', { name: pl.nav.label }))
+}
+
+function sidebar() {
+  return within(screen.getByRole('navigation', { name: pl.nav.sidebar }))
+}
+
+function page() {
+  return within(screen.getByRole('main'))
+}
+
 describe('app shell', () => {
   it('starts on the today screen with all navigation entries', async () => {
     renderAt('/')
 
     expect(await heading(pl.nav.today)).toBeInTheDocument()
-    const nav = within(screen.getByRole('navigation'))
     for (const name of [pl.nav.today, pl.nav.tasks, pl.nav.calendar, pl.nav.more]) {
-      expect(nav.getByRole('link', { name })).toBeInTheDocument()
+      expect(bottomNav().getByRole('link', { name })).toBeInTheDocument()
     }
-    expect(nav.getByRole('button', { name: pl.nav.add })).toBeInTheDocument()
+    expect(bottomNav().getByRole('button', { name: pl.nav.add })).toBeInTheDocument()
+  })
+
+  it('lists every module and the settings in the desktop sidebar', async () => {
+    renderAt('/')
+    await heading(pl.nav.today)
+
+    for (const name of [pl.nav.today, pl.modules.finance, pl.modules.files, pl.settings.title]) {
+      expect(sidebar().getByRole('link', { name })).toBeInTheDocument()
+    }
   })
 
   it('navigates from the module grid to a module placeholder', async () => {
@@ -32,8 +53,8 @@ describe('app shell', () => {
     renderAt('/')
     await heading(pl.nav.today)
 
-    await user.click(screen.getByRole('link', { name: pl.nav.more }))
-    await user.click(await screen.findByRole('link', { name: pl.modules.finance }))
+    await user.click(bottomNav().getByRole('link', { name: pl.nav.more }))
+    await user.click(await page().findByRole('link', { name: pl.modules.finance }))
 
     expect(await heading(pl.modules.finance)).toBeInTheDocument()
     expect(screen.getByText(pl.module.comingSoon(3))).toBeInTheDocument()
@@ -44,18 +65,41 @@ describe('app shell', () => {
     renderAt('/')
     await heading(pl.nav.today)
 
-    await user.click(screen.getByRole('button', { name: pl.nav.add }))
+    await user.click(bottomNav().getByRole('button', { name: pl.nav.add }))
     expect(screen.getByRole('dialog', { name: pl.quickAdd.title })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: pl.quickAdd.close }))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: pl.common.close }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('opens the search from the bar and with Ctrl+K', async () => {
+    const user = userEvent.setup()
+    renderAt('/')
+    await heading(pl.nav.today)
+
+    await user.click(screen.getByRole('button', { name: new RegExp(pl.search.placeholder) }))
+    expect(screen.getByRole('dialog', { name: pl.search.title })).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    expect(await screen.findByRole('dialog', { name: pl.search.title })).toBeInTheDocument()
   })
 
   it('opens a module directly from its top-level URL', async () => {
     renderAt('/notes')
 
     expect(await heading(pl.modules.notes)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: pl.nav.more })).toHaveAttribute('data-force-active')
+    expect(bottomNav().getByRole('link', { name: pl.nav.more })).toHaveAttribute(
+      'data-force-active',
+    )
+  })
+
+  it('shows the design system preview', async () => {
+    renderAt('/design')
+
+    expect(await heading('Design system')).toBeInTheDocument()
   })
 
   it('shows not found for an unknown module id', async () => {
@@ -71,8 +115,9 @@ describe('app shell', () => {
   it('changes and remembers the theme from the settings screen', async () => {
     const user = userEvent.setup()
     renderAt('/more')
+    await heading(pl.nav.more)
 
-    await user.click(await screen.findByRole('link', { name: pl.settings.title }))
+    await user.click(page().getByRole('link', { name: pl.settings.title }))
     const system = await screen.findByRole('radio', { name: pl.settings.themes.system })
     expect(system).toBeChecked()
 

@@ -1,12 +1,13 @@
 import { Link } from '@tanstack/react-router'
 import { ChevronRight, Settings } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
 import { pl } from '@/i18n/pl'
 import { gridModules } from '@/modules/registry'
 
 export function MorePage() {
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">{pl.nav.more}</h1>
+      <PageHeader title={pl.nav.more} />
       <div className="mt-6 grid grid-cols-3 gap-3 sm:grid-cols-4">
         {gridModules.map(({ id, icon: Icon }) => (
           <Link

@@ -345,7 +345,7 @@ Kluczowe cechy:
 
 - **Styl:** minimalistyczny, „spokojny”, inspirowany Linear / Things 3 / Notion. Dużo przestrzeni, mało ramek, hierarchia przez typografię.
 - **Kolory:** neutralna skala szarości (zinc) + **jeden kolor akcentu: niebieski `#2563EB`** (tekst i ikony: `#1D4ED8` w jasnym, `#93C5FD` w ciemnym). Semantyczne: zielony = wpływy/zrobione, czerwony = wydatki/zaległe, bursztynowy = ostrzeżenia.
-- **Każdy moduł ma subtelny kolor i ikonę** (tylko w akcentach).
+- **Każdy moduł ma własną ikonę**; kolor akcentu jest wspólny (bez osobnych kolorów modułów, żeby nie myliły się ze statusami).
 - **Tryb jasny i ciemny** (domyślnie zgodny z systemem), ciemny bliski czerni (OLED).
 - **Typografia:** Inter, cyfry tabelaryczne w kwotach.
 - **Kształty:** zaokrąglenia 12–16 px, delikatne cienie tylko na elementach wyniesionych.
@@ -513,6 +513,8 @@ Hosting musi zapewniać:
 | 2026-11-04 | `cn` (oficjalny pakiet autora shadcn, instalowany przez CLI) zamiast `clsx` + `tailwind-merge` | Claude (do oceny użytkownika) |
 | 2026-11-04 | Adresy URL po angielsku i bez przedrostka `/more` (`/tasks`, `/notes`, `/finance`) | Użytkownik |
 | 2026-11-04 | Wybór motywu w ustawieniach: zgodny z systemem / jasny / ciemny; na razie zapamiętany na urządzeniu (`localStorage`), synchronizacja z `user_settings` w Etapie 1 | Użytkownik / Claude |
+| 2026-11-04 | Dodatkowe biblioteki UI: `sonner` (powiadomienia), `react-day-picker` (kalendarz, przez shadcn), `tw-animate-css` (animacje shadcn); arkusz od dołu własny (Radix + `motion`) zamiast `vaul` | Claude (do oceny użytkownika) |
+| 2026-11-04 | Jeden kolor akcentu dla całej aplikacji, bez osobnych kolorów modułów | Użytkownik |
 | 2026-11-04 | Kolor akcentu: niebieski `#2563EB` zamiast indygo (nie myli się z kolorami statusów) | Użytkownik |
 | 2026-11-04 | Moduł lokalizatora w UI nazywa się „Lokalizator rzeczy” (samo „Lokalizator” mogło mylić) | Użytkownik |
 | 2026-11-04 | Usunięte nieużywane pliki frontendu Laravela (`api/package.json`, `api/vite.config.js`, `api/resources/js`, `api/resources/css`) — frontend jest w `web/` | Użytkownik |
@@ -584,6 +586,9 @@ Po świeżym `git clone`: `cd api && composer install && copy .env.example .env 
 - **Pobieranie programów z internetu (np. Mailpit) może zostać zablokowane** przez zabezpieczenia sesji Claude — wtedy poprosić użytkownika o ręczne pobranie lub zgodę.
 - **Nie używać ścieżki `/icons/`:** domyślna konfiguracja Apache (XAMPP i wiele hostingów) ma `Alias /icons/` na własny katalog, więc pliki z `public/icons` zwracają 404. Ikony PWA są w `/app-icons/`.
 - **`shadcn add` czyta alias `@/*` z głównego `web/tsconfig.json`** — bez wpisu `paths` tworzy dosłowny katalog `web/@/`.
+- **`shadcn add` przerywa się bez komunikatu, gdy pyta o nadpisanie istniejącego pliku** (flaga `--yes` tego nie obejmuje) i pomija kolejne komponenty. Po dodaniu sprawdzić listę plików; odpowiedź można podać przez potok: `'n' | pnpm dlx shadcn@latest add ...`.
+- **Nowe komponenty shadcn mają rozmiary pod myszkę (`h-9`)** — dostosować do 44 px, a teksty (np. „Close”) przenieść do `src/i18n/pl.ts`.
+- **Git w PowerShell 5.1 gubi cudzysłowy w treści commita** — nie używać `"` w opisach.
 - **Nie czyścić `api/public/` przy buildzie w całości** (są tam `index.php`, `.htaccess`) — tylko `web/scripts/clean-build.mjs` z jawną listą.
 - **MariaDB nasłuchuje tylko na 127.0.0.1** — łączyć się przez `127.0.0.1`, nie `::1`/`localhost` z IPv6.
 - `max_allowed_packet=1M` w `my.ini` — może trzeba podnieść przy synchronizacji (Etap 1.4).

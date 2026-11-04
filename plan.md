@@ -13,11 +13,11 @@
 
 ## Stan bieżący (ostatnia sesja: 2026-11-04)
 
-- **Faza:** Etap 0 — decyzje zatwierdzone (0.1), środowisko gotowe (0.2), **backend i frontend `web/` gotowe, test na Samsungu S25 Ultra zaakceptowany przez użytkownika** (0.3). Następny jest design system (0.4).
+- **Faza:** Etap 0 — decyzje zatwierdzone (0.1), środowisko gotowe (0.2), **backend i frontend `web/` gotowe, test na Samsungu S25 Ultra zaakceptowany przez użytkownika** (0.3). Design system (0.4) gotowy, czeka na ocenę na telefonie pod `/design`. Potem Etap 1.
 - **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>.
 - **Zrobione:** dokumentacja; Laravel 13.40 w `api/` (MySQL, Sanctum, utwardzenie PHP/Apache, kontrola luk PHP, nagłówki, `/api/health`, 21 testów OK); Apache VirtualHost `127.0.0.1:8080` → `api/public`; testy HTTP reguł dostępu (brak wycieku plików).
 - **Zrobione w `web/`:** React 19 + Vite 8 + TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA (`injectManifest`), Inter, tryb jasny/ciemny wg systemu, ekrany szkieletowe, ESLint + Prettier + Vitest. Laravel serwuje powłokę PWA z CSP. Sprawdzone w Chrome z emulacją Pixel 7: brak błędów CSP, Service Worker aktywny, aplikacja działa offline.
-- **Czeka na użytkownika:** nic. Następny krok to 0.4, po zgodzie użytkownika.
+- **Czeka na użytkownika:** ocena design systemu na telefonie pod `/design`.
 - **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje.
 
 ### ▶ Wznowienie pracy — od czego zacząć następną sesję
@@ -102,20 +102,23 @@
 - [x] Ekrany szkieletowe: „Dziś”, „Zadania”, „Kalendarz”, „Więcej” z siatką modułów, strona zastępcza modułu pod własnym adresem (`/notes`, `/finance`…), dolna nawigacja, arkusz [+] (na razie informacyjny; właściwy w 1.10).
 - [x] „Ustawienia” (`/settings`) z wyborem motywu: system / jasny / ciemny. Zapis w `localStorage`, `public/theme-init.js` ustawia motyw przed pierwszym renderem (CSP zabrania skryptów inline). Synchronizacja z `user_settings` — Etap 1.
 - [x] Proxy Vite → Apache (`/api`, `/sanctum`, `/s/`); build do `api/public/` (czyszczenie: `web/scripts/clean-build.mjs`, tylko jawna lista plików); fallback SPA w Laravelu.
-- [~] ESLint + Prettier + `tsc` + Vitest (web) — zrobione, 14 testów OK. Pint jest; Larastan i Pest (api) — do zrobienia (testy api na razie w PHPUnit, 39 OK).
+- [~] ESLint + Prettier + `tsc` + Vitest (web) — zrobione, 45 testów OK. Pint jest; Larastan i Pest (api) — do zrobienia (testy api na razie w PHPUnit, 39 OK).
 - [ ] Sprawdzić nowe reguły `.htaccess` w trybie awaryjnym (docroot = cały `api/`) — testowane tylko z docroot `public/`.
 - [x] `README.md` (główny) — uruchomienie backendu i frontendu, build, telefon po USB.
 - [x] `CLAUDE.md` (główny) — krótki wskaźnik dla Claude: zasady współpracy + „czytaj `projekt.md` i `plan.md`”.
 - [x] Repozytorium zdalne: `origin` = https://github.com/mwojcik7/BaseMind.git, wypchnięta gałąź `main`.
 
 ### 0.4 Design system
-- [ ] Tokeny: kolory (jasny/ciemny, akcent niebieski), typografia (Inter), odstępy, promienie, cienie.
-- [ ] Komponenty: Button, Input, AmountInput, DatePicker (pl), Select, Checkbox, Switch, BottomSheet, Dialog, Toast, EmptyState, ListItem ze swipe, Card, Badge, Tabs, FAB.
-- [ ] Layout mobile: górny pasek z wyszukiwarką, dolna nawigacja (Dziś · Zadania · [+] · Kalendarz · Więcej), safe-area.
-- [ ] Layout desktop: sidebar + treść.
-- [ ] Strona „Więcej” — siatka modułów.
-- [ ] Przełącznik motywu (system/jasny/ciemny).
+- [x] Tokeny w `web/src/index.css`: kolory (jasny/ciemny przez `light-dark()`, akcent niebieski, statusy z kontrastem ≥ 4,5:1), typografia (Inter, `PageHeader`, cyfry tabelaryczne), promienie, cień `shadow-raised`, `prefers-reduced-motion`. Odstępy: skala Tailwinda.
+- [x] Komponenty w `web/src/components/ui/`: Button, Input, AmountInput (kwoty w groszach, `lib/money.ts`), DatePicker (pl, poniedziałek pierwszy, wartość `yyyy-MM-dd`), Select, Checkbox, Switch, BottomSheet (ściąganie uchwytu w dół), Dialog, Toast, EmptyState, ListItem ze swipe (akcje także jako przyciski), Card, Badge, Tabs, FAB (przycisk [+] w nawigacji). Cele dotykowe min. 44 px.
+- [x] Layout mobile: górny pasek z wyszukiwarką (na razie informacyjna; właściwa w 1.7), dolna nawigacja, safe-area.
+- [x] Layout desktop: sidebar + treść, `Ctrl+K`.
+- [x] Strona „Więcej” — siatka modułów.
+- [x] Przełącznik motywu (system/jasny/ciemny).
+- [x] Podgląd wszystkich elementów: `/design` (bez linku w aplikacji).
 - [ ] **Pokaz użytkownikowi na telefonie → poprawki wg uwag.**
+- [-] Osobny kolor każdego modułu — odrzucone przez użytkownika: jeden niebieski akcent w całej aplikacji.
+- [ ] Usunąć `/design` przed wdrożeniem (Etap 7).
 
 ---
 
@@ -378,3 +381,4 @@
 | 2026-11-04 | Przygotowanie do przerwy: sekcja „Wznowienie pracy” w `plan.md`; w `projekt.md` pkt 14 (konfiguracja poza repo — XAMPP, PATH, `.env`) i 15 (pułapki); `README.md` i `CLAUDE.md` w katalogu głównym; remote `origin` → GitHub, push `main`. | Następna sesja: frontend `web/` (krok 0.3) — po zgodzie użytkownika. |
 | 2026-11-04 | Frontend `web/` (krok 0.3): szkielet PWA, ekrany, proxy, build do `api/public/`, powłoka serwowana przez Laravela z CSP, ikony w `/app-icons/`. Testy: web 8 OK, api 38 OK; Chrome z emulacją Pixel 7: brak błędów CSP, SW aktywny, offline działa. Symfony 8.1.10 → 8.1.11 (poprawki bezpieczeństwa, `composer audit` czysty). Usunięte nieużywane pliki frontendu Laravela (`api/package.json`, `api/vite.config.js`, `api/resources/js`, `api/resources/css`) i kroki `npm` ze skryptu `composer setup`. | Test na telefonie, potem 0.4. |
 | 2026-11-04 | Uwagi użytkownika po teście na telefonie (S25 Ultra, test OK): adresy modułów bez `/more` (`/notes`), ekran „Ustawienia” z wyborem motywu, kolor akcentu niebieski `#2563EB` (także ikony PWA), nazwa „Lokalizator rzeczy”. | Design system (0.4) — po zgodzie użytkownika. |
+| 2026-11-04 | Design system (0.4): tokeny, komponenty, górny pasek z wyszukiwarką, sidebar na desktopie, podgląd `/design`. Testy: web 45 OK; Chrome z emulacją Pixel 7 i na desktopie: brak błędów CSP, arkusz, swipe, kalendarz i powiadomienia działają. Paczka startowa urosła do ok. 179 kB gzip — sprawdzić przy audycie wydajności. Decyzja użytkownika: jeden niebieski akcent, bez kolorów modułów. | Ocena użytkownika na telefonie, potem Etap 1. |

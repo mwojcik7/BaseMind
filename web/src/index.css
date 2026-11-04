@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 
 /* dark: follows the theme chosen in settings, or the system when none is chosen. */
 @custom-variant dark {
@@ -14,7 +15,7 @@
 }
 
 /*
- * Starter tokens (projekt.md, section 7). The full design system comes in step 0.4.
+ * Design tokens (projekt.md, section 7). Preview of everything: /design.
  * light-dark() picks a value from color-scheme, so the theme is set in one place below.
  */
 :root {
@@ -27,18 +28,28 @@
   --popover-foreground: light-dark(#18181b, #fafafa);
   --primary: #2563eb;
   --primary-foreground: #ffffff;
-  --secondary: light-dark(#f4f4f5, #27272a);
+  --secondary: light-dark(#e9e9ec, #27272a);
   --secondary-foreground: light-dark(#18181b, #fafafa);
   --muted: light-dark(#f4f4f5, #27272a);
-  --muted-foreground: light-dark(#71717a, #a1a1aa);
+  --muted-foreground: light-dark(#65656e, #a1a1aa);
   --accent: light-dark(#f4f4f5, #27272a);
   --accent-foreground: light-dark(#18181b, #fafafa);
-  --destructive: light-dark(#dc2626, #ef4444);
+  --destructive: #dc2626;
   --border: light-dark(#e4e4e7, #27272a);
   --input: light-dark(#e4e4e7, #27272a);
   --ring: #2563eb;
   /* Blue for text and icons: --primary itself is too dark to read on the dark background. */
   --brand-text: light-dark(#1d4ed8, #93c5fd);
+  --brand-soft: light-dark(#dbeafe, #172554);
+  /* Status colors: green = income/done, red = expense/overdue, amber = warning. */
+  --success: light-dark(#15803d, #4ade80);
+  --success-soft: light-dark(#dcfce7, #052e16);
+  --success-strong: #15803d;
+  --warning: light-dark(#854d0e, #fbbf24);
+  --warning-soft: light-dark(#fef3c7, #451a03);
+  --danger: light-dark(#b91c1c, #f87171);
+  --danger-soft: light-dark(#fee2e2, #450a0a);
+  --shadow-raised: 0 8px 24px rgb(0 0 0 / 0.16);
   --radius: 0.875rem;
 }
 
@@ -71,8 +82,17 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-brand-text: var(--brand-text);
+  --color-brand-soft: var(--brand-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-strong: var(--success-strong);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --shadow-raised: var(--shadow-raised);
   --radius-sm: calc(var(--radius) - 6px);
-  --radius-md: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 2px);
 }
@@ -85,5 +105,14 @@
   body {
     @apply bg-background text-foreground antialiased;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

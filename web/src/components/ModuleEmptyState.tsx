@@ -1,5 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { PageHeader } from '@/components/PageHeader'
+import { EmptyState } from '@/components/ui/empty-state'
 import { pl } from '@/i18n/pl'
 
 interface ModuleEmptyStateProps {
@@ -10,15 +12,11 @@ interface ModuleEmptyStateProps {
 }
 
 /** Screen for a module that does not exist yet. */
-export function ModuleEmptyState({ title, icon: Icon, stage, children }: ModuleEmptyStateProps) {
+export function ModuleEmptyState({ title, icon, stage, children }: ModuleEmptyStateProps) {
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-      <div className="mt-16 flex flex-col items-center gap-3 text-center">
-        <Icon aria-hidden className="size-10 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">{pl.module.comingSoon(stage)}</p>
-        {children}
-      </div>
+      <PageHeader title={title} />
+      <EmptyState icon={icon} description={pl.module.comingSoon(stage)} action={children} />
     </>
   )
 }

@@ -43,6 +43,13 @@ const settingsRoute = createRoute({
   component: lazyRouteComponent(() => import('@/modules/settings/SettingsPage'), 'SettingsPage'),
 })
 
+// Preview of the design system; not linked from the app. Remove before deployment (stage 7).
+const designRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/design',
+  component: lazyRouteComponent(() => import('@/modules/design/DesignPage'), 'DesignPage'),
+})
+
 // Placeholder for modules not built yet (/notes, /finance, ...). The static routes above win.
 const moduleRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -56,6 +63,7 @@ const routeTree = rootRoute.addChildren([
   calendarRoute,
   moreRoute,
   settingsRoute,
+  designRoute,
   moduleRoute,
 ])
 

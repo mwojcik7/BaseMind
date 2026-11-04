@@ -1,5 +1,6 @@
 import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
+import { PageHeader } from '@/components/PageHeader'
 import { pl } from '@/i18n/pl'
 import { getTheme, setTheme, THEMES, type Theme } from '@/lib/theme'
 
@@ -15,7 +16,7 @@ export function SettingsPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">{pl.settings.title}</h1>
+      <PageHeader title={pl.settings.title} />
 
       <fieldset className="mt-6">
         <legend className="text-sm font-semibold">{pl.settings.theme}</legend>

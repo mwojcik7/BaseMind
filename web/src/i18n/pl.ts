@@ -1,7 +1,12 @@
 // All UI copy lives here, so another language can be added later without touching components.
 export const pl = {
+  common: {
+    close: 'Zamknij',
+  },
   nav: {
     label: 'Główna nawigacja',
+    sidebar: 'Nawigacja boczna',
+    modules: 'Moduły',
     today: 'Dziś',
     tasks: 'Zadania',
     add: 'Dodaj',
@@ -21,7 +26,16 @@ export const pl = {
   quickAdd: {
     title: 'Szybkie dodawanie',
     description: 'Dodawanie zadań, wydatków i notatek pojawi się w kolejnych etapach.',
-    close: 'Zamknij',
+  },
+  search: {
+    placeholder: 'Szukaj we wszystkim',
+    title: 'Wyszukiwarka',
+    description: 'Wyszukiwanie we wszystkich modułach pojawi się w etapie 1.',
+  },
+  datePicker: {
+    placeholder: 'Wybierz datę',
+    title: 'Wybierz datę',
+    clear: 'Wyczyść datę',
   },
   module: {
     comingSoon: (stage: number) => `Ten moduł powstanie w etapie ${stage}.`,
