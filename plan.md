@@ -11,23 +11,45 @@
 
 ---
 
-## Stan bieżący (ostatnia sesja: 2026-11-04)
+## Stan bieżący (ostatnia sesja: 2026-11-05)
 
-- **Faza:** Etap 0 — decyzje zatwierdzone (0.1), środowisko gotowe (0.2), **backend i frontend `web/` gotowe, test na Samsungu S25 Ultra zaakceptowany przez użytkownika** (0.3). Design system (0.4) zaakceptowany na telefonie. **Etap 0 zamknięty, w toku Etap 1** (zaczynamy od 1.1).
-- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>.
-- **Zrobione:** dokumentacja; Laravel 13.40 w `api/` (MySQL, Sanctum, utwardzenie PHP/Apache, kontrola luk PHP, nagłówki, `/api/health`, 21 testów OK); Apache VirtualHost `127.0.0.1:8080` → `api/public`; testy HTTP reguł dostępu (brak wycieku plików).
-- **Zrobione w `web/`:** React 19 + Vite 8 + TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA (`injectManifest`), Inter, tryb jasny/ciemny wg systemu, ekrany szkieletowe, ESLint + Prettier + Vitest. Laravel serwuje powłokę PWA z CSP. Sprawdzone w Chrome z emulacją Pixel 7: brak błędów CSP, Service Worker aktywny, aplikacja działa offline.
-- **Czeka na użytkownika:** zgoda na start kroku 1.2 (szyfrowanie). Krok 1.1 zamknięty.
+- **Faza:** Etap 0 zamknięty. **Etap 1 w toku: krok 1.1 (konta, logowanie, przestrzenie) zamknięty i zaakceptowany na telefonie. Następny jest krok 1.2 (szyfrowanie).** Użytkownik zakończył sesję przed jego rozpoczęciem, czyli **1.2 nie jest zaczęty**.
+- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca jest wypchnięta.
+- **Backend (`api/`):** Laravel 13.40, Sanctum + Fortify (`/api/auth`), utwardzenie PHP/Apache, kontrola luk PHP, nagłówki z CSP, powłoka PWA serwowana przez Laravela, przestrzenie i uprawnienia, ekran sesji. 70 testów OK.
+- **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia. 79 testów OK.
+- **Dane lokalne:** w bazie `basemind` jest **prawdziwe konto użytkownika**, założone przez niego na telefonie. Nie usuwać go i nie czyścić tej bazy.
+- **Czeka na użytkownika:** zgoda na start kroku 1.2.
 - **Uwaga:** ta sama instalacja MariaDB trzyma bazy innego projektu użytkownika (np. `syslead_test`). Nie używać `migrate:fresh` na bazie `basemind` ani poleceń obejmujących cały serwer; testy działają na `basemind_test`.
-- **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje.
+- **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. W chwili zakończenia sesji są zatrzymane.
 
 ### ▶ Wznowienie pracy — od czego zacząć następną sesję
-1. Przeczytać `projekt.md` (szczególnie pkt 0, 3, 8, 14 „Konfiguracja poza repozytorium”, 15 „Pułapki”) i ten plik.
-2. Szybko sprawdzić stan: `git status`, `git log --oneline -5`, czy XAMPP (Apache + MySQL) działa → `http://localhost:8080/api/health` zwraca `{"status":"ok",...}`; testy: `cd api && php artisan test` (wymaga działającej MariaDB).
-3. Przed uruchomieniem testów upewnić się, że `composer audit` jest czysty.
-4. **Test na telefonie przez USB** (instrukcja w `README.md`): do sprawdzania PWA używać builda, czyli port `8080 → localhost:8080` i na telefonie `http://localhost:8080`. Telefon użytkownika: Samsung S25 Ultra.
-5. Dalej: 0.4 design system → pokaz użytkownikowi → Etap 1.
-6. Po sesji: zaktualizować ten plik („Stan bieżący”, checklisty, „Dziennik zmian”), commit i `git push`.
+1. Przeczytać `projekt.md` (szczególnie pkt 0, 3, 8, 13 „Rejestr decyzji”, 14 „Konfiguracja poza repozytorium”, 15 „Pułapki”) i ten plik.
+2. Sprawdzić stan: `git status`, `git log --oneline -5`, `composer audit` w `api/` (nowe poprawki bezpieczeństwa pojawiają się często; Symfony miało je już 2026-11-04) i `pnpm audit --prod` w `web/`.
+3. Uruchomić Apache i MariaDB (panel XAMPP lub poleceniami). Sprawdzić `http://localhost:8080/api/health`, testy `cd api && php artisan test` oraz `cd web && pnpm test`.
+4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zapytać o zgodę na krok 1.2**. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
+5. **Krok 1.2 (szyfrowanie):** zanim powstanie `SODIUM_KEY`, uprzedzić, że utrata klucza oznacza utratę zaszyfrowanych danych, a użytkownik musi trzymać kopię w menedżerze haseł. Szczegóły: sekcja 1.2 poniżej i `projekt.md`, pkt 8.4.
+6. **Test na telefonie przez USB** (instrukcja w `README.md`): do sprawdzania PWA używać builda, czyli port `8080 → localhost:8080` i na telefonie `http://localhost:8080`. Telefon użytkownika: Samsung S25 Ultra, debugowanie USB już włączone. Jeśli logowanie zgłasza brak połączenia, najpierw sprawdzić `http://localhost:8080/api/health` na telefonie (`projekt.md`, pkt 15).
+7. Po sesji: zaktualizować ten plik („Stan bieżący”, checklisty, „Dziennik zmian”) i rejestr decyzji w `projekt.md`, a po zgodzie zrobić commit i `git push`.
+
+### Otwarte sprawy (nic z tego nie blokuje kroku 1.2)
+**Do wiadomości lub decyzji użytkownika**
+- Decyzje techniczne Claude z rejestru w `projekt.md` oznaczone „do oceny użytkownika”, jeszcze niepotwierdzone: TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`.
+- Kod rejestracji jest w `api/.env`. Przed wdrożeniem ustawić długi kod na produkcji, a po założeniu kont zostawić go pustym.
+
+**Dług techniczny**
+- Pest i Larastan z planu nie są wdrożone (testy w PHPUnit). Do decyzji, czy przechodzić na Pest, czy zostać przy PHPUnit.
+- Playwright (e2e) ze specyfikacji nie jest w repozytorium. Dotychczasowe sprawdzenia w Chrome były jednorazowymi skryptami, których nie ma w repo. Warto dodać je jako stałe testy, scenariusze: gość trafia na logowanie; błędne logowanie; błędny i poprawny kod zaproszenia; ciasteczko sesji `HttpOnly` i `SameSite=Lax`; start offline z zapamiętanym kontem; odmowa wylogowania offline; unieważnienie sesji drugiego urządzenia; reset hasła z linku w mailu; motyw przed pierwszym renderem; ściąganie arkusza i przesuwanie wiersza.
+- Reguły `.htaccess` w trybie awaryjnym (docroot = cały `api/`) po dodaniu PWA nie zostały sprawdzone (punkt w 0.3).
+- `pnpm audit` zgłasza 3 luki tylko w narzędziach deweloperskich (`glob`, `minimatch`, `deepmerge`): 2 umiarkowane, 1 niską; w paczkach produkcyjnych brak. Sprawdzać przy aktualizacjach.
+- Paczka startowa ma ok. 180 kB (gzip): sprawdzić przy audycie wydajności w Etapie 7.
+
+**Czekają na swoje kroki**
+- Zapamiętane konto jest w `localStorage`: przenieść do Dexie w 1.3 i czyścić lokalną bazę przy wylogowaniu.
+- Motyw jest zapisany tylko na urządzeniu: zsynchronizować z `user_settings` (kolumna już jest, brak endpointu) razem z synchronizacją w 1.4.
+- Pasek wyszukiwarki i przycisk [+] są na razie informacyjne: właściwe wersje w 1.7 i 1.10.
+- Maile lokalnie trafiają do `api/storage/logs/laravel.log`: prawdziwa wysyłka SMTP do sprawdzenia przy wdrożeniu.
+- Usunąć stronę `/design` przed wdrożeniem (Etap 7).
+- Śledzić CVE-2026-115560 w PHP (`projekt.md`, pkt 8.1) i `max_allowed_packet` przy synchronizacji (0.2).
 
 ---
 
@@ -386,3 +408,4 @@
 | 2026-11-04 | Uwagi użytkownika po teście na telefonie (S25 Ultra, test OK): adresy modułów bez `/more` (`/notes`), ekran „Ustawienia” z wyborem motywu, kolor akcentu niebieski `#2563EB` (także ikony PWA), nazwa „Lokalizator rzeczy”. | Design system (0.4) — po zgodzie użytkownika. |
 | 2026-11-04 | Design system (0.4): tokeny, komponenty, górny pasek z wyszukiwarką, sidebar na desktopie, podgląd `/design`. Testy: web 45 OK; Chrome z emulacją Pixel 7 i na desktopie: brak błędów CSP, arkusz, swipe, kalendarz i powiadomienia działają. Paczka startowa urosła do ok. 179 kB gzip — sprawdzić przy audycie wydajności. Decyzja użytkownika: jeden niebieski akcent, bez kolorów modułów. | Ocena użytkownika na telefonie, potem Etap 1. |
 | 2026-11-05 | Etap 0 zamknięty (design zaakceptowany na telefonie). Krok 1.1: konta z kodem zaproszenia, logowanie, reset hasła, przestrzenie i uprawnienia, ekran sesji, strażnik tras, działanie offline z zapamiętanym kontem. Testy: api 70 OK, web 79 OK; pełny przepływ w Chrome na prawdziwym serwerze; użytkownik potwierdził działanie na telefonie. | 1.2 (szyfrowanie) — po zgodzie użytkownika. |
+| 2026-11-05 | Koniec sesji na prośbę użytkownika: dokumentacja przygotowana do wznowienia (stan, lista otwartych spraw, konfiguracja poza repozytorium). Kod bez zmian. Serwery zatrzymane. | 1.2 (szyfrowanie) — po zgodzie użytkownika. |

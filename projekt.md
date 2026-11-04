@@ -146,7 +146,7 @@ Kluczowe cechy:
 | Obszar | Wybór | Uwagi |
 |---|---|---|
 | **Frontend** | | |
-| Język | TypeScript | |
+| Język | TypeScript 6.0 | Nie 7: `typescript-eslint` wymaga TS < 6.1 |
 | Framework | React 19 + Vite | |
 | Menedżer pakietów | pnpm | |
 | Routing | TanStack Router | Typowane trasy, lazy loading modułów |
@@ -154,7 +154,8 @@ Kluczowe cechy:
 | Lokalna baza | Dexie.js (IndexedDB) + `dexie-react-hooks` | |
 | Stan UI | Zustand | Tylko stan UI |
 | Formularze/walidacja | react-hook-form + zod | Walidacja na kliencie (serwer waliduje osobno) |
-| Style | Tailwind CSS v4 + shadcn/ui (Radix) | |
+| Style | Tailwind CSS v4 + shadcn/ui (Radix) + `cn`, `tw-animate-css` | Komponenty dostosowane do dotyku: `web/src/components/ui/` |
+| Powiadomienia, kalendarz | `sonner`, `react-day-picker` | |
 | Ikony | lucide-react | |
 | Animacje | motion | |
 | Wykresy | Recharts | |
@@ -175,7 +176,7 @@ Kluczowe cechy:
 | Testy | Pest (PHP), Vitest (front), Playwright (e2e, emulacja mobile) | |
 | Jakość | Laravel Pint, Larastan (PHPStan); ESLint + Prettier + `tsc` | |
 
-### 3.3 Środowisko lokalne (Windows 11) — stan na 2026-11-04
+### 3.3 Środowisko lokalne (Windows 11) — stan na 2026-11-05
 
 | Narzędzie | Stan | Ścieżka / uwagi |
 |---|---|---|
@@ -191,7 +192,9 @@ Kluczowe cechy:
 | Bazy danych | ✅ | `basemind`, `basemind_test` (utf8mb4_unicode_ci); lokalnie użytkownik `root` bez hasła |
 | MariaDB `my.ini` | ✅ | `bind-address="127.0.0.1"` (tylko lokalnie); kopia `my.ini.bak-basemind-20261103` |
 | Apache | ✅ 2.4.65 | VirtualHost `127.0.0.1:8080` → `api/public`, `Require local`; PHP jako `php_module` (mod_php) |
-| Laravel | ✅ 13.40.0 | w `api/`; Sanctum 4.3 |
+| Laravel | ✅ 13.40.0 | w `api/`; Sanctum 4.3, Fortify 1.41, Symfony 8.1.11 |
+| Frontend | ✅ | w `web/`; React 19, Vite 8, TS 6, Tailwind 4 (`pnpm install`, `pnpm build`) |
+| Telefon testowy | ✅ | Samsung S25 Ultra, debugowanie USB włączone, Chrome Port forwarding `8080` |
 | Docker | — | niepotrzebny |
 | adb | — | niepotrzebny (Chrome ma wbudowane przekierowanie portów) |
 
@@ -399,7 +402,9 @@ Kluczowe cechy:
 
 ---
 
-## 9. Struktura repozytorium (planowana)
+## 9. Struktura repozytorium (plan docelowy)
+
+> **Stan na 2026-11-05 — co już istnieje poza poniższym planem:** `api/app/Actions/Fortify/`, `api/app/Enums/`, `api/app/Models/Concerns/BelongsToSpace.php`, `api/app/Http/Responses/`, `api/lang/pl/`, `web/src/lib/` (`api`, `auth`, `money`, `theme`, `device`, `form-errors`), `web/src/i18n/pl.ts`, `web/src/modules/` (`auth`, `today`, `tasks`, `calendar`, `more`, `settings`, `design`, `registry.ts`), `web/public/app-icons/`, `web/public/theme-init.js`. Jeszcze nie ma: `Casts/`, `Services/`, `Sync/`, `web/src/db/`, `web/src/sync/`, `web/src/search/`. Build zapisuje do `api/public/`: `assets/`, `app-icons/`, `index.html`, `sw.js`, `theme-init.js`, `manifest.webmanifest` (pliki w `.gitignore`).
 
 ```
 BaseMind/
@@ -446,7 +451,9 @@ Build frontendu (`pnpm build` w `web/`) zapisuje pliki do `api/public/` (np. `in
 - Commity: Conventional Commits (`feat(finance): …`, `fix(sync): …`).
 - Każdy moduł we froncie: `web/src/modules/<nazwa>/` (routes, components, `repo.ts`, schematy zod); w backendzie: model + migracja + policy + reguły walidacji + wpis w rejestrze sync.
 - **Nowy moduł musi:** zarejestrować encje w sync (front i back), w wyszukiwarce, w systemie powiązań/tagów, (jeśli ma daty) w kalendarzu i przypomnieniach, (opcjonalnie) widżet dashboardu, oznaczyć pola 🔐.
-- Git: repozytorium do zainicjowania w Etapie 0.
+- Git: gałąź `main`, `origin` na GitHubie. Opisy commitów bez znaków `"` (pkt 15).
+- Adresy URL po angielsku, na najwyższym poziomie (`/notes`, `/finance`); ścieżki `/icons/` nie używać (pkt 15).
+- Teksty UI w `web/src/i18n/pl.ts`, komunikaty serwera w `api/lang/pl/`.
 
 ---
 
@@ -470,7 +477,7 @@ Hosting musi zapewniać:
 ## 12. Otwarte pytania (do ustalenia przy odpowiednich etapach)
 
 1. (rozstrzygnięte: `localhost:8080`)
-2. Rejestracja: tylko pierwszy użytkownik / zamknięta rejestracja z kodem zaproszenia (Etap 1).
+2. (rozstrzygnięte: rejestracja z kodem zaproszenia)
 3. Godzina porannego digestu i jego zawartość (Etap 1).
 4. Reguły nadgodzin u obecnego pracodawcy, wynagrodzenie godzinowe czy miesięczne (Etap 5).
 5. Waluty obce — z kursami NBP czy bez (Etap 3).
@@ -572,7 +579,13 @@ CREATE DATABASE basemind_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 **6. Narzędzia i PATH użytkownika:** Composer w `%LOCALAPPDATA%\Programs\composer\` (`composer.phar` + `composer.bat` wywołujący `C:\xampp\php\php.exe`); pnpm: `npm install -g pnpm`; do PATH użytkownika dodane `%LOCALAPPDATA%\Programs\composer` i `C:\xampp\php`.
 
 **7. Pliki tylko lokalne w projekcie (w `.gitignore`):** `api/.env` (zawiera `APP_KEY` — **bez niego nie odczytamy zaszyfrowanych sesji/cookies**; później także `SODIUM_KEY` — **utrata = utrata zaszyfrowanych danych**, trzymać kopię w menedżerze haseł), `api/vendor/`, `node_modules/`.
-Po świeżym `git clone`: `cd api && composer install && copy .env.example .env && php artisan key:generate && php artisan migrate` (+ uzupełnić `BASEMIND_OWNER_EMAIL`).
+Po świeżym `git clone`: `cd api && composer install && copy .env.example .env && php artisan key:generate && php artisan migrate` (+ uzupełnić `BASEMIND_OWNER_EMAIL` i `BASEMIND_REGISTRATION_CODE`), potem `cd ../web && pnpm install && pnpm build`.
+
+`api/.env` zawiera też `BASEMIND_REGISTRATION_CODE` (losowy kod do zakładania kont, tylko lokalny) i `SESSION_LIFETIME=43200`. Bez kodu rejestracja jest wyłączona; aby założyć kolejne konto, wystarczy odczytać lub ustawić kod w tym pliku.
+
+**7a. Dane tylko lokalne:** baza `basemind` trzyma prawdziwe konto użytkownika (nie ma go w git). Przy reinstalacji XAMPP lub nowym komputerze trzeba zrobić kopię bazy lub założyć konto od nowa kodem zaproszenia. Do czasu Etapu 1.4 konto nie ma jeszcze żadnych innych danych.
+
+**7b. Inne projekty na tym serwerze:** MariaDB z XAMPP trzyma też bazy innego projektu użytkownika (np. `syslead_test`). Nie wolno ich ruszać ani używać poleceń obejmujących cały serwer.
 
 **8. Git (lokalnie w repo):** `user.name = Marcin Wójcik`, `user.email = mgrnewsl@gmail.com`; `origin` = https://github.com/mwojcik7/BaseMind.git.
 
