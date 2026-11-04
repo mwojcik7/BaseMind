@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\DeviceSessionController;
+use App\Http\Controllers\MeController;
+use App\Http\Controllers\SpaceController;
 use App\Support\PhpSecurity;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -33,3 +36,14 @@ Route::get('/health', function () {
 
     return response()->json($body, $ok ? 200 : 503);
 })->middleware('throttle:30,1');
+
+// Sign-in, sign-up and password reset live under /api/auth (Fortify, config/fortify.php).
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+    Route::get('/me', MeController::class);
+
+    Route::get('/spaces/{space}', [SpaceController::class, 'show']);
+
+    Route::get('/sessions', [DeviceSessionController::class, 'index']);
+    Route::delete('/sessions', [DeviceSessionController::class, 'destroyOthers']);
+    Route::delete('/sessions/{id}', [DeviceSessionController::class, 'destroy']);
+});

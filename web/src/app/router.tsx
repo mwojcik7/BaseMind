@@ -3,68 +3,129 @@ import {
   createRoute,
   createRouter,
   lazyRouteComponent,
+  Outlet,
   type RouterHistory,
 } from '@tanstack/react-router'
-import { AppShell } from '@/components/AppShell'
+import { AppLayout } from '@/components/AppLayout'
 import { NotFound } from '@/components/NotFound'
+import { AuthLayout } from '@/modules/auth/AuthLayout'
 
 const rootRoute = createRootRoute({
-  component: AppShell,
+  component: Outlet,
   notFoundComponent: NotFound,
 })
 
-const todayRoute = createRoute({
+// Screens for signed-out people.
+const authRoute = createRoute({
   getParentRoute: () => rootRoute,
+  id: '_auth',
+  component: AuthLayout,
+})
+
+const loginRoute = createRoute({
+  getParentRoute: () => authRoute,
+  path: '/login',
+  component: lazyRouteComponent(() => import('@/modules/auth/LoginPage'), 'LoginPage'),
+})
+
+const registerRoute = createRoute({
+  getParentRoute: () => authRoute,
+  path: '/register',
+  component: lazyRouteComponent(() => import('@/modules/auth/RegisterPage'), 'RegisterPage'),
+})
+
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => authRoute,
+  path: '/forgot-password',
+  component: lazyRouteComponent(
+    () => import('@/modules/auth/ForgotPasswordPage'),
+    'ForgotPasswordPage',
+  ),
+})
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => authRoute,
+  path: '/reset-password',
+  // Comes from the link in the e-mail.
+  validateSearch: (search: Record<string, unknown>) => ({
+    token: typeof search.token === 'string' ? search.token : '',
+    email: typeof search.email === 'string' ? search.email : '',
+  }),
+  component: lazyRouteComponent(
+    () => import('@/modules/auth/ResetPasswordPage'),
+    'ResetPasswordPage',
+  ),
+})
+
+// Everything below needs an account.
+const appRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: '_app',
+  component: AppLayout,
+})
+
+const todayRoute = createRoute({
+  getParentRoute: () => appRoute,
   path: '/',
   component: lazyRouteComponent(() => import('@/modules/today/TodayPage'), 'TodayPage'),
 })
 
 const tasksRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/tasks',
   component: lazyRouteComponent(() => import('@/modules/tasks/TasksPage'), 'TasksPage'),
 })
 
 const calendarRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/calendar',
   component: lazyRouteComponent(() => import('@/modules/calendar/CalendarPage'), 'CalendarPage'),
 })
 
 const moreRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/more',
   component: lazyRouteComponent(() => import('@/modules/more/MorePage'), 'MorePage'),
 })
 
 const settingsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/settings',
   component: lazyRouteComponent(() => import('@/modules/settings/SettingsPage'), 'SettingsPage'),
 })
 
+const sessionsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings/sessions',
+  component: lazyRouteComponent(() => import('@/modules/settings/SessionsPage'), 'SessionsPage'),
+})
+
 // Preview of the design system; not linked from the app. Remove before deployment (stage 7).
 const designRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/design',
   component: lazyRouteComponent(() => import('@/modules/design/DesignPage'), 'DesignPage'),
 })
 
 // Placeholder for modules not built yet (/notes, /finance, ...). The static routes above win.
 const moduleRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/$moduleId',
   component: lazyRouteComponent(() => import('@/modules/more/ModulePage'), 'ModulePage'),
 })
 
 const routeTree = rootRoute.addChildren([
-  todayRoute,
-  tasksRoute,
-  calendarRoute,
-  moreRoute,
-  settingsRoute,
-  designRoute,
-  moduleRoute,
+  authRoute.addChildren([loginRoute, registerRoute, forgotPasswordRoute, resetPasswordRoute]),
+  appRoute.addChildren([
+    todayRoute,
+    tasksRoute,
+    calendarRoute,
+    moreRoute,
+    settingsRoute,
+    sessionsRoute,
+    designRoute,
+    moduleRoute,
+  ]),
 ])
 
 export function createAppRouter(history?: RouterHistory) {

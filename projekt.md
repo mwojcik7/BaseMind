@@ -513,6 +513,9 @@ Hosting musi zapewniać:
 | 2026-11-04 | `cn` (oficjalny pakiet autora shadcn, instalowany przez CLI) zamiast `clsx` + `tailwind-merge` | Claude (do oceny użytkownika) |
 | 2026-11-04 | Adresy URL po angielsku i bez przedrostka `/more` (`/tasks`, `/notes`, `/finance`) | Użytkownik |
 | 2026-11-04 | Wybór motywu w ustawieniach: zgodny z systemem / jasny / ciemny; na razie zapamiętany na urządzeniu (`localStorage`), synchronizacja z `user_settings` w Etapie 1 | Użytkownik / Claude |
+| 2026-11-05 | Konta zakładane z kodem zaproszenia (`BASEMIND_REGISTRATION_CODE`); pusty kod wyłącza rejestrację | Użytkownik |
+| 2026-11-05 | Sesja wygasa po 30 dniach bezczynności (`SESSION_LIFETIME=43200`), bez opcji „zapamiętaj mnie”, żeby PWA nie wylogowywała na telefonie, a unieważnienie sesji działało od razu | Użytkownik |
+| 2026-11-05 | Hasło: co najmniej 10 znaków; `users.id` pozostaje liczbą (konta tworzy serwer), `spaces.id` to UUID | Claude (do oceny użytkownika) |
 | 2026-11-04 | Dodatkowe biblioteki UI: `sonner` (powiadomienia), `react-day-picker` (kalendarz, przez shadcn), `tw-animate-css` (animacje shadcn); arkusz od dołu własny (Radix + `motion`) zamiast `vaul` | Claude (do oceny użytkownika) |
 | 2026-11-04 | Jeden kolor akcentu dla całej aplikacji, bez osobnych kolorów modułów | Użytkownik |
 | 2026-11-04 | Kolor akcentu: niebieski `#2563EB` zamiast indygo (nie myli się z kolorami statusów) | Użytkownik |
@@ -584,6 +587,9 @@ Po świeżym `git clone`: `cd api && composer install && copy .env.example .env 
 - **`Header always set` w `.htaccess` dubluje nagłówki ustawione przez PHP** — używać `Header set`.
 - **Instalator Laravela tworzy `CLAUDE.md`/`AGENTS.md` (Laravel Boost)** — usunięte; nie odtwarzać bez zgody użytkownika.
 - **Pobieranie programów z internetu (np. Mailpit) może zostać zablokowane** przez zabezpieczenia sesji Claude — wtedy poprosić użytkownika o ręczne pobranie lub zgodę.
+- **Sanctum uruchamia sesję tylko dla żądań z nagłówkiem `Referer`/`Origin` z `SANCTUM_STATEFUL_DOMAINS`.** Bez tego kontroler dostaje `Session store not set` (także w testach: `withHeader('Referer', …)`). Na produkcji trzeba tam wpisać domenę.
+- **Na serwerze MariaDB są też bazy innego projektu** (np. `syslead_test`) — nie używać `migrate:fresh` na `basemind` i sprawdzać `DB::getDatabaseName()` przed operacjami na danych.
+- **Test na telefonie: działający ekran nie znaczy, że jest połączenie.** Service Worker pokazuje aplikację także przy przerwanym przekierowaniu portu (zamknięty Chrome lub `chrome://inspect`, kabel). Sprawdzenie: `http://localhost:8080/api/health` na telefonie omija Service Workera; nowe wpisy w `basemind-access.log` pokazują, czy żądanie dotarło.
 - **Nie używać ścieżki `/icons/`:** domyślna konfiguracja Apache (XAMPP i wiele hostingów) ma `Alias /icons/` na własny katalog, więc pliki z `public/icons` zwracają 404. Ikony PWA są w `/app-icons/`.
 - **`shadcn add` czyta alias `@/*` z głównego `web/tsconfig.json`** — bez wpisu `paths` tworzy dosłowny katalog `web/@/`.
 - **`shadcn add` przerywa się bez komunikatu, gdy pyta o nadpisanie istniejącego pliku** (flaga `--yes` tego nie obejmuje) i pomija kolejne komponenty. Po dodaniu sprawdzić listę plików; odpowiedź można podać przez potok: `'n' | pnpm dlx shadcn@latest add ...`.

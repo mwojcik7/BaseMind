@@ -4,10 +4,12 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import { createAppRouter } from '@/app/router'
+import { startAuth } from '@/lib/auth'
 import { applyTheme, getTheme } from '@/lib/theme'
 import './index.css'
 
 applyTheme(getTheme())
+void startAuth()
 
 const router = createAppRouter()
 

@@ -13,11 +13,12 @@
 
 ## Stan bieżący (ostatnia sesja: 2026-11-04)
 
-- **Faza:** Etap 0 — decyzje zatwierdzone (0.1), środowisko gotowe (0.2), **backend i frontend `web/` gotowe, test na Samsungu S25 Ultra zaakceptowany przez użytkownika** (0.3). Design system (0.4) gotowy, czeka na ocenę na telefonie pod `/design`. Potem Etap 1.
+- **Faza:** Etap 0 — decyzje zatwierdzone (0.1), środowisko gotowe (0.2), **backend i frontend `web/` gotowe, test na Samsungu S25 Ultra zaakceptowany przez użytkownika** (0.3). Design system (0.4) zaakceptowany na telefonie. **Etap 0 zamknięty, w toku Etap 1** (zaczynamy od 1.1).
 - **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>.
 - **Zrobione:** dokumentacja; Laravel 13.40 w `api/` (MySQL, Sanctum, utwardzenie PHP/Apache, kontrola luk PHP, nagłówki, `/api/health`, 21 testów OK); Apache VirtualHost `127.0.0.1:8080` → `api/public`; testy HTTP reguł dostępu (brak wycieku plików).
 - **Zrobione w `web/`:** React 19 + Vite 8 + TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA (`injectManifest`), Inter, tryb jasny/ciemny wg systemu, ekrany szkieletowe, ESLint + Prettier + Vitest. Laravel serwuje powłokę PWA z CSP. Sprawdzone w Chrome z emulacją Pixel 7: brak błędów CSP, Service Worker aktywny, aplikacja działa offline.
-- **Czeka na użytkownika:** ocena design systemu na telefonie pod `/design`.
+- **Czeka na użytkownika:** zgoda na start kroku 1.2 (szyfrowanie). Krok 1.1 zamknięty.
+- **Uwaga:** ta sama instalacja MariaDB trzyma bazy innego projektu użytkownika (np. `syslead_test`). Nie używać `migrate:fresh` na bazie `basemind` ani poleceń obejmujących cały serwer; testy działają na `basemind_test`.
 - **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje.
 
 ### ▶ Wznowienie pracy — od czego zacząć następną sesję
@@ -34,8 +35,8 @@
 
 | Etap | Nazwa | Zakres | Status |
 |---|---|---|---|
-| 0 | Przygotowanie | Decyzje, środowisko, szkielet (Laravel + React PWA), design system | 🟡 w trakcie (backend ✅, frontend ✅, test na telefonie ✅, design ⬜) |
-| 1 | Fundament | Auth, przestrzenie, szyfrowanie, PWA, offline + sync, nawigacja, wyszukiwanie, tagi/powiązania, przypomnienia, dashboard (szkielet) | ⬜ |
+| 0 | Przygotowanie | Decyzje, środowisko, szkielet (Laravel + React PWA), design system | ✅ |
+| 1 | Fundament | Auth, przestrzenie, szyfrowanie, PWA, offline + sync, nawigacja, wyszukiwanie, tagi/powiązania, przypomnienia, dashboard (szkielet) | 🟡 w trakcie |
 | 2 | Codzienność | Zadania, kalendarz, notatki Markdown z backlinkami, szybka notatka | ⬜ |
 | 3 | Pieniądze | Finanse (portfele, kategorie, transakcje, raporty, wykresy, budżety), subskrypcje | ⬜ |
 | 4 | Schowek | Zakładki z podglądem (rich links) + Share Target, listy mediów, baza kodów | ⬜ |
@@ -102,7 +103,7 @@
 - [x] Ekrany szkieletowe: „Dziś”, „Zadania”, „Kalendarz”, „Więcej” z siatką modułów, strona zastępcza modułu pod własnym adresem (`/notes`, `/finance`…), dolna nawigacja, arkusz [+] (na razie informacyjny; właściwy w 1.10).
 - [x] „Ustawienia” (`/settings`) z wyborem motywu: system / jasny / ciemny. Zapis w `localStorage`, `public/theme-init.js` ustawia motyw przed pierwszym renderem (CSP zabrania skryptów inline). Synchronizacja z `user_settings` — Etap 1.
 - [x] Proxy Vite → Apache (`/api`, `/sanctum`, `/s/`); build do `api/public/` (czyszczenie: `web/scripts/clean-build.mjs`, tylko jawna lista plików); fallback SPA w Laravelu.
-- [~] ESLint + Prettier + `tsc` + Vitest (web) — zrobione, 45 testów OK. Pint jest; Larastan i Pest (api) — do zrobienia (testy api na razie w PHPUnit, 39 OK).
+- [~] ESLint + Prettier + `tsc` + Vitest (web) — zrobione, 79 testów OK. Pint jest; Larastan i Pest (api) — do zrobienia (testy api na razie w PHPUnit, 70 OK).
 - [ ] Sprawdzić nowe reguły `.htaccess` w trybie awaryjnym (docroot = cały `api/`) — testowane tylko z docroot `public/`.
 - [x] `README.md` (główny) — uruchomienie backendu i frontendu, build, telefon po USB.
 - [x] `CLAUDE.md` (główny) — krótki wskaźnik dla Claude: zasady współpracy + „czytaj `projekt.md` i `plan.md`”.
@@ -116,7 +117,7 @@
 - [x] Strona „Więcej” — siatka modułów.
 - [x] Przełącznik motywu (system/jasny/ciemny).
 - [x] Podgląd wszystkich elementów: `/design` (bez linku w aplikacji).
-- [ ] **Pokaz użytkownikowi na telefonie → poprawki wg uwag.**
+- [x] **Pokaz użytkownikowi na telefonie** — zaakceptowany przez użytkownika.
 - [-] Osobny kolor każdego modułu — odrzucone przez użytkownika: jeden niebieski akcent w całej aplikacji.
 - [ ] Usunąć `/design` przed wdrożeniem (Etap 7).
 
@@ -125,14 +126,16 @@
 ## Etap 1 — Fundament
 
 ### 1.1 Uwierzytelnianie i przestrzenie
-- [ ] Migracje: `users`, `sessions`, `spaces`, `space_members`, `user_settings`, `sync_counter`.
-- [ ] Fortify (headless) + Sanctum SPA: logowanie, wylogowanie, reset hasła e-mailem.
-- [ ] 🔒 Rejestracja: tylko pierwszy użytkownik / kod zaproszenia.
-- [ ] argon2id (jeśli dostępny) / bcrypt; rate limiting logowania.
-- [ ] Automatyczna przestrzeń prywatna przy rejestracji.
-- [ ] Policies przestrzeni (członkostwo + rola) — wspólny trait dla modeli z `space_id`.
-- [ ] Ekran logowania (mobile-first) + ekran „Sesje i urządzenia”.
-- [ ] Testy Pest: użytkownik A nie ma dostępu do danych przestrzeni B.
+- [x] Migracje: `users` (`display_name`, `timezone`, `locale`), `sessions`, `spaces`, `space_members`, `user_settings`, `sync_counter`.
+- [x] Fortify (headless, pod `/api/auth`) + Sanctum SPA: logowanie, wylogowanie, reset hasła e-mailem (link prowadzi do ekranu PWA; reset wylogowuje wszystkie urządzenia).
+- [x] Rejestracja: **kod zaproszenia** (`BASEMIND_REGISTRATION_CODE`; pusty = rejestracja wyłączona; 5 prób na 15 min). Polskie komunikaty w `api/lang/pl`.
+- [x] argon2id (zweryfikowane na koncie utworzonym przez formularz); rate limiting: logowanie 5/min na konto i adres, 20/min na adres, wszystkie endpointy auth 30/min.
+- [x] Automatyczna przestrzeń prywatna i ustawienia przy tworzeniu użytkownika.
+- [x] Policies: `SpacePolicy`, `SpaceItemPolicy` + trait `BelongsToSpace` dla modeli z `space_id` (obcym 404, nie 403).
+- [x] Ekrany logowania, rejestracji, resetu hasła + „Sesje i urządzenia” (`/settings/sessions`); wylogowanie w ustawieniach. Strażnik tras w `AppLayout`/`AuthLayout`.
+- [x] Offline: zapamiętane konto otwiera aplikację bez sieci (na razie `localStorage`, w 1.3 przeniesienie do Dexie); wylogowanie wymaga połączenia, bo sesja serwera mogłaby wrócić.
+- [x] Testy (PHPUnit, nie Pest): użytkownik A nie ma dostępu do danych przestrzeni B; Chrome: cały przepływ z prawdziwym CSRF, w tym unieważnienie sesji drugiego urządzenia.
+- [x] Test użytkownika na telefonie — logowanie działa.
 - [-] 2FA — przeniesione do Etapu 7 (decyzja użytkownika).
 
 ### 1.2 Szyfrowanie
@@ -382,3 +385,4 @@
 | 2026-11-04 | Frontend `web/` (krok 0.3): szkielet PWA, ekrany, proxy, build do `api/public/`, powłoka serwowana przez Laravela z CSP, ikony w `/app-icons/`. Testy: web 8 OK, api 38 OK; Chrome z emulacją Pixel 7: brak błędów CSP, SW aktywny, offline działa. Symfony 8.1.10 → 8.1.11 (poprawki bezpieczeństwa, `composer audit` czysty). Usunięte nieużywane pliki frontendu Laravela (`api/package.json`, `api/vite.config.js`, `api/resources/js`, `api/resources/css`) i kroki `npm` ze skryptu `composer setup`. | Test na telefonie, potem 0.4. |
 | 2026-11-04 | Uwagi użytkownika po teście na telefonie (S25 Ultra, test OK): adresy modułów bez `/more` (`/notes`), ekran „Ustawienia” z wyborem motywu, kolor akcentu niebieski `#2563EB` (także ikony PWA), nazwa „Lokalizator rzeczy”. | Design system (0.4) — po zgodzie użytkownika. |
 | 2026-11-04 | Design system (0.4): tokeny, komponenty, górny pasek z wyszukiwarką, sidebar na desktopie, podgląd `/design`. Testy: web 45 OK; Chrome z emulacją Pixel 7 i na desktopie: brak błędów CSP, arkusz, swipe, kalendarz i powiadomienia działają. Paczka startowa urosła do ok. 179 kB gzip — sprawdzić przy audycie wydajności. Decyzja użytkownika: jeden niebieski akcent, bez kolorów modułów. | Ocena użytkownika na telefonie, potem Etap 1. |
+| 2026-11-05 | Etap 0 zamknięty (design zaakceptowany na telefonie). Krok 1.1: konta z kodem zaproszenia, logowanie, reset hasła, przestrzenie i uprawnienia, ekran sesji, strażnik tras, działanie offline z zapamiętanym kontem. Testy: api 70 OK, web 79 OK; pełny przepływ w Chrome na prawdziwym serwerze; użytkownik potwierdził działanie na telefonie. | 1.2 (szyfrowanie) — po zgodzie użytkownika. |

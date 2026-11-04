@@ -12,6 +12,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Registration code
+    |--------------------------------------------------------------------------
+    | The code required by the sign-up form. Registration is off while it is
+    | empty, so remove it from .env once all accounts have been created.
+    */
+    'registration_code' => env('BASEMIND_REGISTRATION_CODE'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Minimum patched PHP versions per branch
     |--------------------------------------------------------------------------
     | PHP2Shell (CVE-2026-109618, CVE-2026-109619) is fixed in these releases.

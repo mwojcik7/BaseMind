@@ -28,7 +28,11 @@ function NavLink({ to, label, icon: Icon, exact = false, forceActive = false }: 
 }
 
 // Screens opened from "Więcej" have their own top-level URLs, but still belong to that tab.
-const MORE_TAB_ROUTES: readonly string[] = ['/$moduleId', '/settings']
+const MORE_TAB_ROUTES: readonly string[] = [
+  '/_app/$moduleId',
+  '/_app/settings',
+  '/_app/settings/sessions',
+]
 
 export function BottomNav() {
   const inMoreTab = useRouterState({

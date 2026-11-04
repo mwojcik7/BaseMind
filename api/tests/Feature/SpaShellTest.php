@@ -36,6 +36,8 @@ class SpaShellTest extends TestCase
             'shell file' => ['/index.html'],
             'tab' => ['/tasks'],
             'module' => ['/notes'],
+            'sign-in screen' => ['/login'],
+            'reset screen' => ['/reset-password'],
             'nested' => ['/tasks/123'],
             'starts with a server prefix' => ['/settings'],
             'starts with api' => ['/apiary'],

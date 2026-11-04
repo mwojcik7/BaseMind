@@ -1,15 +1,46 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAppRouter } from '@/app/router'
 import { pl } from '@/i18n/pl'
+import { startAuth, type Account } from '@/lib/auth'
 import { getTheme } from '@/lib/theme'
 
+const ACCOUNT: Account = {
+  user: { id: 1, display_name: 'Marcin', email: 'm@example.com', timezone: 'UTC', locale: 'pl' },
+  spaces: [{ id: 'space', name: 'Moja', type: 'personal', role: 'owner' }],
+}
+
+const fetchMock = vi.fn<typeof fetch>()
+
+function json(status: number, body: unknown = {}) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+function serverAnswers(handler: (path: string) => Response) {
+  fetchMock.mockImplementation(async (input) => handler(String(input)))
+}
+
 function renderAt(path: string) {
+  void startAuth()
   const router = createAppRouter(createMemoryHistory({ initialEntries: [path] }))
   render(<RouterProvider router={router} />)
+  return router
 }
+
+beforeEach(() => {
+  vi.stubGlobal('fetch', fetchMock)
+  document.cookie = 'XSRF-TOKEN=token; path=/'
+  serverAnswers((path) => (path === '/api/me' ? json(200, ACCOUNT) : json(200)))
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 function heading(name: string) {
   return screen.findByRole('heading', { level: 1, name })
@@ -27,6 +58,207 @@ function sidebar() {
 function page() {
   return within(screen.getByRole('main'))
 }
+
+describe('signing in', () => {
+  beforeEach(() => {
+    let signedIn = false
+    serverAnswers((path) => {
+      if (path === '/api/auth/login') {
+        signedIn = true
+        return json(200)
+      }
+      if (path === '/api/auth/logout') {
+        signedIn = false
+        return new Response(null, { status: 204 })
+      }
+      if (path === '/api/me') {
+        return signedIn ? json(200, ACCOUNT) : json(401)
+      }
+      return json(200)
+    })
+  })
+
+  it('sends a guest from the app to the login screen, and into the app after signing in', async () => {
+    const user = userEvent.setup()
+    const router = renderAt('/notes')
+
+    expect(await heading(pl.auth.loginTitle)).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/login')
+
+    await user.type(screen.getByLabelText(pl.auth.email), 'm@example.com')
+    await user.type(screen.getByLabelText(pl.auth.password), 'long-enough-password')
+    await user.click(screen.getByRole('button', { name: pl.auth.loginAction }))
+
+    expect(await heading(pl.nav.today)).toBeInTheDocument()
+  })
+
+  it('validates the form before asking the server', async () => {
+    const user = userEvent.setup()
+    renderAt('/login')
+    await heading(pl.auth.loginTitle)
+
+    await user.type(screen.getByLabelText(pl.auth.email), 'nope')
+    await user.click(screen.getByRole('button', { name: pl.auth.loginAction }))
+
+    expect(await screen.findByText(pl.auth.emailInvalid)).toBeInTheDocument()
+    expect(screen.getByText(pl.auth.passwordRequired)).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/login', expect.anything())
+  })
+
+  it('shows the error from the server next to the field', async () => {
+    const user = userEvent.setup()
+    serverAnswers((path) =>
+      path === '/api/auth/login'
+        ? json(422, { message: 'x', errors: { email: ['Nieprawidłowy e-mail lub hasło.'] } })
+        : json(401),
+    )
+    renderAt('/login')
+    await heading(pl.auth.loginTitle)
+
+    await user.type(screen.getByLabelText(pl.auth.email), 'm@example.com')
+    await user.type(screen.getByLabelText(pl.auth.password), 'wrong-password')
+    await user.click(screen.getByRole('button', { name: pl.auth.loginAction }))
+
+    expect(await screen.findByText('Nieprawidłowy e-mail lub hasło.')).toBeInTheDocument()
+    expect(screen.getByLabelText(pl.auth.email)).toHaveAttribute('aria-invalid', 'true')
+  })
+
+  it('explains that signing in needs a connection', async () => {
+    const user = userEvent.setup()
+    renderAt('/login')
+    await heading(pl.auth.loginTitle)
+
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'))
+    await user.type(screen.getByLabelText(pl.auth.email), 'm@example.com')
+    await user.type(screen.getByLabelText(pl.auth.password), 'long-enough-password')
+    await user.click(screen.getByRole('button', { name: pl.auth.loginAction }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(pl.errors.offline)
+  })
+
+  it('signs out from the settings and returns to the login screen', async () => {
+    const user = userEvent.setup()
+    serverAnswers((path) => {
+      if (path === '/api/auth/logout') {
+        return new Response(null, { status: 204 })
+      }
+      return path === '/api/me' ? json(200, ACCOUNT) : json(200)
+    })
+    renderAt('/settings')
+    await heading(pl.settings.title)
+
+    await user.click(screen.getByRole('button', { name: pl.settings.logOut }))
+
+    expect(await heading(pl.auth.loginTitle)).toBeInTheDocument()
+  })
+
+  it('keeps a signed-in person away from the login screen', async () => {
+    serverAnswers((path) => (path === '/api/me' ? json(200, ACCOUNT) : json(200)))
+    localStorage.setItem('basemind.account', JSON.stringify(ACCOUNT))
+
+    renderAt('/login')
+
+    expect(await heading(pl.nav.today)).toBeInTheDocument()
+  })
+
+  it('checks the password confirmation when registering', async () => {
+    const user = userEvent.setup()
+    renderAt('/register')
+    await heading(pl.auth.registerTitle)
+
+    await user.type(screen.getByLabelText(pl.auth.invitationCode), 'code')
+    await user.type(screen.getByLabelText(pl.auth.displayName), 'Marcin')
+    await user.type(screen.getByLabelText(pl.auth.email), 'm@example.com')
+    await user.type(screen.getByLabelText(pl.auth.newPassword), 'long-enough-password')
+    await user.type(screen.getByLabelText(pl.auth.confirmPassword), 'different-password')
+    await user.click(screen.getByRole('button', { name: pl.auth.registerAction }))
+
+    expect(await screen.findByText(pl.auth.passwordsDiffer)).toBeInTheDocument()
+  })
+
+  it('refuses a reset link without its token', async () => {
+    renderAt('/reset-password')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(pl.auth.resetLinkInvalid)
+  })
+
+  it('sends the token and e-mail from the link with the new password', async () => {
+    const user = userEvent.setup()
+    renderAt('/reset-password?token=abc&email=m%40example.com')
+    await heading(pl.auth.resetTitle)
+
+    await user.type(screen.getByLabelText(pl.auth.newPassword), 'a-brand-new-password')
+    await user.type(screen.getByLabelText(pl.auth.confirmPassword), 'a-brand-new-password')
+    await user.click(screen.getByRole('button', { name: pl.auth.resetAction }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent(pl.auth.resetDone)
+    const call = fetchMock.mock.calls.find(([input]) => input === '/api/auth/reset-password')
+    expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({
+      token: 'abc',
+      email: 'm@example.com',
+    })
+  })
+})
+
+describe('sessions screen', () => {
+  const SESSIONS = [
+    {
+      id: 'current',
+      ip_address: '127.0.0.1',
+      user_agent: 'Mozilla/5.0 (Windows NT 10.0) Chrome/142.0 Safari/537.36',
+      last_active_at: new Date().toISOString(),
+      is_current: true,
+    },
+    {
+      id: 'phone',
+      ip_address: '10.0.0.5',
+      user_agent: 'Mozilla/5.0 (Linux; Android 15) Chrome/142.0 Mobile Safari/537.36',
+      last_active_at: new Date().toISOString(),
+      is_current: false,
+    },
+  ]
+
+  it('lists devices and ends another session, but not the current one', async () => {
+    const user = userEvent.setup()
+    let sessions = SESSIONS
+    fetchMock.mockImplementation(async (input, init) => {
+      const path = String(input)
+      if (path === '/api/me') {
+        return json(200, ACCOUNT)
+      }
+      if (path === '/api/sessions/phone' && init?.method === 'DELETE') {
+        sessions = SESSIONS.slice(0, 1)
+        return new Response(null, { status: 204 })
+      }
+      return json(200, { sessions })
+    })
+
+    renderAt('/settings/sessions')
+
+    expect(await screen.findByText('Chrome, Android')).toBeInTheDocument()
+    expect(screen.getByText(pl.sessions.current)).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: pl.sessions.end })).toHaveLength(1)
+
+    await user.click(screen.getByRole('button', { name: pl.sessions.end }))
+
+    await waitFor(() => expect(screen.queryByText('Chrome, Android')).not.toBeInTheDocument())
+    expect(screen.getByText('Chrome, Windows')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: pl.sessions.endOthers })).not.toBeInTheDocument()
+  })
+
+  it('explains when the list needs a connection', async () => {
+    fetchMock.mockImplementation(async (input) => {
+      if (String(input) === '/api/me') {
+        return json(200, ACCOUNT)
+      }
+      throw new TypeError('Failed to fetch')
+    })
+
+    renderAt('/settings/sessions')
+
+    expect(await screen.findByText(pl.errors.offline)).toBeInTheDocument()
+  })
+})
 
 describe('app shell', () => {
   it('starts on the today screen with all navigation entries', async () => {

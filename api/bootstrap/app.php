@@ -20,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Sanctum SPA (cookie) authentication for the PWA on the same domain.
         $middleware->statefulApi();
+
+        // /login is a screen of the PWA, so no Laravel route has that name.
+        // Without this, an API request not asking for JSON ends in a 500 instead of a 401.
+        $middleware->redirectGuestsTo('/login');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
