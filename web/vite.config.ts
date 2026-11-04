@@ -31,7 +31,7 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         display: 'standalone',
-        theme_color: '#6366f1',
+        theme_color: '#2563eb',
         background_color: '#09090b',
         icons: [
           // Not "/icons": Apache's default config aliases that path to its own directory.

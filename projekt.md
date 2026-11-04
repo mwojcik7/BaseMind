@@ -344,7 +344,7 @@ Kluczowe cechy:
 ## 7. Design (propozycja Claude — użytkownik oceni po zobaczeniu)
 
 - **Styl:** minimalistyczny, „spokojny”, inspirowany Linear / Things 3 / Notion. Dużo przestrzeni, mało ramek, hierarchia przez typografię.
-- **Kolory:** neutralna skala szarości (zinc) + **jeden kolor akcentu: indygo `#6366F1`** (zmienny). Semantyczne: zielony = wpływy/zrobione, czerwony = wydatki/zaległe, bursztynowy = ostrzeżenia.
+- **Kolory:** neutralna skala szarości (zinc) + **jeden kolor akcentu: niebieski `#2563EB`** (tekst i ikony: `#1D4ED8` w jasnym, `#93C5FD` w ciemnym). Semantyczne: zielony = wpływy/zrobione, czerwony = wydatki/zaległe, bursztynowy = ostrzeżenia.
 - **Każdy moduł ma subtelny kolor i ikonę** (tylko w akcentach).
 - **Tryb jasny i ciemny** (domyślnie zgodny z systemem), ciemny bliski czerni (OLED).
 - **Typografia:** Inter, cyfry tabelaryczne w kwotach.
@@ -511,7 +511,10 @@ Hosting musi zapewniać:
 | 2026-11-04 | Frontend (`web/`) zaczynamy w następnej sesji | Użytkownik |
 | 2026-11-04 | TypeScript 6.0 zamiast 7, bo `typescript-eslint` wymaga TS < 6.1; zostajemy przy ESLint z planu (szablon Vite proponował oxlint) | Claude (do oceny użytkownika) |
 | 2026-11-04 | `cn` (oficjalny pakiet autora shadcn, instalowany przez CLI) zamiast `clsx` + `tailwind-merge` | Claude (do oceny użytkownika) |
-| 2026-11-04 | Adresy URL po angielsku (`/tasks`, `/more/finance`) | Użytkownik |
+| 2026-11-04 | Adresy URL po angielsku i bez przedrostka `/more` (`/tasks`, `/notes`, `/finance`) | Użytkownik |
+| 2026-11-04 | Wybór motywu w ustawieniach: zgodny z systemem / jasny / ciemny; na razie zapamiętany na urządzeniu (`localStorage`), synchronizacja z `user_settings` w Etapie 1 | Użytkownik / Claude |
+| 2026-11-04 | Kolor akcentu: niebieski `#2563EB` zamiast indygo (nie myli się z kolorami statusów) | Użytkownik |
+| 2026-11-04 | Moduł lokalizatora w UI nazywa się „Lokalizator rzeczy” (samo „Lokalizator” mogło mylić) | Użytkownik |
 | 2026-11-04 | Usunięte nieużywane pliki frontendu Laravela (`api/package.json`, `api/vite.config.js`, `api/resources/js`, `api/resources/css`) — frontend jest w `web/` | Użytkownik |
 | 2026-11-04 | TanStack Router z trasami w kodzie (bez generatora plików) | Claude (do oceny użytkownika) |
 | 2026-11-04 | CSP: style inline dozwolone (Radix UI), skrypty tylko z `'self'`; `img-src` bez zewnętrznych domen do czasu Etapu 4 | Claude (do oceny użytkownika) |

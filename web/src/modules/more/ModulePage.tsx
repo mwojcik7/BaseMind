@@ -4,7 +4,7 @@ import { NotFound } from '@/components/NotFound'
 import { pl } from '@/i18n/pl'
 import { getModule } from '@/modules/registry'
 
-const route = getRouteApi('/more/$moduleId')
+const route = getRouteApi('/$moduleId')
 
 export function ModulePage() {
   const { moduleId } = route.useParams()

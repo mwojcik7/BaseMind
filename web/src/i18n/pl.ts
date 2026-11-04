@@ -47,7 +47,16 @@ export const pl = {
     vehicles: 'Pojazdy',
     warranties: 'Gwarancje',
     expiry: 'Daty ważności',
-    locator: 'Lokalizator',
-    fileShares: 'Udostępnione pliki',
+    locator: 'Lokalizator rzeczy',
+    files: 'Udostępnione pliki',
+  },
+  settings: {
+    title: 'Ustawienia',
+    theme: 'Motyw aplikacji',
+    themes: {
+      system: 'Zgodny z systemem',
+      light: 'Jasny',
+      dark: 'Ciemny',
+    },
   },
 } as const

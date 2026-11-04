@@ -1,7 +1,7 @@
 import { defineConfig } from '@vite-pwa/assets-generator/config'
 
 // `pnpm icons` regenerates the PNG icons in public/app-icons/ from logo.svg.
-const onBrand = { padding: 0.3, resizeOptions: { background: '#6366f1' } }
+const onBrand = { padding: 0.3, resizeOptions: { background: '#2563eb' } }
 
 export default defineConfig({
   preset: {

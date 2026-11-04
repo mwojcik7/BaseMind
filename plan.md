@@ -13,19 +13,19 @@
 
 ## Stan bieżący (ostatnia sesja: 2026-11-04)
 
-- **Faza:** Etap 0 — decyzje zatwierdzone (0.1), środowisko gotowe (0.2), **backend i frontend `web/` gotowe** (0.3), brakuje testu na fizycznym telefonie. Następny jest design system (0.4).
+- **Faza:** Etap 0 — decyzje zatwierdzone (0.1), środowisko gotowe (0.2), **backend i frontend `web/` gotowe, test na Samsungu S25 Ultra zaakceptowany przez użytkownika** (0.3). Następny jest design system (0.4).
 - **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>.
 - **Zrobione:** dokumentacja; Laravel 13.40 w `api/` (MySQL, Sanctum, utwardzenie PHP/Apache, kontrola luk PHP, nagłówki, `/api/health`, 21 testów OK); Apache VirtualHost `127.0.0.1:8080` → `api/public`; testy HTTP reguł dostępu (brak wycieku plików).
 - **Zrobione w `web/`:** React 19 + Vite 8 + TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA (`injectManifest`), Inter, tryb jasny/ciemny wg systemu, ekrany szkieletowe, ESLint + Prettier + Vitest. Laravel serwuje powłokę PWA z CSP. Sprawdzone w Chrome z emulacją Pixel 7: brak błędów CSP, Service Worker aktywny, aplikacja działa offline.
-- **Czeka na użytkownika:** test na telefonie przez USB.
+- **Czeka na użytkownika:** nic. Następny krok to 0.4, po zgodzie użytkownika.
 - **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje.
 
 ### ▶ Wznowienie pracy — od czego zacząć następną sesję
 1. Przeczytać `projekt.md` (szczególnie pkt 0, 3, 8, 14 „Konfiguracja poza repozytorium”, 15 „Pułapki”) i ten plik.
 2. Szybko sprawdzić stan: `git status`, `git log --oneline -5`, czy XAMPP (Apache + MySQL) działa → `http://localhost:8080/api/health` zwraca `{"status":"ok",...}`; testy: `cd api && php artisan test` (wymaga działającej MariaDB).
 3. Przed uruchomieniem testów upewnić się, że `composer audit` jest czysty.
-4. **Test na telefonie przez USB** — poprosić użytkownika o: włączenie opcji programistycznych i debugowania USB na Androidzie, podłączenie kabla, zgodę na komputerze; potem Chrome `chrome://inspect` → Port forwarding `5173 → localhost:5173`, na telefonie `http://localhost:5173`.
-5. Potem: 0.4 design system → pokaz użytkownikowi → Etap 1.
+4. **Test na telefonie przez USB** (instrukcja w `README.md`): do sprawdzania PWA używać builda, czyli port `8080 → localhost:8080` i na telefonie `http://localhost:8080`. Telefon użytkownika: Samsung S25 Ultra.
+5. Dalej: 0.4 design system → pokaz użytkownikowi → Etap 1.
 6. Po sesji: zaktualizować ten plik („Stan bieżący”, checklisty, „Dziennik zmian”), commit i `git push`.
 
 ---
@@ -34,7 +34,7 @@
 
 | Etap | Nazwa | Zakres | Status |
 |---|---|---|---|
-| 0 | Przygotowanie | Decyzje, środowisko, szkielet (Laravel + React PWA), design system | 🟡 w trakcie (backend ✅, frontend ✅, test na telefonie ⬜, design ⬜) |
+| 0 | Przygotowanie | Decyzje, środowisko, szkielet (Laravel + React PWA), design system | 🟡 w trakcie (backend ✅, frontend ✅, test na telefonie ✅, design ⬜) |
 | 1 | Fundament | Auth, przestrzenie, szyfrowanie, PWA, offline + sync, nawigacja, wyszukiwanie, tagi/powiązania, przypomnienia, dashboard (szkielet) | ⬜ |
 | 2 | Codzienność | Zadania, kalendarz, notatki Markdown z backlinkami, szybka notatka | ⬜ |
 | 3 | Pieniądze | Finanse (portfele, kategorie, transakcje, raporty, wykresy, budżety), subskrypcje | ⬜ |
@@ -80,7 +80,7 @@
 - [x] Lokalny adres backendu: **VirtualHost Apache na `localhost:8080` → `BaseMind/api/public`** (konfiguracja przy 0.3, gdy powstanie folder `api/`).
 - [x] `bind-address="127.0.0.1"` w `C:\xampp\mysql\bin\my.ini` (kopia: `my.ini.bak-basemind-20261103`) — MariaDB nasłuchuje tylko lokalnie. Laravel łączy się przez `127.0.0.1` (root@::1 już nieosiągalny — to OK).
 - [ ] Na później (Etap 1.4, sync): `max_allowed_packet=1M` w `my.ini` jest mały — przy partiach synchronizacji może trzeba podnieść (np. 16M). Na hostingu sprawdzić wartość.
-- [ ] Telefon: włączone debugowanie USB, test `chrome://inspect` → Port forwarding `5173`.
+- [x] Telefon (Samsung S25 Ultra): debugowanie USB włączone, `chrome://inspect` → Port forwarding `8080`, test użytkownika OK.
 
 ### 0.3 Szkielet projektu
 - [x] `git init` (gałąź `main`), `.gitignore`, `.gitattributes` (LF). Autor commitów (lokalnie w repo): **Marcin Wójcik <mgrnewsl@gmail.com>**.
@@ -99,16 +99,17 @@
 - [x] Test trybu awaryjnego (docroot = cały `api/`, tymczasowy vhost 8081 — usunięty po teście): `.env`, `.env.example`, `.git`, logi → 403; `composer.json`, `artisan`, `config/`, `app/`, `vendor/`, `phpunit.xml` → 404 (Laravel); `/api/health` działa. Dodane `DirectorySlash Off` w `api/.htaccess` (301 zdradzało istnienie katalogów).
 - [x] Strona powitalna Laravela usunięta; `SpaController` + `routes/web.php` serwują powłokę PWA bez sesji i bazy. `/api`, `/sanctum`, `/s`, katalogi statyczne i ścieżki z kropką zwracają prawdziwe 404. `/index.html` przechodzi przez Laravela (reguła w `.htaccess`), żeby zawsze dostać CSP.
 - [x] `web/` — Vite 8 + React 19 + TS 6, Tailwind v4, shadcn/ui (`components.json`, Button), TanStack Router (trasy w kodzie, lazy loading), vite-plugin-pwa (`injectManifest`, precache powłoki, offline), font Inter z własnych plików, ikony PWA (`pnpm icons`), teksty w `src/i18n/pl.ts`, rejestr modułów `src/modules/registry.ts`.
-- [x] Ekrany szkieletowe: „Dziś”, „Zadania”, „Kalendarz”, „Więcej” z siatką modułów, strona zastępcza modułu, dolna nawigacja, arkusz [+] (na razie informacyjny; właściwy w 1.10).
+- [x] Ekrany szkieletowe: „Dziś”, „Zadania”, „Kalendarz”, „Więcej” z siatką modułów, strona zastępcza modułu pod własnym adresem (`/notes`, `/finance`…), dolna nawigacja, arkusz [+] (na razie informacyjny; właściwy w 1.10).
+- [x] „Ustawienia” (`/settings`) z wyborem motywu: system / jasny / ciemny. Zapis w `localStorage`, `public/theme-init.js` ustawia motyw przed pierwszym renderem (CSP zabrania skryptów inline). Synchronizacja z `user_settings` — Etap 1.
 - [x] Proxy Vite → Apache (`/api`, `/sanctum`, `/s/`); build do `api/public/` (czyszczenie: `web/scripts/clean-build.mjs`, tylko jawna lista plików); fallback SPA w Laravelu.
-- [~] ESLint + Prettier + `tsc` + Vitest (web) — zrobione, 8 testów OK. Pint jest; Larastan i Pest (api) — do zrobienia (testy api na razie w PHPUnit, 38 OK).
+- [~] ESLint + Prettier + `tsc` + Vitest (web) — zrobione, 14 testów OK. Pint jest; Larastan i Pest (api) — do zrobienia (testy api na razie w PHPUnit, 39 OK).
 - [ ] Sprawdzić nowe reguły `.htaccess` w trybie awaryjnym (docroot = cały `api/`) — testowane tylko z docroot `public/`.
 - [x] `README.md` (główny) — uruchomienie backendu i frontendu, build, telefon po USB.
 - [x] `CLAUDE.md` (główny) — krótki wskaźnik dla Claude: zasady współpracy + „czytaj `projekt.md` i `plan.md`”.
 - [x] Repozytorium zdalne: `origin` = https://github.com/mwojcik7/BaseMind.git, wypchnięta gałąź `main`.
 
 ### 0.4 Design system
-- [ ] Tokeny: kolory (jasny/ciemny, akcent indygo), typografia (Inter), odstępy, promienie, cienie.
+- [ ] Tokeny: kolory (jasny/ciemny, akcent niebieski), typografia (Inter), odstępy, promienie, cienie.
 - [ ] Komponenty: Button, Input, AmountInput, DatePicker (pl), Select, Checkbox, Switch, BottomSheet, Dialog, Toast, EmptyState, ListItem ze swipe, Card, Badge, Tabs, FAB.
 - [ ] Layout mobile: górny pasek z wyszukiwarką, dolna nawigacja (Dziś · Zadania · [+] · Kalendarz · Więcej), safe-area.
 - [ ] Layout desktop: sidebar + treść.
@@ -376,3 +377,4 @@
 | 2026-11-04 | VirtualHost Apache `127.0.0.1:8080` → `api/public` (kopie konfiguracji XAMPP). Poprawki `.htaccess` (`php_module`, bez duplikatów nagłówków, `DirectorySlash Off` w trybie awaryjnym). Testy HTTP reguł dostępu w obu trybach (docroot `public/` i cały `api/`) — brak wycieku plików. | `web/` (React PWA) + test na telefonie. |
 | 2026-11-04 | Przygotowanie do przerwy: sekcja „Wznowienie pracy” w `plan.md`; w `projekt.md` pkt 14 (konfiguracja poza repo — XAMPP, PATH, `.env`) i 15 (pułapki); `README.md` i `CLAUDE.md` w katalogu głównym; remote `origin` → GitHub, push `main`. | Następna sesja: frontend `web/` (krok 0.3) — po zgodzie użytkownika. |
 | 2026-11-04 | Frontend `web/` (krok 0.3): szkielet PWA, ekrany, proxy, build do `api/public/`, powłoka serwowana przez Laravela z CSP, ikony w `/app-icons/`. Testy: web 8 OK, api 38 OK; Chrome z emulacją Pixel 7: brak błędów CSP, SW aktywny, offline działa. Symfony 8.1.10 → 8.1.11 (poprawki bezpieczeństwa, `composer audit` czysty). Usunięte nieużywane pliki frontendu Laravela (`api/package.json`, `api/vite.config.js`, `api/resources/js`, `api/resources/css`) i kroki `npm` ze skryptu `composer setup`. | Test na telefonie, potem 0.4. |
+| 2026-11-04 | Uwagi użytkownika po teście na telefonie (S25 Ultra, test OK): adresy modułów bez `/more` (`/notes`), ekran „Ustawienia” z wyborem motywu, kolor akcentu niebieski `#2563EB` (także ikony PWA), nazwa „Lokalizator rzeczy”. | Design system (0.4) — po zgodzie użytkownika. |

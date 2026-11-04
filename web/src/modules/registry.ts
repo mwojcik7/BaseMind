@@ -23,6 +23,7 @@ import { pl } from '@/i18n/pl'
 export type ModuleId = keyof typeof pl.modules
 
 export interface AppModule {
+  /** Also the module's URL (/notes, /finance, ...). */
   id: ModuleId
   icon: LucideIcon
   /** Stage in plan.md that delivers this module. */
@@ -47,7 +48,7 @@ export const modules: readonly AppModule[] = [
   { id: 'warranties', icon: ShieldCheck, stage: 6 },
   { id: 'expiry', icon: CalendarClock, stage: 6 },
   { id: 'locator', icon: MapPin, stage: 6 },
-  { id: 'fileShares', icon: Share2, stage: 6 },
+  { id: 'files', icon: Share2, stage: 6 },
 ]
 
 const TABBED: readonly ModuleId[] = ['tasks', 'calendar']

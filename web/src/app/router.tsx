@@ -37,9 +37,16 @@ const moreRoute = createRoute({
   component: lazyRouteComponent(() => import('@/modules/more/MorePage'), 'MorePage'),
 })
 
-export const moduleRoute = createRoute({
+const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/more/$moduleId',
+  path: '/settings',
+  component: lazyRouteComponent(() => import('@/modules/settings/SettingsPage'), 'SettingsPage'),
+})
+
+// Placeholder for modules not built yet (/notes, /finance, ...). The static routes above win.
+const moduleRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/$moduleId',
   component: lazyRouteComponent(() => import('@/modules/more/ModulePage'), 'ModulePage'),
 })
 
@@ -48,6 +55,7 @@ const routeTree = rootRoute.addChildren([
   tasksRoute,
   calendarRoute,
   moreRoute,
+  settingsRoute,
   moduleRoute,
 ])
 

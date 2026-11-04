@@ -6,7 +6,14 @@ import { rm } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 
 const publicDir = new URL('../../api/public/', import.meta.url)
-const outputs = ['assets', 'app-icons', 'index.html', 'sw.js', 'manifest.webmanifest']
+const outputs = [
+  'assets',
+  'app-icons',
+  'index.html',
+  'sw.js',
+  'theme-init.js',
+  'manifest.webmanifest',
+]
 
 await Promise.all(
   outputs.map((name) =>

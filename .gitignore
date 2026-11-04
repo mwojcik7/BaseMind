@@ -31,4 +31,5 @@ api/public/assets/
 api/public/app-icons/
 api/public/index.html
 api/public/sw.js
+api/public/theme-init.js
 api/public/manifest.webmanifest

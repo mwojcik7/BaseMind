@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { createAppRouter } from '@/app/router'
 import { pl } from '@/i18n/pl'
+import { getTheme } from '@/lib/theme'
 
 function renderAt(path: string) {
   const router = createAppRouter(createMemoryHistory({ initialEntries: [path] }))
@@ -50,13 +51,35 @@ describe('app shell', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('shows not found for an unknown path', async () => {
+  it('opens a module directly from its top-level URL', async () => {
+    renderAt('/notes')
+
+    expect(await heading(pl.modules.notes)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: pl.nav.more })).toHaveAttribute('data-force-active')
+  })
+
+  it('shows not found for an unknown module id', async () => {
     renderAt('/nope')
     expect(await heading(pl.notFound.title)).toBeInTheDocument()
   })
 
-  it('shows not found for an unknown module id', async () => {
-    renderAt('/more/nope')
+  it('shows not found for an unknown nested path', async () => {
+    renderAt('/more/finance')
     expect(await heading(pl.notFound.title)).toBeInTheDocument()
+  })
+
+  it('changes and remembers the theme from the settings screen', async () => {
+    const user = userEvent.setup()
+    renderAt('/more')
+
+    await user.click(await screen.findByRole('link', { name: pl.settings.title }))
+    const system = await screen.findByRole('radio', { name: pl.settings.themes.system })
+    expect(system).toBeChecked()
+
+    await user.click(screen.getByRole('radio', { name: pl.settings.themes.dark }))
+
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    expect(getTheme()).toBe('dark')
+    expect(screen.getByRole('radio', { name: pl.settings.themes.dark })).toBeChecked()
   })
 })

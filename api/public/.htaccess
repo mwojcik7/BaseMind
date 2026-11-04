@@ -44,7 +44,7 @@ DirectoryIndex index.php
     Header set Referrer-Policy "strict-origin-when-cross-origin"
 
     # PWA build: fixed names must revalidate, content-hashed names never change.
-    <FilesMatch "^(sw\.js|manifest\.webmanifest)$">
+    <FilesMatch "^(sw\.js|theme-init\.js|manifest\.webmanifest)$">
         Header set Cache-Control "no-cache"
     </FilesMatch>
     <FilesMatch "-[A-Za-z0-9_-]{8}\.(js|css|woff2)$">

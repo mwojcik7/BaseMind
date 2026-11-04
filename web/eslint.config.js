@@ -29,4 +29,8 @@ export default defineConfig([
     extends: [js.configs.recommended, prettier],
     languageOptions: { globals: globals.node },
   },
+  {
+    files: ['public/**/*.js'],
+    languageOptions: { globals: globals.browser },
+  },
 ])

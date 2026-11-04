@@ -1,50 +1,53 @@
 @import 'tailwindcss';
 
-/* Starter tokens (projekt.md, section 7). The full design system comes in step 0.4. */
+/* dark: follows the theme chosen in settings, or the system when none is chosen. */
+@custom-variant dark {
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme='light']), :root:not([data-theme='light']) *) {
+      @slot;
+    }
+  }
+}
+
+/*
+ * Starter tokens (projekt.md, section 7). The full design system comes in step 0.4.
+ * light-dark() picks a value from color-scheme, so the theme is set in one place below.
+ */
 :root {
   color-scheme: light dark;
-  --background: #ffffff;
-  --foreground: #18181b;
-  --card: #f4f4f5;
-  --card-foreground: #18181b;
-  --popover: #ffffff;
-  --popover-foreground: #18181b;
-  --primary: #6366f1;
+  --background: light-dark(#ffffff, #09090b);
+  --foreground: light-dark(#18181b, #fafafa);
+  --card: light-dark(#f4f4f5, #18181b);
+  --card-foreground: light-dark(#18181b, #fafafa);
+  --popover: light-dark(#ffffff, #18181b);
+  --popover-foreground: light-dark(#18181b, #fafafa);
+  --primary: #2563eb;
   --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
-  --destructive: #dc2626;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #6366f1;
-  /* Indigo for small text: #6366f1 itself falls just short of 4.5:1 on both backgrounds. */
-  --brand-text: #4f46e5;
+  --secondary: light-dark(#f4f4f5, #27272a);
+  --secondary-foreground: light-dark(#18181b, #fafafa);
+  --muted: light-dark(#f4f4f5, #27272a);
+  --muted-foreground: light-dark(#71717a, #a1a1aa);
+  --accent: light-dark(#f4f4f5, #27272a);
+  --accent-foreground: light-dark(#18181b, #fafafa);
+  --destructive: light-dark(#dc2626, #ef4444);
+  --border: light-dark(#e4e4e7, #27272a);
+  --input: light-dark(#e4e4e7, #27272a);
+  --ring: #2563eb;
+  /* Blue for text and icons: --primary itself is too dark to read on the dark background. */
+  --brand-text: light-dark(#1d4ed8, #93c5fd);
   --radius: 0.875rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b;
-    --foreground: #fafafa;
-    --card: #18181b;
-    --card-foreground: #fafafa;
-    --popover: #18181b;
-    --popover-foreground: #fafafa;
-    --secondary: #27272a;
-    --secondary-foreground: #fafafa;
-    --muted: #27272a;
-    --muted-foreground: #a1a1aa;
-    --accent: #27272a;
-    --accent-foreground: #fafafa;
-    --destructive: #ef4444;
-    --border: #27272a;
-    --input: #27272a;
-    --brand-text: #a5b4fc;
-  }
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 @theme inline {
