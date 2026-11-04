@@ -8,12 +8,17 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Baseline security headers for every response.
- *
- * TODO (step 0.3, PWA): add a Content-Security-Policy for the HTML app shell
- * once the frontend exists. JSON responses already get a locked-down CSP.
  */
 class SecurityHeaders
 {
+    /**
+     * CSP for HTML (the PWA shell). Scripts are never inline. Inline styles are
+     * allowed because Radix UI injects <style> tags at runtime.
+     */
+    private const HTML_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        ."img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; "
+        ."worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
@@ -35,8 +40,12 @@ class SecurityHeaders
             $headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
 
-        if (str_contains((string) $headers->get('Content-Type'), 'json')) {
+        $contentType = (string) $headers->get('Content-Type');
+
+        if (str_contains($contentType, 'json')) {
             $headers->set('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+        } elseif (str_contains($contentType, 'html')) {
+            $headers->set('Content-Security-Policy', self::HTML_CSP);
         }
 
         return $response;

@@ -8,7 +8,7 @@ Osobiste „centrum dowodzenia” — aplikacja PWA (mobile-first, offline-first
 ## Stack
 
 - **Backend:** PHP 8.5 + Laravel 13 + MySQL/MariaDB (`api/`) — docelowo zwykły hosting współdzielony.
-- **Frontend:** React + Vite + TypeScript PWA (`web/` — w przygotowaniu).
+- **Frontend:** React + Vite + TypeScript PWA (`web/`).
 - **Lokalnie:** XAMPP (Apache + PHP + MariaDB) na Windows.
 
 ## Uruchomienie lokalne (backend)
@@ -32,4 +32,20 @@ php artisan migrate
 
 ## Frontend
 
-W przygotowaniu (krok 0.3 w `plan.md`).
+```bash
+cd web
+pnpm install
+pnpm dev            # http://localhost:5173, proxy /api, /sanctum, /s do Apache (:8080)
+```
+
+- Kontrola jakości: `pnpm typecheck`, `pnpm lint`, `pnpm format:check`, `pnpm test`
+- Build: `pnpm build` zapisuje PWA do `api/public/`; aplikacja działa wtedy pod <http://localhost:8080>. Bez builda Laravel zwraca 503 na `/`.
+- Service Worker działa tylko w buildzie, nie w `pnpm dev`.
+- Ikony: po zmianie `web/public/app-icons/logo.svg` uruchom `pnpm icons`.
+
+### Test na telefonie (Android, kabel USB)
+
+1. Na telefonie włącz opcje programistyczne i debugowanie USB, podłącz kabel, zaakceptuj komputer.
+2. Uruchom `pnpm dev` (lub zbuduj aplikację i uruchom Apache).
+3. W Chrome na komputerze: `chrome://inspect` → **Port forwarding** → dodaj `5173 → localhost:5173` (dla builda `8080 → localhost:8080`) i zaznacz **Enable port forwarding**.
+4. Na telefonie otwórz `http://localhost:5173` (lub `http://localhost:8080`).

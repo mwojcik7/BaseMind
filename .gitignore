@@ -28,7 +28,7 @@ api/.phpunit.result.cache
 
 # Built PWA copied into Laravel public/
 api/public/assets/
+api/public/app-icons/
 api/public/index.html
 api/public/sw.js
 api/public/manifest.webmanifest
-api/public/workbox-*.js

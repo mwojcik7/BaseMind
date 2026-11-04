@@ -1,0 +1,53 @@
+// All UI copy lives here, so another language can be added later without touching components.
+export const pl = {
+  nav: {
+    label: 'Główna nawigacja',
+    today: 'Dziś',
+    tasks: 'Zadania',
+    add: 'Dodaj',
+    calendar: 'Kalendarz',
+    more: 'Więcej',
+  },
+  today: {
+    tasks: 'Zadania',
+    tasksEmpty: 'Brak zadań na dziś',
+    events: 'Wydarzenia',
+    eventsEmpty: 'Brak wydarzeń na dziś',
+    expenses: 'Ostatnie wydatki',
+    expensesEmpty: 'Brak wydatków',
+    quickNote: 'Szybka notatka',
+    quickNoteEmpty: 'Tu zapiszesz szybką myśl',
+  },
+  quickAdd: {
+    title: 'Szybkie dodawanie',
+    description: 'Dodawanie zadań, wydatków i notatek pojawi się w kolejnych etapach.',
+    close: 'Zamknij',
+  },
+  module: {
+    comingSoon: (stage: number) => `Ten moduł powstanie w etapie ${stage}.`,
+    back: 'Wróć do listy modułów',
+  },
+  notFound: {
+    title: 'Nie ma takiej strony',
+    home: 'Wróć do ekranu Dziś',
+  },
+  modules: {
+    tasks: 'Zadania',
+    calendar: 'Kalendarz',
+    finance: 'Finanse',
+    subscriptions: 'Subskrypcje',
+    notes: 'Notatki',
+    bookmarks: 'Linki',
+    media: 'Do obejrzenia',
+    codes: 'Kody i dane',
+    work: 'Grafik pracy',
+    habits: 'Nawyki',
+    contacts: 'Bliscy',
+    gifts: 'Prezenty',
+    vehicles: 'Pojazdy',
+    warranties: 'Gwarancje',
+    expiry: 'Daty ważności',
+    locator: 'Lokalizator',
+    fileShares: 'Udostępnione pliki',
+  },
+} as const

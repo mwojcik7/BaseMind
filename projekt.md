@@ -509,6 +509,12 @@ Hosting musi zapewniać:
 | 2026-11-04 | Apache VirtualHost `127.0.0.1:8080` → `api/public` | Użytkownik |
 | 2026-11-04 | Repozytorium zdalne: https://github.com/mwojcik7/BaseMind.git (gałąź `main`) | Użytkownik |
 | 2026-11-04 | Frontend (`web/`) zaczynamy w następnej sesji | Użytkownik |
+| 2026-11-04 | TypeScript 6.0 zamiast 7, bo `typescript-eslint` wymaga TS < 6.1; zostajemy przy ESLint z planu (szablon Vite proponował oxlint) | Claude (do oceny użytkownika) |
+| 2026-11-04 | `cn` (oficjalny pakiet autora shadcn, instalowany przez CLI) zamiast `clsx` + `tailwind-merge` | Claude (do oceny użytkownika) |
+| 2026-11-04 | Adresy URL po angielsku (`/tasks`, `/more/finance`) | Użytkownik |
+| 2026-11-04 | Usunięte nieużywane pliki frontendu Laravela (`api/package.json`, `api/vite.config.js`, `api/resources/js`, `api/resources/css`) — frontend jest w `web/` | Użytkownik |
+| 2026-11-04 | TanStack Router z trasami w kodzie (bez generatora plików) | Claude (do oceny użytkownika) |
+| 2026-11-04 | CSP: style inline dozwolone (Radix UI), skrypty tylko z `'self'`; `img-src` bez zewnętrznych domen do czasu Etapu 4 | Claude (do oceny użytkownika) |
 
 ---
 
@@ -573,6 +579,9 @@ Po świeżym `git clone`: `cd api && composer install && copy .env.example .env 
 - **`Header always set` w `.htaccess` dubluje nagłówki ustawione przez PHP** — używać `Header set`.
 - **Instalator Laravela tworzy `CLAUDE.md`/`AGENTS.md` (Laravel Boost)** — usunięte; nie odtwarzać bez zgody użytkownika.
 - **Pobieranie programów z internetu (np. Mailpit) może zostać zablokowane** przez zabezpieczenia sesji Claude — wtedy poprosić użytkownika o ręczne pobranie lub zgodę.
+- **Nie używać ścieżki `/icons/`:** domyślna konfiguracja Apache (XAMPP i wiele hostingów) ma `Alias /icons/` na własny katalog, więc pliki z `public/icons` zwracają 404. Ikony PWA są w `/app-icons/`.
+- **`shadcn add` czyta alias `@/*` z głównego `web/tsconfig.json`** — bez wpisu `paths` tworzy dosłowny katalog `web/@/`.
+- **Nie czyścić `api/public/` przy buildzie w całości** (są tam `index.php`, `.htaccess`) — tylko `web/scripts/clean-build.mjs` z jawną listą.
 - **MariaDB nasłuchuje tylko na 127.0.0.1** — łączyć się przez `127.0.0.1`, nie `::1`/`localhost` z IPv6.
 - `max_allowed_packet=1M` w `my.ini` — może trzeba podnieść przy synchronizacji (Etap 1.4).
 - Na hostingu: zweryfikować wariant document root (najlepiej `api/public`; awaryjnie cały `api/` — przetestowany lokalnie, bezpieczny).

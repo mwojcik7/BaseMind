@@ -3,6 +3,13 @@
 
 Options -Indexes -MultiViews
 
+# "/" must reach Laravel, not the static index.html of the PWA build.
+DirectoryIndex index.php
+
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+</IfModule>
+
 # --- PHP hardening for mod_php hosting (.user.ini is ignored by mod_php) ---
 <IfModule php_module>
     php_flag session.upload_progress.enabled off
@@ -35,6 +42,14 @@ Options -Indexes -MultiViews
     Header set X-Content-Type-Options "nosniff"
     Header set X-Frame-Options "DENY"
     Header set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # PWA build: fixed names must revalidate, content-hashed names never change.
+    <FilesMatch "^(sw\.js|manifest\.webmanifest)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+    <FilesMatch "-[A-Za-z0-9_-]{8}\.(js|css|woff2)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
 </IfModule>
 
 <IfModule mod_rewrite.c>
@@ -42,6 +57,10 @@ Options -Indexes -MultiViews
 
     # Block hidden paths (except /.well-known/ for SSL validation).
     RewriteRule (^|/)\.(?!well-known/) - [F,L]
+
+    # The PWA shell is an existing file, but it must get the CSP from Laravel
+    # (the service worker precaches it from this URL).
+    RewriteRule ^index\.html$ index.php [L]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
