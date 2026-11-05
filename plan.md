@@ -2,7 +2,7 @@
 
 > **Jak korzystać z tego pliku (także po wyczyszczeniu kontekstu):**
 > 1. Przeczytaj `projekt.md` (wizja, ustalenia, architektura, model danych, bezpieczeństwo, zasady współpracy).
-> 2. Sprawdź sekcję **„Stan bieżący”** poniżej — na czym skończyliśmy i co jest następne.
+> 2. Zacznij od sekcji **„Pytania na start”**, a potem sprawdź **„Stan bieżący”** — na czym skończyliśmy i co jest następne.
 > 3. Przejrzyj **„Dziennik zmian”** na końcu pliku.
 > 4. **Nic nie rób bez akceptacji użytkownika** — zaproponuj kolejny krok i zapytaj.
 > 5. Po każdej sesji: odhacz zrobione punkty (`[x]`), zaktualizuj „Stan bieżący” i dopisz wpis do „Dziennika zmian”.
@@ -11,23 +11,41 @@
 
 ---
 
+## ❓ Pytania na start (zadać użytkownikowi na samym początku następnej sesji)
+
+> Po rozstrzygnięciu: usunąć pytanie stąd, a decyzję wpisać do rejestru w `projekt.md`, pkt 13.
+
+**Najpierw**
+1. **Kopia klucza:** czy `SODIUM_KEY` z `api/.env` jest już w menedżerze haseł, razem z identyfikatorem `2ca17bb1`? Nic jeszcze nim nie zaszyfrowano, ale kopia musi powstać, zanim pojawią się dane.
+2. **Ograniczenie szyfrowania pól:** ktoś z prawem zapisu do bazy nie odczyta danych, ale mógłby niezauważenie przenieść szyfrogram do innego wiersza lub kolumny, bo `secretbox` nie wiąże go z miejscem zapisu (`projekt.md`, pkt 8.4). Do wyboru:
+   - zaakceptować (propozycja Claude: przy jednym użytkowniku to mało realny scenariusz),
+   - przejść na szyfrowanie wiążące wartość z wierszem i kolumną. Teraz jest najtaniej, bo nie ma jeszcze zaszyfrowanych danych, ale to odstępstwo od zapisanego `secretbox` i bardziej złożone casty.
+3. **Krok 1.3:** czy zaczynamy lokalną bazę offline w przeglądarce (Dexie)? Pytanie 2 najlepiej rozstrzygnąć wcześniej.
+
+**Starsze, bez odpowiedzi (nie blokują 1.3)**
+4. **Decyzje techniczne Claude „do oceny użytkownika”:** TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2 (podklucze, identyfikator klucza, dwie komendy rotacji, `basemind:key` bez wypisywania klucza). Szczegóły: `projekt.md`, pkt 13.
+5. **Testy API:** zostajemy przy PHPUnit czy przechodzimy na Pest, jak zakładał plan? Czy wdrażamy Larastan?
+6. **Testy e2e:** czy dodać Playwright i stałe scenariusze (lista w „Otwarte sprawy” → „Dług techniczny”)?
+
+---
+
 ## Stan bieżący (ostatnia sesja: 2026-11-05)
 
 - **Faza:** Etap 0 zamknięty. **Etap 1 w toku: kroki 1.1 (konta, logowanie, przestrzenie) i 1.2 (szyfrowanie) zrobione. Następny jest krok 1.3 (warstwa danych offline), jeszcze nie zaczęty.**
-- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca, łącznie z krokiem 1.2, jest wypchnięta.
+- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca, łącznie z krokiem 1.2 i notatkami z zakończenia sesji, jest wypchnięta.
 - **Backend (`api/`):** Laravel 13.40, Sanctum + Fortify (`/api/auth`), utwardzenie PHP/Apache, kontrola luk PHP, nagłówki z CSP, powłoka PWA serwowana przez Laravela, przestrzenie i uprawnienia, ekran sesji, szyfrowanie libsodium (serwis `Crypto`, casty, komendy klucza). 141 testów OK.
 - **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia. 79 testów OK.
 - **Dane lokalne:** w bazie `basemind` jest **prawdziwe konto użytkownika**, założone przez niego na telefonie. Nie usuwać go i nie czyścić tej bazy.
 - **Klucz szyfrowania:** lokalny `SODIUM_KEY` (identyfikator `2ca17bb1`) jest w `api/.env`. Nic jeszcze nim nie zaszyfrowano. Produkcja dostanie własny klucz.
-- **Czeka na użytkownika:** skopiowanie klucza do menedżera haseł, decyzja o ograniczeniu szyfrowania pól (niżej, „Otwarte sprawy”), zgoda na start kroku 1.3.
+- **Czeka na użytkownika:** odpowiedzi na „Pytania na start” (wyżej).
 - **Uwaga:** ta sama instalacja MariaDB trzyma bazy innego projektu użytkownika (np. `syslead_test`). Nie używać `migrate:fresh` na bazie `basemind` ani poleceń obejmujących cały serwer; testy działają na `basemind_test`.
-- **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. Przed uruchomieniem sprawdzić, czy już nie działają.
+- **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. Przed uruchomieniem sprawdzić, czy już nie działają. W chwili zakończenia sesji są zatrzymane.
 
 ### ▶ Wznowienie pracy — od czego zacząć następną sesję
 1. Przeczytać `projekt.md` (szczególnie pkt 0, 3, 8, 13 „Rejestr decyzji”, 14 „Konfiguracja poza repozytorium”, 15 „Pułapki”) i ten plik.
 2. Sprawdzić stan: `git status`, `git log --oneline -5`, `composer audit` w `api/` (nowe poprawki bezpieczeństwa pojawiają się często; Symfony miało je już 2026-11-04) i `pnpm audit --prod` w `web/`.
 3. Uruchomić Apache i MariaDB (panel XAMPP lub poleceniami). Sprawdzić `http://localhost:8080/api/health`, testy `cd api && php artisan test` oraz `cd web && pnpm test`.
-4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zapytać o zgodę na krok 1.3**. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
+4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zadać „Pytania na start”** (na górze pliku), w tym o zgodę na krok 1.3. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
 5. **Krok 1.3 (warstwa danych offline):** szczegóły w sekcji 1.3 poniżej i w `projekt.md`, pkt 3.1 i 5. Przy okazji przenieść zapamiętane konto z `localStorage` do Dexie.
 6. **Test na telefonie przez USB** (instrukcja w `README.md`): do sprawdzania PWA używać builda, czyli port `8080 → localhost:8080` i na telefonie `http://localhost:8080`. Telefon użytkownika: Samsung S25 Ultra, debugowanie USB już włączone. Jeśli logowanie zgłasza brak połączenia, najpierw sprawdzić `http://localhost:8080/api/health` na telefonie (`projekt.md`, pkt 15).
 7. Po sesji: zaktualizować ten plik („Stan bieżący”, checklisty, „Dziennik zmian”) i rejestr decyzji w `projekt.md`, a po zgodzie zrobić commit i `git push`.
@@ -413,3 +431,4 @@
 | 2026-11-05 | Etap 0 zamknięty (design zaakceptowany na telefonie). Krok 1.1: konta z kodem zaproszenia, logowanie, reset hasła, przestrzenie i uprawnienia, ekran sesji, strażnik tras, działanie offline z zapamiętanym kontem. Testy: api 70 OK, web 79 OK; pełny przepływ w Chrome na prawdziwym serwerze; użytkownik potwierdził działanie na telefonie. | 1.2 (szyfrowanie) — po zgodzie użytkownika. |
 | 2026-11-05 | Koniec sesji na prośbę użytkownika: dokumentacja przygotowana do wznowienia (stan, lista otwartych spraw, konfiguracja poza repozytorium). Kod bez zmian. Serwery zatrzymane. | 1.2 (szyfrowanie) — po zgodzie użytkownika. |
 | 2026-11-05 | Krok 1.2: serwis `Crypto`, casty `SodiumEncrypted` i `SodiumEncryptedJson`, komendy `basemind:key` i `basemind:reencrypt`, lokalny `SODIUM_KEY`. Testy: api 141 OK, web 79 OK (bez zmian), oba audyty czyste; plik 50 MB odszyfrowany identycznie. Rotacja plików odłożona do 6.5. Commit i push za zgodą użytkownika. | Kopia klucza w menedżerze haseł, potem 1.3 — po zgodzie użytkownika. |
+| 2026-11-05 | Koniec sesji na prośbę użytkownika: pytania bez odpowiedzi zapisane w „Pytania na start”, wnioski w `projekt.md`, pkt 15. Kod bez zmian. Serwery zatrzymane. Commit i push za zgodą użytkownika. | „Pytania na start”, potem 1.3 — po zgodzie użytkownika. |

@@ -2,7 +2,7 @@
 
 > **Cel tego pliku:** jedno źródło prawdy o tym, CZYM jest projekt, co ustaliliśmy i JAK go budujemy.
 > Co jest zrobione i co dalej — patrz `plan.md`.
-> Po wyczyszczeniu kontekstu: przeczytaj najpierw ten plik, potem `plan.md` (sekcja „Stan bieżący” i „Dziennik zmian”).
+> Po wyczyszczeniu kontekstu: przeczytaj najpierw ten plik, potem `plan.md` (sekcje „Pytania na start”, „Stan bieżący” i „Dziennik zmian”).
 
 ---
 
@@ -485,6 +485,7 @@ Hosting musi zapewniać:
 5. Waluty obce — z kursami NBP czy bez (Etap 3).
 6. Automatyczne okładki z TMDB/OpenLibrary/IGDB (Etap 4).
 7. Ewentualne rozszerzenie listy pól 🔐 (przy każdym module).
+8. Czy akceptujemy, że szyfrogram nie jest związany z wierszem i kolumną (pkt 8.4; przed krokiem 1.3, patrz `plan.md`, „Pytania na start”).
 
 ---
 
@@ -582,7 +583,7 @@ CREATE DATABASE basemind_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 **6. Narzędzia i PATH użytkownika:** Composer w `%LOCALAPPDATA%\Programs\composer\` (`composer.phar` + `composer.bat` wywołujący `C:\xampp\php\php.exe`); pnpm: `npm install -g pnpm`; do PATH użytkownika dodane `%LOCALAPPDATA%\Programs\composer` i `C:\xampp\php`.
 
-**7. Pliki tylko lokalne w projekcie (w `.gitignore`):** `api/.env` (zawiera `APP_KEY` — **bez niego nie odczytamy zaszyfrowanych sesji/cookies**; później także `SODIUM_KEY` — **utrata = utrata zaszyfrowanych danych**, trzymać kopię w menedżerze haseł), `api/vendor/`, `node_modules/`.
+**7. Pliki tylko lokalne w projekcie (w `.gitignore`):** `api/.env` (zawiera `APP_KEY` — **bez niego nie odczytamy zaszyfrowanych sesji/cookies**; oraz `SODIUM_KEY`, lokalny identyfikator `2ca17bb1` — **utrata = utrata zaszyfrowanych danych**, trzymać kopię w menedżerze haseł), `api/vendor/`, `node_modules/`.
 Po świeżym `git clone`: `cd api && composer install && copy .env.example .env && php artisan key:generate && php artisan basemind:key && php artisan migrate` (gdy w bazie są już zaszyfrowane dane, zamiast `basemind:key` wpisać `SODIUM_KEY` z menedżera haseł) (+ uzupełnić `BASEMIND_OWNER_EMAIL` i `BASEMIND_REGISTRATION_CODE`), potem `cd ../web && pnpm install && pnpm build`.
 
 `api/.env` zawiera też `BASEMIND_REGISTRATION_CODE` (losowy kod do zakładania kont, tylko lokalny) i `SESSION_LIFETIME=43200`. Bez kodu rejestracja jest wyłączona; aby założyć kolejne konto, wystarczy odczytać lub ustawić kod w tym pliku.
@@ -612,6 +613,10 @@ Po świeżym `git clone`: `cd api && composer install && copy .env.example .env 
 - **`shadcn add` przerywa się bez komunikatu, gdy pyta o nadpisanie istniejącego pliku** (flaga `--yes` tego nie obejmuje) i pomija kolejne komponenty. Po dodaniu sprawdzić listę plików; odpowiedź można podać przez potok: `'n' | pnpm dlx shadcn@latest add ...`.
 - **Nowe komponenty shadcn mają rozmiary pod myszkę (`h-9`)** — dostosować do 44 px, a teksty (np. „Close”) przenieść do `src/i18n/pl.ts`.
 - **Git w PowerShell 5.1 gubi cudzysłowy w treści commita** — nie używać `"` w opisach.
+- **`Set-Location` w PowerShell zostaje między poleceniami** — po `cd api` kolejne polecenie startuje w `api/`. Używać pełnych ścieżek i wracać do katalogu głównego.
+- **Nigdy nie wypisywać `SODIUM_KEY` w terminalu ani w sesji Claude** (trafiłby do historii i logów). `basemind:key` zapisuje go tylko do `.env`; użytkownik kopiuje go stamtąd sam. Do sprawdzania służy identyfikator klucza.
+- **Testy nie używają prawdziwego klucza ani `.env`:** `phpunit.xml` ustawia jawny klucz testowy, a test komendy `basemind:key` działa na tymczasowym `.env`. Nowe testy tej komendy muszą robić tak samo (`useEnvironmentPath`).
+- **Model z polami 🔐 nie wymaga rejestracji w rotacji:** `basemind:reencrypt` sam skanuje `app/Models` i wykrywa casty `SodiumEncrypted`. Kolumny takich pól: `TEXT`, a dla długich treści `MEDIUMTEXT`.
 - **Nie czyścić `api/public/` przy buildzie w całości** (są tam `index.php`, `.htaccess`) — tylko `web/scripts/clean-build.mjs` z jawną listą.
 - **MariaDB nasłuchuje tylko na 127.0.0.1** — łączyć się przez `127.0.0.1`, nie `::1`/`localhost` z IPv6.
 - `max_allowed_packet=1M` w `my.ini` — może trzeba podnieść przy synchronizacji (Etap 1.4).
