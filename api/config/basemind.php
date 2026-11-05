@@ -21,6 +21,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Encryption of sensitive fields and files (libsodium)
+    |--------------------------------------------------------------------------
+    | Separate from APP_KEY. Losing these keys means losing the encrypted data,
+    | so keep a copy in a password manager, outside the server.
+    | key: encrypts new data. previous_keys: comma-separated, only decrypt.
+    */
+    'crypto' => [
+        'key' => env('SODIUM_KEY'),
+        'previous_keys' => array_values(array_filter(
+            array_map(trim(...), explode(',', (string) env('SODIUM_PREVIOUS_KEYS', ''))),
+        )),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Minimum patched PHP versions per branch
     |--------------------------------------------------------------------------
     | PHP2Shell (CVE-2026-109618, CVE-2026-109619) is fixed in these releases.

@@ -387,9 +387,11 @@ Kluczowe cechy:
 - Publiczne linki do plików: token 32+ bajtów (w bazie hash), czas wygaśnięcia, opcjonalne hasło, limit pobrań, unieważnianie, rate limit.
 
 ### 8.4 Szyfrowanie (libsodium)
-- **Pola 🔐**: `sodium_crypto_secretbox` (XSalsa20-Poly1305) z losowym nonce per wartość; własny Cast Eloquent `SodiumEncrypted` (+ `SodiumEncryptedJson`).
-- **Pliki**: `sodium_crypto_secretstream_xchacha20poly1305` (strumieniowo, duże pliki).
-- **Klucz** `SODIUM_KEY` (32 bajty, base64) w `.env`, osobny od `APP_KEY`. Przygotowana **rotacja kluczy** (identyfikator klucza zapisany w szyfrogramie).
+- **Pola 🔐**: `sodium_crypto_secretbox` (XSalsa20-Poly1305) z losowym nonce per wartość; własny Cast Eloquent `SodiumEncrypted` (+ `SodiumEncryptedJson`). Format: `bm1:<id klucza>:<base64>`.
+- **Pliki**: `sodium_crypto_secretstream_xchacha20poly1305` (strumieniowo, kawałki po 64 KiB, wykrywa zmianę, ucięcie i zamianę kawałków). Metody `Crypto::encryptStream` i `decryptStream`.
+- **Klucz** `SODIUM_KEY` (32 bajty, base64) w `.env`, osobny od `APP_KEY`. Pola i pliki używają osobnych podkluczy (`sodium_crypto_kdf`). Identyfikator klucza to 4 bajty wyprowadzone z klucza, zapisane w szyfrogramie.
+- **Rotacja:** `php artisan basemind:key --rotate` (stary klucz trafia do `SODIUM_PREVIOUS_KEYS`), potem `php artisan basemind:reencrypt`. Pliki: dopiero przy tabeli `attachments` (Etap 6.5), do tego czasu czytane starymi kluczami. Stare klucze zostają w menedżerze haseł, bo potrzebują ich starsze kopie bazy.
+- **Ograniczenie:** `secretbox` nie wiąże szyfrogramu z wierszem ani kolumną. Atakujący z prawem zapisu do bazy nie odczyta danych, ale mógłby niezauważenie przenieść szyfrogram w inne miejsce.
 - **Kopia klucza** musi być przechowywana bezpiecznie poza serwerem (np. w menedżerze haseł) — utrata klucza = utrata danych 🔐.
 - **Uczciwe ograniczenie:** szyfrowanie chroni przed wyciekiem samej bazy (np. zrzut, backup, SQL injection). Jeśli atakujący przejmie wykonanie kodu na serwerze (RCE), może odczytać klucz z `.env`. Dlatego kluczowe są pkt 8.1–8.3.
 - Dane na urządzeniu (IndexedDB) są odszyfrowane → opcjonalna blokada PIN-em (Etap 7) + czyszczenie danych przy wylogowaniu.
@@ -404,7 +406,7 @@ Kluczowe cechy:
 
 ## 9. Struktura repozytorium (plan docelowy)
 
-> **Stan na 2026-11-05 — co już istnieje poza poniższym planem:** `api/app/Actions/Fortify/`, `api/app/Enums/`, `api/app/Models/Concerns/BelongsToSpace.php`, `api/app/Http/Responses/`, `api/lang/pl/`, `web/src/lib/` (`api`, `auth`, `money`, `theme`, `device`, `form-errors`), `web/src/i18n/pl.ts`, `web/src/modules/` (`auth`, `today`, `tasks`, `calendar`, `more`, `settings`, `design`, `registry.ts`), `web/public/app-icons/`, `web/public/theme-init.js`. Jeszcze nie ma: `Casts/`, `Services/`, `Sync/`, `web/src/db/`, `web/src/sync/`, `web/src/search/`. Build zapisuje do `api/public/`: `assets/`, `app-icons/`, `index.html`, `sw.js`, `theme-init.js`, `manifest.webmanifest` (pliki w `.gitignore`).
+> **Stan na 2026-11-05 — co już istnieje poza poniższym planem:** `api/app/Actions/Fortify/`, `api/app/Enums/`, `api/app/Models/Concerns/BelongsToSpace.php`, `api/app/Http/Responses/`, `api/lang/pl/`, `web/src/lib/` (`api`, `auth`, `money`, `theme`, `device`, `form-errors`), `web/src/i18n/pl.ts`, `web/src/modules/` (`auth`, `today`, `tasks`, `calendar`, `more`, `settings`, `design`, `registry.ts`), `web/public/app-icons/`, `web/public/theme-init.js`, `api/app/Casts/`, `api/app/Services/` (`Crypto`, `EncryptedFieldRotator`), `api/app/Exceptions/`. Jeszcze nie ma: `Sync/`, `web/src/db/`, `web/src/sync/`, `web/src/search/`. Build zapisuje do `api/public/`: `assets/`, `app-icons/`, `index.html`, `sw.js`, `theme-init.js`, `manifest.webmanifest` (pliki w `.gitignore`).
 
 ```
 BaseMind/
@@ -530,6 +532,8 @@ Hosting musi zapewniać:
 | 2026-11-04 | Usunięte nieużywane pliki frontendu Laravela (`api/package.json`, `api/vite.config.js`, `api/resources/js`, `api/resources/css`) — frontend jest w `web/` | Użytkownik |
 | 2026-11-04 | TanStack Router z trasami w kodzie (bez generatora plików) | Claude (do oceny użytkownika) |
 | 2026-11-04 | CSP: style inline dozwolone (Radix UI), skrypty tylko z `'self'`; `img-src` bez zewnętrznych domen do czasu Etapu 4 | Claude (do oceny użytkownika) |
+| 2026-11-05 | Szyfrowanie: osobne podklucze dla pól i plików; identyfikator klucza wyprowadzany z klucza zamiast ręcznej numeracji; rotacja jako dwie komendy (`basemind:key --rotate`, `basemind:reencrypt`), rotacja plików odłożona do Etapu 6.5 | Claude (do oceny użytkownika) |
+| 2026-11-05 | `basemind:key` nie wypisuje klucza (tylko z `--show`) i nie nadpisuje istniejącego, żeby klucz nie trafił do historii terminala i żeby nie stracić danych przez pomyłkę | Claude (do oceny użytkownika) |
 
 ---
 
@@ -579,7 +583,7 @@ CREATE DATABASE basemind_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 **6. Narzędzia i PATH użytkownika:** Composer w `%LOCALAPPDATA%\Programs\composer\` (`composer.phar` + `composer.bat` wywołujący `C:\xampp\php\php.exe`); pnpm: `npm install -g pnpm`; do PATH użytkownika dodane `%LOCALAPPDATA%\Programs\composer` i `C:\xampp\php`.
 
 **7. Pliki tylko lokalne w projekcie (w `.gitignore`):** `api/.env` (zawiera `APP_KEY` — **bez niego nie odczytamy zaszyfrowanych sesji/cookies**; później także `SODIUM_KEY` — **utrata = utrata zaszyfrowanych danych**, trzymać kopię w menedżerze haseł), `api/vendor/`, `node_modules/`.
-Po świeżym `git clone`: `cd api && composer install && copy .env.example .env && php artisan key:generate && php artisan migrate` (+ uzupełnić `BASEMIND_OWNER_EMAIL` i `BASEMIND_REGISTRATION_CODE`), potem `cd ../web && pnpm install && pnpm build`.
+Po świeżym `git clone`: `cd api && composer install && copy .env.example .env && php artisan key:generate && php artisan basemind:key && php artisan migrate` (gdy w bazie są już zaszyfrowane dane, zamiast `basemind:key` wpisać `SODIUM_KEY` z menedżera haseł) (+ uzupełnić `BASEMIND_OWNER_EMAIL` i `BASEMIND_REGISTRATION_CODE`), potem `cd ../web && pnpm install && pnpm build`.
 
 `api/.env` zawiera też `BASEMIND_REGISTRATION_CODE` (losowy kod do zakładania kont, tylko lokalny) i `SESSION_LIFETIME=43200`. Bez kodu rejestracja jest wyłączona; aby założyć kolejne konto, wystarczy odczytać lub ustawić kod w tym pliku.
 

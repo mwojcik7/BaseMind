@@ -13,27 +13,29 @@
 
 ## Stan bieżący (ostatnia sesja: 2026-11-05)
 
-- **Faza:** Etap 0 zamknięty. **Etap 1 w toku: krok 1.1 (konta, logowanie, przestrzenie) zamknięty i zaakceptowany na telefonie. Następny jest krok 1.2 (szyfrowanie).** Użytkownik zakończył sesję przed jego rozpoczęciem, czyli **1.2 nie jest zaczęty**.
-- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca jest wypchnięta.
-- **Backend (`api/`):** Laravel 13.40, Sanctum + Fortify (`/api/auth`), utwardzenie PHP/Apache, kontrola luk PHP, nagłówki z CSP, powłoka PWA serwowana przez Laravela, przestrzenie i uprawnienia, ekran sesji. 70 testów OK.
+- **Faza:** Etap 0 zamknięty. **Etap 1 w toku: kroki 1.1 (konta, logowanie, przestrzenie) i 1.2 (szyfrowanie) zrobione. Następny jest krok 1.3 (warstwa danych offline), jeszcze nie zaczęty.**
+- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca, łącznie z krokiem 1.2, jest wypchnięta.
+- **Backend (`api/`):** Laravel 13.40, Sanctum + Fortify (`/api/auth`), utwardzenie PHP/Apache, kontrola luk PHP, nagłówki z CSP, powłoka PWA serwowana przez Laravela, przestrzenie i uprawnienia, ekran sesji, szyfrowanie libsodium (serwis `Crypto`, casty, komendy klucza). 141 testów OK.
 - **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia. 79 testów OK.
 - **Dane lokalne:** w bazie `basemind` jest **prawdziwe konto użytkownika**, założone przez niego na telefonie. Nie usuwać go i nie czyścić tej bazy.
-- **Czeka na użytkownika:** zgoda na start kroku 1.2.
+- **Klucz szyfrowania:** lokalny `SODIUM_KEY` (identyfikator `2ca17bb1`) jest w `api/.env`. Nic jeszcze nim nie zaszyfrowano. Produkcja dostanie własny klucz.
+- **Czeka na użytkownika:** skopiowanie klucza do menedżera haseł, decyzja o ograniczeniu szyfrowania pól (niżej, „Otwarte sprawy”), zgoda na start kroku 1.3.
 - **Uwaga:** ta sama instalacja MariaDB trzyma bazy innego projektu użytkownika (np. `syslead_test`). Nie używać `migrate:fresh` na bazie `basemind` ani poleceń obejmujących cały serwer; testy działają na `basemind_test`.
-- **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. W chwili zakończenia sesji są zatrzymane.
+- **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. Przed uruchomieniem sprawdzić, czy już nie działają.
 
 ### ▶ Wznowienie pracy — od czego zacząć następną sesję
 1. Przeczytać `projekt.md` (szczególnie pkt 0, 3, 8, 13 „Rejestr decyzji”, 14 „Konfiguracja poza repozytorium”, 15 „Pułapki”) i ten plik.
 2. Sprawdzić stan: `git status`, `git log --oneline -5`, `composer audit` w `api/` (nowe poprawki bezpieczeństwa pojawiają się często; Symfony miało je już 2026-11-04) i `pnpm audit --prod` w `web/`.
 3. Uruchomić Apache i MariaDB (panel XAMPP lub poleceniami). Sprawdzić `http://localhost:8080/api/health`, testy `cd api && php artisan test` oraz `cd web && pnpm test`.
-4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zapytać o zgodę na krok 1.2**. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
-5. **Krok 1.2 (szyfrowanie):** zanim powstanie `SODIUM_KEY`, uprzedzić, że utrata klucza oznacza utratę zaszyfrowanych danych, a użytkownik musi trzymać kopię w menedżerze haseł. Szczegóły: sekcja 1.2 poniżej i `projekt.md`, pkt 8.4.
+4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zapytać o zgodę na krok 1.3**. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
+5. **Krok 1.3 (warstwa danych offline):** szczegóły w sekcji 1.3 poniżej i w `projekt.md`, pkt 3.1 i 5. Przy okazji przenieść zapamiętane konto z `localStorage` do Dexie.
 6. **Test na telefonie przez USB** (instrukcja w `README.md`): do sprawdzania PWA używać builda, czyli port `8080 → localhost:8080` i na telefonie `http://localhost:8080`. Telefon użytkownika: Samsung S25 Ultra, debugowanie USB już włączone. Jeśli logowanie zgłasza brak połączenia, najpierw sprawdzić `http://localhost:8080/api/health` na telefonie (`projekt.md`, pkt 15).
 7. Po sesji: zaktualizować ten plik („Stan bieżący”, checklisty, „Dziennik zmian”) i rejestr decyzji w `projekt.md`, a po zgodzie zrobić commit i `git push`.
 
-### Otwarte sprawy (nic z tego nie blokuje kroku 1.2)
+### Otwarte sprawy (nic z tego nie blokuje kroku 1.3)
 **Do wiadomości lub decyzji użytkownika**
-- Decyzje techniczne Claude z rejestru w `projekt.md` oznaczone „do oceny użytkownika”, jeszcze niepotwierdzone: TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`.
+- Decyzje techniczne Claude z rejestru w `projekt.md` oznaczone „do oceny użytkownika”, jeszcze niepotwierdzone: TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2.
+- Ograniczenie szyfrowania pól: `secretbox` nie wiąże szyfrogramu z wierszem ani kolumną. Ktoś z prawem zapisu do bazy nie odczyta wartości, ale mógłby przenieść szyfrogram w inne miejsce i nie zostanie to wykryte (`projekt.md`, pkt 8.4). Do decyzji, czy to akceptujemy.
 - Kod rejestracji jest w `api/.env`. Przed wdrożeniem ustawić długi kod na produkcji, a po założeniu kont zostawić go pustym.
 
 **Dług techniczny**
@@ -161,11 +163,12 @@
 - [-] 2FA — przeniesione do Etapu 7 (decyzja użytkownika).
 
 ### 1.2 Szyfrowanie
-- [ ] Serwis `Crypto` (libsodium): secretbox dla pól, secretstream dla plików, identyfikator klucza w szyfrogramie.
-- [ ] Casty Eloquent: `SodiumEncrypted`, `SodiumEncryptedJson`.
-- [ ] Komenda `php artisan basemind:key` (generowanie `SODIUM_KEY`) + instrukcja bezpiecznej kopii klucza.
-- [ ] Komenda rotacji klucza (przeszyfrowanie danych).
-- [ ] Testy: zapis → w bazie szyfrogram, odczyt → tekst jawny; zły klucz → błąd.
+- [x] Serwis `Crypto` (libsodium): secretbox dla pól, secretstream dla plików, identyfikator klucza w szyfrogramie, osobne podklucze dla pól i plików. Sprawdzone na pliku 50 MB: ok. 0,2 MB dodatkowej pamięci.
+- [x] Casty Eloquent: `SodiumEncrypted`, `SodiumEncryptedJson` (także liczby, np. stawki). Zapis tej samej wartości nie jest zmianą, więc nie będzie podbijał `version` w synchronizacji.
+- [x] Komenda `php artisan basemind:key` (generowanie `SODIUM_KEY`, nie wypisuje klucza, nie nadpisuje istniejącego) + instrukcja bezpiecznej kopii w `README.md`.
+- [x] Rotacja klucza: `basemind:key --rotate` (nowy klucz, stary trafia do `SODIUM_PREVIOUS_KEYS`) i `basemind:reencrypt` (przeszyfrowanie pól, także usuniętych wierszy, bez zmiany `updated_at`, można przerwać i powtórzyć).
+- [x] Testy: zapis → w bazie szyfrogram, odczyt → tekst jawny; zły klucz → błąd; brak klucza → nic nie trafia do bazy; pliki: zmiana, ucięcie, zamiana kawałków.
+- [ ] Rotacja zaszyfrowanych plików — razem z tabelą `attachments` (6.5). Do tego czasu pliki czytamy starymi kluczami z `SODIUM_PREVIOUS_KEYS`.
 
 ### 1.3 Warstwa danych offline (klient)
 - [ ] Dexie: schemat, wersjonowanie, tabele `outbox`, `meta` (kursor sync, user).
@@ -244,7 +247,7 @@
 - [ ] (Później, 🔒) eksport iCal.
 
 ### 2.3 Notatki Markdown z backlinkami
-- [ ] Encje `notes` (content 🔐), `note_folders`.
+- [ ] Encje `notes` (content 🔐, kolumna `MEDIUMTEXT`, bo szyfrogram jest o ok. 1/3 dłuższy), `note_folders`.
 - [ ] Edytor CodeMirror 6 z paskiem narzędzi nad klawiaturą, tryb podglądu.
 - [ ] Autouzupełnianie `[[`, `@`, `#`.
 - [ ] Panel backlinków; tworzenie notatki z nieistniejącego `[[linku]]`.
@@ -409,3 +412,4 @@
 | 2026-11-04 | Design system (0.4): tokeny, komponenty, górny pasek z wyszukiwarką, sidebar na desktopie, podgląd `/design`. Testy: web 45 OK; Chrome z emulacją Pixel 7 i na desktopie: brak błędów CSP, arkusz, swipe, kalendarz i powiadomienia działają. Paczka startowa urosła do ok. 179 kB gzip — sprawdzić przy audycie wydajności. Decyzja użytkownika: jeden niebieski akcent, bez kolorów modułów. | Ocena użytkownika na telefonie, potem Etap 1. |
 | 2026-11-05 | Etap 0 zamknięty (design zaakceptowany na telefonie). Krok 1.1: konta z kodem zaproszenia, logowanie, reset hasła, przestrzenie i uprawnienia, ekran sesji, strażnik tras, działanie offline z zapamiętanym kontem. Testy: api 70 OK, web 79 OK; pełny przepływ w Chrome na prawdziwym serwerze; użytkownik potwierdził działanie na telefonie. | 1.2 (szyfrowanie) — po zgodzie użytkownika. |
 | 2026-11-05 | Koniec sesji na prośbę użytkownika: dokumentacja przygotowana do wznowienia (stan, lista otwartych spraw, konfiguracja poza repozytorium). Kod bez zmian. Serwery zatrzymane. | 1.2 (szyfrowanie) — po zgodzie użytkownika. |
+| 2026-11-05 | Krok 1.2: serwis `Crypto`, casty `SodiumEncrypted` i `SodiumEncryptedJson`, komendy `basemind:key` i `basemind:reencrypt`, lokalny `SODIUM_KEY`. Testy: api 141 OK, web 79 OK (bez zmian), oba audyty czyste; plik 50 MB odszyfrowany identycznie. Rotacja plików odłożona do 6.5. Commit i push za zgodą użytkownika. | Kopia klucza w menedżerze haseł, potem 1.3 — po zgodzie użytkownika. |

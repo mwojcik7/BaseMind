@@ -21,6 +21,7 @@ cd BaseMind/api
 composer install
 cp .env.example .env        # PowerShell: copy .env.example .env
 php artisan key:generate
+php artisan basemind:key    # klucz szyfrowania, patrz niżej
 # uruchom w panelu XAMPP: Apache + MySQL
 php artisan migrate
 ```
@@ -31,6 +32,25 @@ W `.env` uzupełnij `BASEMIND_OWNER_EMAIL` oraz `BASEMIND_REGISTRATION_CODE` (ko
 - Testy: `php artisan test` (wymaga działającej MariaDB, baza `basemind_test`)
 - Kontrola bezpieczeństwa PHP: `php artisan basemind:security-check`
 - Harmonogram (przypomnienia itp.): `php artisan schedule:work`
+
+### Klucz szyfrowania (`SODIUM_KEY`)
+
+Wrażliwe pola i pliki są szyfrowane tym kluczem. **Utrata klucza oznacza utratę zaszyfrowanych danych; nie da się ich odzyskać.**
+
+- **Kopia:** po wygenerowaniu otwórz `api/.env` i skopiuj wartość `SODIUM_KEY` do menedżera haseł. Komenda celowo nie wypisuje klucza na ekran (`--show` wypisuje nowy klucz bez zapisywania).
+- **Sprawdzenie kopii:** komenda podaje identyfikator klucza. Zapisz go razem z kopią, bo ten sam identyfikator jest w każdym szyfrogramie.
+- **Produkcja:** osobny klucz, nie ten z komputera lokalnego. Kopia bazy bez klucza jest bezużyteczna, a klucz nie powinien leżeć obok kopii bazy.
+- **Nowy komputer lub serwer z istniejącymi danymi:** wpisz w `.env` klucz z menedżera haseł, nie generuj nowego.
+
+**Wymiana klucza** (np. po podejrzeniu wycieku):
+
+```bash
+php artisan basemind:key --rotate   # nowy klucz; stary trafia do SODIUM_PREVIOUS_KEYS
+# skopiuj nowy klucz do menedżera haseł
+php artisan basemind:reencrypt      # przenosi pola na nowy klucz; można przerwać i powtórzyć
+```
+
+Zaszyfrowane pliki nie są jeszcze przenoszone na nowy klucz, dlatego nie usuwaj wpisów z `SODIUM_PREVIOUS_KEYS`. Stare klucze zachowaj też w menedżerze haseł, bo potrzebują ich starsze kopie bazy.
 
 ## Frontend
 

@@ -30,6 +30,9 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <!-- Not a secret: "basemind-test-key-not-a-secret!!". Keeps tests away from the real key. -->
+        <env name="SODIUM_KEY" value="YmFzZW1pbmQtdGVzdC1rZXktbm90LWEtc2VjcmV0ISE="/>
+        <env name="SODIUM_PREVIOUS_KEYS" value=""/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
