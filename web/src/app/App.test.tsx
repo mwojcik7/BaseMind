@@ -8,7 +8,12 @@ import { pl } from '@/i18n/pl'
 import { startAuth, type Account } from '@/lib/auth'
 import { usePwa, type BeforeInstallPromptEvent } from '@/lib/pwa'
 import { getTheme } from '@/lib/theme'
+import { search } from '@/search/client'
+import { getRecentSearches, rememberSearch } from '@/search/recent'
 import { useSyncStatus } from '@/sync/engine'
+
+// jsdom has no Web Workers. The index itself is tested in search/search.test.ts.
+vi.mock('@/search/client', () => ({ search: vi.fn() }))
 
 const ACCOUNT: Account = {
   user: { id: 1, display_name: 'Marcin', email: 'm@example.com', timezone: 'UTC', locale: 'pl' },
@@ -292,6 +297,112 @@ describe('synchronisation in the app', () => {
     expect(await heading(pl.auth.loginTitle)).toBeInTheDocument()
     expect(logOutCalls()).toHaveLength(1)
     await waitFor(async () => expect(await db.outbox.count()).toBe(0))
+  })
+})
+
+describe('search', () => {
+  const HIT = { id: 'tags:1', entity: 'tags', title: 'Dom', subtitle: null, href: null }
+
+  async function openSearch(user: ReturnType<typeof userEvent.setup>) {
+    renderAt('/')
+    await heading(pl.nav.today)
+    await user.click(screen.getByRole('button', { name: new RegExp(pl.search.placeholder) }))
+    return within(await screen.findByRole('dialog', { name: pl.search.title }))
+  }
+
+  function searchBox(dialog: ReturnType<typeof within>) {
+    return dialog.getByRole('searchbox', { name: pl.search.placeholder })
+  }
+
+  beforeEach(() => vi.mocked(search).mockReset().mockResolvedValue([]))
+
+  it('shows results grouped by module', async () => {
+    const user = userEvent.setup()
+    vi.mocked(search).mockResolvedValue([HIT])
+    const dialog = await openSearch(user)
+
+    await user.type(searchBox(dialog), 'dom')
+
+    expect(await dialog.findByText('Dom')).toBeInTheDocument()
+    expect(dialog.getByRole('heading', { name: pl.search.groups.tags })).toBeInTheDocument()
+    expect(search).toHaveBeenLastCalledWith('dom')
+  })
+
+  it('says when nothing was found', async () => {
+    const user = userEvent.setup()
+    const dialog = await openSearch(user)
+
+    await user.type(searchBox(dialog), 'xyz')
+
+    expect(await dialog.findByText(pl.search.noResults('xyz'))).toBeInTheDocument()
+  })
+
+  it('opens a result and closes the search', async () => {
+    const user = userEvent.setup()
+    vi.mocked(search).mockResolvedValue([{ ...HIT, title: 'Notatka', href: '/notes' }])
+    const dialog = await openSearch(user)
+
+    await user.type(searchBox(dialog), 'not')
+    await user.click(await dialog.findByRole('button', { name: 'Notatka' }))
+
+    expect(await heading(pl.modules.notes)).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('ignores a slower answer to an earlier query', async () => {
+    const user = userEvent.setup()
+    let answerFirst: (hits: (typeof HIT)[]) => void = () => {}
+    vi.mocked(search)
+      .mockReturnValueOnce(new Promise((resolve) => (answerFirst = resolve)))
+      .mockResolvedValue([{ ...HIT, title: 'Aktualny' }])
+    const dialog = await openSearch(user)
+
+    await user.type(searchBox(dialog), 'ab')
+    expect(await dialog.findByText('Aktualny')).toBeInTheDocument()
+    act(() => answerFirst([{ ...HIT, title: 'Spóźniony' }]))
+
+    await waitFor(() => expect(dialog.queryByText('Spóźniony')).not.toBeInTheDocument())
+    expect(dialog.getByText('Aktualny')).toBeInTheDocument()
+  })
+
+  it('remembers a search that found something and offers it next time', async () => {
+    const user = userEvent.setup()
+    vi.mocked(search).mockResolvedValue([HIT])
+    let dialog = await openSearch(user)
+    await user.type(searchBox(dialog), 'dom')
+    await dialog.findByText('Dom')
+
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await waitFor(async () => expect(await getRecentSearches()).toEqual(['dom']))
+
+    await user.click(screen.getByRole('button', { name: new RegExp(pl.search.placeholder) }))
+    dialog = within(await screen.findByRole('dialog', { name: pl.search.title }))
+    await user.click(await dialog.findByRole('button', { name: 'dom' }))
+
+    expect(searchBox(dialog)).toHaveValue('dom')
+  })
+
+  it('does not remember a search that found nothing', async () => {
+    const user = userEvent.setup()
+    const dialog = await openSearch(user)
+    await user.type(searchBox(dialog), 'xyz')
+    await dialog.findByText(pl.search.noResults('xyz'))
+
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    expect(await getRecentSearches()).toEqual([])
+  })
+
+  it('clears the recent searches', async () => {
+    const user = userEvent.setup()
+    await rememberSearch('dom')
+    const dialog = await openSearch(user)
+
+    await user.click(await dialog.findByRole('button', { name: pl.search.clearRecent }))
+
+    expect(await dialog.findByText(pl.search.hint)).toBeInTheDocument()
   })
 })
 

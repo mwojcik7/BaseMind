@@ -161,7 +161,7 @@ Kluczowe cechy:
 | Wykresy | Recharts | |
 | Daty | date-fns (locale `pl`), rrule | Strefa `Europe/Warsaw` |
 | Markdown | CodeMirror 6 (edytor), react-markdown + remark-gfm (podgląd) | |
-| Wyszukiwanie | MiniSearch w Web Workerze | Normalizacja polskich znaków |
+| Wyszukiwanie | MiniSearch w Web Workerze | Normalizacja polskich znaków, literówki i przestawione litery |
 | ID | UUIDv7 generowane na kliencie (pakiet `uuid`) | Tworzenie offline bez konfliktów |
 | **Backend** | | |
 | Język | PHP **≥ 8.4.27 lub ≥ 8.5.12** (wersje z poprawką PHP2Shell) | Lokalnie XAMPP: PHP 8.5.12 |
@@ -410,7 +410,7 @@ Kluczowe cechy:
 
 ## 9. Struktura repozytorium (plan docelowy)
 
-> **Stan na 2026-11-09 — co już istnieje poza poniższym planem:** `api/app/Actions/Fortify/`, `api/app/Enums/`, `api/app/Models/Concerns/BelongsToSpace.php`, `api/app/Http/Responses/`, `api/lang/pl/`, `web/src/lib/` (`api`, `auth`, `money`, `theme`, `device`, `form-errors`), `web/src/i18n/pl.ts`, `web/src/modules/` (`auth`, `today`, `tasks`, `calendar`, `more`, `settings`, `design`, `registry.ts`), `web/public/app-icons/`, `web/public/theme-init.js`, `api/app/Casts/`, `api/app/Services/` (`Crypto`, `EncryptedFieldRotator`), `api/app/Exceptions/`. Rejestr synchronizacji jest w `api/config/sync.php`, logika w `api/app/Services/SyncService.php` (zamiast planowanego `app/Sync/`). Jeszcze nie ma: `web/src/search/`. Build zapisuje do `api/public/`: `assets/`, `app-icons/`, `index.html`, `sw.js`, `theme-init.js`, `manifest.webmanifest` (pliki w `.gitignore`).
+> **Stan na 2026-11-09 — co już istnieje poza poniższym planem:** `api/app/Actions/Fortify/`, `api/app/Enums/`, `api/app/Models/Concerns/BelongsToSpace.php`, `api/app/Http/Responses/`, `api/lang/pl/`, `web/src/lib/` (`api`, `auth`, `money`, `theme`, `device`, `form-errors`), `web/src/i18n/pl.ts`, `web/src/modules/` (`auth`, `today`, `tasks`, `calendar`, `more`, `settings`, `design`, `registry.ts`), `web/public/app-icons/`, `web/public/theme-init.js`, `api/app/Casts/`, `api/app/Services/` (`Crypto`, `EncryptedFieldRotator`), `api/app/Exceptions/`. Rejestr synchronizacji jest w `api/config/sync.php`, logika w `api/app/Services/SyncService.php` (zamiast planowanego `app/Sync/`). Build zapisuje do `api/public/`: `assets/`, `app-icons/`, `index.html`, `sw.js`, `theme-init.js`, `manifest.webmanifest` (pliki w `.gitignore`).
 
 ```
 BaseMind/
@@ -542,6 +542,8 @@ Hosting musi zapewniać:
 | 2026-11-09 | Szyfrowanie pól zostaje przy `secretbox` bez wiązania szyfrogramu z wierszem i kolumną (na razie jeden użytkownik) | Użytkownik |
 | 2026-11-09 | Wylogowanie z niewysłanymi zmianami: próba wysłania, potem ostrzeżenie „Wyloguj mimo to / Anuluj” (krok 1.4) | Użytkownik |
 | 2026-11-09 | Zakończenie sesji przez serwer kasuje lokalne dane bez pytania, także niewysłane zmiany (ochrona zgubionego telefonu) | Użytkownik |
+| 2026-11-09 | Pobieranie zmian co 60 s, gdy aplikacja jest widoczna, bez skracania interwału | Użytkownik |
+| 2026-11-09 | Wyszukiwanie: najpierw silnik i ekran na tagach, kolejne moduły dopisują się do rejestru. Indeks tylko w pamięci, ostatnie wyszukiwania w lokalnej bazie (kasowane przy wylogowaniu) i tylko te, które coś znalazły | Użytkownik / Claude |
 | 2026-11-09 | Tagi i powiązania: teraz dane i synchronizacja, interfejs i parser razem z notatkami (2.3) | Użytkownik |
 | 2026-11-09 | Tag i źródło powiązania w tej samej przestrzeni, cel powiązania może być w innej; duplikaty z pracy offline dozwolone na serwerze, ukrywane w interfejsie | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Ekrany startowe iOS pominięte, cache obrazków przeniesiony do Etapu 4 | Claude (zaakceptowane przez użytkownika) |
@@ -622,6 +624,9 @@ Po świeżym `git clone`: `cd api && composer install && copy .env.example .env 
 - **Pobieranie programów z internetu (np. Mailpit) może zostać zablokowane** przez zabezpieczenia sesji Claude — wtedy poprosić użytkownika o ręczne pobranie lub zgodę.
 - **Sanctum uruchamia sesję tylko dla żądań z nagłówkiem `Referer`/`Origin` z `SANCTUM_STATEFUL_DOMAINS`.** Bez tego kontroler dostaje `Session store not set` (także w testach: `withHeader('Referer', …)`). Na produkcji trzeba tam wpisać domenę.
 - **Na serwerze MariaDB są też bazy innego projektu** (np. `syslead_test`) — nie używać `migrate:fresh` na `basemind` i sprawdzać `DB::getDatabaseName()` przed operacjami na danych.
+- **Web Worker wyszukiwarki nie działa w Vitest (jsdom).** Logika jest w `search/engine.ts` i tam ją testować; sam worker sprawdzać w prawdziwym buildzie.
+- **`web/src/search/sources.ts` trafia do workera:** tylko importy typów, bez Reacta i ikon (ikony są w `presentation.ts`).
+- **Tolerancja literówek w MiniSearch nie obejmuje przestawionych liter** (liczą się jako dwa błędy), dlatego `engine.ts` szuka też wariantów z zamienionymi sąsiednimi literami.
 - **Tryb samolotowy nie odcina serwera przy teście przez USB** — przekierowanie portu idzie po kablu. Do testu offline odłączyć kabel. Po ponownym podłączeniu zdarzenie `online` nie występuje: synchronizacja rusza po powrocie do aplikacji albo w ciągu minuty.
 - **Laravel domyślnie przycina tekst i zamienia puste napisy na `null`.** Dla `api/sync/*` jest to wyłączone w `bootstrap/app.php`, żeby dane zapisywały się dokładnie tak, jak je wpisano.
 - **Kod importowany przez Service Workera (`web/src/sync/push.ts`, `web/src/db/db.ts`) nie może używać aliasu `@/` ani DOM.** Worker nie ma też `document.cookie`, token CSRF czyta z `cookieStore`.

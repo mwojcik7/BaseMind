@@ -83,7 +83,14 @@ export const pl = {
   search: {
     placeholder: 'Szukaj we wszystkim',
     title: 'Wyszukiwarka',
-    description: 'Wyszukiwanie we wszystkich modułach pojawi się w etapie 1.',
+    description: 'Wyszukuje we wszystkich modułach, także bez połączenia.',
+    hint: 'Wpisz, czego szukasz.',
+    noResults: (query: string) => `Brak wyników dla „${query}”`,
+    recent: 'Ostatnie wyszukiwania',
+    clearRecent: 'Wyczyść',
+    groups: {
+      tags: 'Tagi',
+    },
   },
   datePicker: {
     placeholder: 'Wybierz datę',
