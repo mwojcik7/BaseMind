@@ -84,14 +84,14 @@ export const pl = {
     more: 'Więcej',
   },
   today: {
+    day: 'Dzień dobry',
+    evening: 'Dobry wieczór',
     tasks: 'Zadania',
     tasksEmpty: 'Brak zadań na dziś',
     events: 'Wydarzenia',
     eventsEmpty: 'Brak wydarzeń na dziś',
     expenses: 'Ostatnie wydatki',
     expensesEmpty: 'Brak wydatków',
-    quickNote: 'Szybka notatka',
-    quickNoteEmpty: 'Tu zapiszesz szybką myśl',
   },
   quickAdd: {
     title: 'Szybkie dodawanie',
@@ -149,6 +149,7 @@ export const pl = {
       light: 'Jasny',
       dark: 'Ciemny',
     },
+    dashboard: 'Ekran „Dziś”',
     account: 'Konto',
     sessions: 'Sesje i urządzenia',
     notifications: 'Powiadomienia',
@@ -157,6 +158,12 @@ export const pl = {
     unsentDescription: (count: number) =>
       `Liczba zmian, których nie udało się wysłać na serwer: ${count}. Po wylogowaniu przepadną.`,
     logOutAnyway: 'Wyloguj mimo to',
+  },
+  dashboardSettings: {
+    title: 'Ekran „Dziś”',
+    description: 'Wybierz, co ma być widoczne, i ustaw kolejność.',
+    moveUp: (name: string) => `Przenieś wyżej: ${name}`,
+    moveDown: (name: string) => `Przenieś niżej: ${name}`,
   },
   sessions: {
     title: 'Sesje i urządzenia',

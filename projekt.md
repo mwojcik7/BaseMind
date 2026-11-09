@@ -80,7 +80,7 @@ Kluczowe cechy:
 - Kalendarz jako agregator dat z modułów (grafik, subskrypcje, urodziny, gwarancje, przeglądy, daty ważności).
 - Szybkie dodawanie: przycisk „+” na mobile, `Ctrl+K` na desktopie, parser typu `-45 paliwo karta`.
 - Automatyczne powiązania: subskrypcja → wydatek, naprawa auta → wydatek, zakup sprzętu → wydatek.
-- Bank prezentów powiązany z CRM + przypomnienia przed urodzinami/imieninami/świętami.
+- Bank prezentów powiązany z CRM + przypomnienia przed urodzinami/świętami.
 - Grafik pracy wylicza nadgodziny i szacowaną wypłatę.
 - Android Share Target (udostępnij link z YouTube/przeglądarki prosto do BaseMind).
 - Lokalizator: drzewo lokalizacji + zdjęcia + etykiety z kodem QR.
@@ -91,6 +91,7 @@ Kluczowe cechy:
 
 ### Pomysły odrzucone / poza zakresem
 - ❌ Import wyciągów bankowych (CSV) — odrzucone przez użytkownika.
+- ❌ Imieniny (powitanie, CRM, kalendarz, przypomnienia) — odrzucone przez użytkownika.
 - ❌ VPS / Node.js na serwerze / Docker — odrzucone (hosting współdzielony PHP).
 - ❌ Pełne szyfrowanie E2E — odrzucone na rzecz szyfrowania wybranych pól po stronie serwera.
 - ⏸ OCR paragonów — nie planujemy.
@@ -303,8 +304,8 @@ Kluczowe cechy:
 - `habit_logs` — habit_id, date, value, note.
 
 **CRM bliskich** (całość prywatna)
-- `contacts` — name, nickname, relation, photo, birthday, nameday, phone 🔐, email 🔐, address 🔐, sizes 🔐 (JSON), likes 🔐, dislikes 🔐, favorite_food 🔐, favorite_drinks 🔐, allergies 🔐, family 🔐 (JSON: partner, dzieci, zwierzęta), important_dates (JSON), notes 🔐.
-  - `birthday`/`nameday` nieszyfrowane, bo serwer musi wysyłać przypomnienia.
+- `contacts` — name, nickname, relation, photo, birthday, phone 🔐, email 🔐, address 🔐, sizes 🔐 (JSON), likes 🔐, dislikes 🔐, favorite_food 🔐, favorite_drinks 🔐, allergies 🔐, family 🔐 (JSON: partner, dzieci, zwierzęta), important_dates (JSON), notes 🔐.
+  - `birthday` nieszyfrowane, bo serwer musi wysyłać przypomnienia.
 
 **Bank prezentów**
 - `gift_ideas` — contact_id, title 🔐, url 🔐, price_minor, occasion, status (`idea` | `bought` | `given`), heard_on, note 🔐.
@@ -557,6 +558,10 @@ Hosting musi zapewniać:
 | 2026-11-09 | Kopia konfliktu notatek przeniesiona z 1.4 do 2.3 | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Zmiany odrzucone przez serwer zostają w `outbox`, nie są ponownie wysyłane i są pokazywane we wskaźniku | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Pakiet `uuid` do UUIDv7, `fake-indexeddb` w testach; repozytorium odrzuca lokalnie zapis do przestrzeni bez prawa edycji, zanim zmiana utknie w `outbox` | Claude (do oceny użytkownika) |
+| 2026-11-09 | Bez imienin w całej aplikacji; urodziny zostają | Użytkownik |
+| 2026-11-09 | Szybka notatka na dashboardzie przeniesiona do 2.3 | Użytkownik |
+| 2026-11-09 | Dashboard: zaślepki Zadania, Wydarzenia i Ostatnie wydatki jako widżety do czasu powstania modułów; powitanie z `display_name`, przy pustym samo pozdrowienie | Użytkownik |
+| 2026-11-09 | Układ dashboardu w `user_settings` (`dashboard`: `order`, `hidden`), lokalnie w `meta`, synchronizowany jak motyw; kolejność przyciskami góra/dół zamiast przeciągania; identyfikatory widżetów niesprawdzane listą na serwerze, bo urządzenia mogą mieć różne wersje aplikacji | Claude (zaakceptowane przez użytkownika) |
 
 ---
 

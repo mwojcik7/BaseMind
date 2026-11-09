@@ -50,9 +50,12 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function heading(name: string) {
+function heading(name: string | RegExp) {
   return screen.findByRole('heading', { level: 1, name })
 }
+
+// The "Dziś" screen greets the user; the wording depends on the time of day.
+const TODAY_HEADING = new RegExp(`^(${pl.today.day}|${pl.today.evening}), Marcin$`)
 
 // Both navigations are in the document: CSS shows one of them, and tests don't load CSS.
 function bottomNav() {
@@ -97,7 +100,7 @@ describe('signing in', () => {
     await user.type(screen.getByLabelText(pl.auth.password), 'long-enough-password')
     await user.click(screen.getByRole('button', { name: pl.auth.loginAction }))
 
-    expect(await heading(pl.nav.today)).toBeInTheDocument()
+    expect(await heading(TODAY_HEADING)).toBeInTheDocument()
   })
 
   it('validates the form before asking the server', async () => {
@@ -166,7 +169,7 @@ describe('signing in', () => {
 
     renderAt('/login')
 
-    expect(await heading(pl.nav.today)).toBeInTheDocument()
+    expect(await heading(TODAY_HEADING)).toBeInTheDocument()
   })
 
   it('checks the password confirmation when registering', async () => {
@@ -246,7 +249,7 @@ describe('synchronisation in the app', () => {
 
   it('shows the state of synchronisation', async () => {
     renderAt('/')
-    await heading(pl.nav.today)
+    await heading(TODAY_HEADING)
 
     expect(screen.getByRole('status', { name: pl.sync.synced })).toBeInTheDocument()
 
@@ -305,7 +308,7 @@ describe('search', () => {
 
   async function openSearch(user: ReturnType<typeof userEvent.setup>) {
     renderAt('/')
-    await heading(pl.nav.today)
+    await heading(TODAY_HEADING)
     await user.click(screen.getByRole('button', { name: new RegExp(pl.search.placeholder) }))
     return within(await screen.findByRole('dialog', { name: pl.search.title }))
   }
@@ -502,7 +505,7 @@ describe('app banners', () => {
     const user = userEvent.setup()
     const applyUpdate = vi.fn()
     renderAt('/')
-    await heading(pl.nav.today)
+    await heading(TODAY_HEADING)
 
     act(() => usePwa.setState({ applyUpdate }))
     await user.click(screen.getByRole('button', { name: pl.pwa.updateAction }))
@@ -513,7 +516,7 @@ describe('app banners', () => {
   it('shows iPhone instructions without an install button, and hides them', async () => {
     const user = userEvent.setup()
     renderAt('/')
-    await heading(pl.nav.today)
+    await heading(TODAY_HEADING)
 
     act(() => usePwa.setState({ showIosInstructions: true }))
     expect(screen.getByText(pl.pwa.iosInstructions)).toBeInTheDocument()
@@ -525,7 +528,7 @@ describe('app banners', () => {
 
   it('offers installing, but a new version comes first', async () => {
     renderAt('/')
-    await heading(pl.nav.today)
+    await heading(TODAY_HEADING)
 
     act(() => usePwa.setState({ installPrompt: new Event('x') as BeforeInstallPromptEvent }))
     expect(screen.getByRole('button', { name: pl.pwa.installAction })).toBeInTheDocument()
@@ -600,7 +603,7 @@ describe('app shell', () => {
   it('starts on the today screen with all navigation entries', async () => {
     renderAt('/')
 
-    expect(await heading(pl.nav.today)).toBeInTheDocument()
+    expect(await heading(TODAY_HEADING)).toBeInTheDocument()
     for (const name of [pl.nav.today, pl.nav.tasks, pl.nav.calendar, pl.nav.more]) {
       expect(bottomNav().getByRole('link', { name })).toBeInTheDocument()
     }
@@ -609,7 +612,7 @@ describe('app shell', () => {
 
   it('lists every module and the settings in the desktop sidebar', async () => {
     renderAt('/')
-    await heading(pl.nav.today)
+    await heading(TODAY_HEADING)
 
     for (const name of [pl.nav.today, pl.modules.finance, pl.modules.files, pl.settings.title]) {
       expect(sidebar().getByRole('link', { name })).toBeInTheDocument()
@@ -619,7 +622,7 @@ describe('app shell', () => {
   it('navigates from the module grid to a module placeholder', async () => {
     const user = userEvent.setup()
     renderAt('/')
-    await heading(pl.nav.today)
+    await heading(TODAY_HEADING)
 
     await user.click(bottomNav().getByRole('link', { name: pl.nav.more }))
     await user.click(await page().findByRole('link', { name: pl.modules.finance }))
@@ -631,7 +634,7 @@ describe('app shell', () => {
   it('opens and closes the quick add sheet', async () => {
     const user = userEvent.setup()
     renderAt('/')
-    await heading(pl.nav.today)
+    await heading(TODAY_HEADING)
 
     await user.click(bottomNav().getByRole('button', { name: pl.nav.add }))
     expect(screen.getByRole('dialog', { name: pl.quickAdd.title })).toBeInTheDocument()
@@ -643,7 +646,7 @@ describe('app shell', () => {
   it('opens the search from the bar and with Ctrl+K', async () => {
     const user = userEvent.setup()
     renderAt('/')
-    await heading(pl.nav.today)
+    await heading(TODAY_HEADING)
 
     await user.click(screen.getByRole('button', { name: new RegExp(pl.search.placeholder) }))
     expect(screen.getByRole('dialog', { name: pl.search.title })).toBeInTheDocument()
@@ -694,5 +697,63 @@ describe('app shell', () => {
     expect(document.documentElement.dataset.theme).toBe('dark')
     expect(getTheme()).toBe('dark')
     expect(screen.getByRole('radio', { name: pl.settings.themes.dark })).toBeChecked()
+  })
+
+  describe('the "Dziś" screen', () => {
+    const widgetTitles = () =>
+      page()
+        .getAllByRole('heading', { level: 2 })
+        .map((title) => title.textContent)
+
+    it('shows the widgets in the default order', async () => {
+      renderAt('/')
+      await heading(TODAY_HEADING)
+
+      await waitFor(() =>
+        expect(widgetTitles()).toEqual([pl.today.tasks, pl.today.events, pl.today.expenses]),
+      )
+    })
+
+    it('follows the order and visibility chosen in the settings', async () => {
+      const user = userEvent.setup()
+      const router = renderAt('/settings')
+      await heading(pl.settings.title)
+
+      await user.click(screen.getByRole('link', { name: pl.settings.dashboard }))
+      await heading(pl.dashboardSettings.title)
+
+      const moveTasksDown = await screen.findByRole('button', {
+        name: pl.dashboardSettings.moveDown(pl.today.tasks),
+      })
+      await user.click(moveTasksDown)
+      await waitFor(async () =>
+        expect((await db.meta.get('dashboard_layout'))?.value).toMatchObject({
+          order: ['events', 'tasks', 'expenses'],
+        }),
+      )
+
+      await user.click(screen.getByRole('switch', { name: pl.today.expenses }))
+      await waitFor(async () =>
+        expect((await db.meta.get('dashboard_layout'))?.value).toMatchObject({
+          hidden: ['expenses'],
+        }),
+      )
+
+      await act(() => router.navigate({ to: '/' }))
+      await heading(TODAY_HEADING)
+
+      await waitFor(() => expect(widgetTitles()).toEqual([pl.today.events, pl.today.tasks]))
+    })
+
+    it('cannot move the first widget up or the last one down', async () => {
+      renderAt('/settings/dashboard')
+
+      expect(
+        await screen.findByRole('button', { name: pl.dashboardSettings.moveUp(pl.today.tasks) }),
+      ).toBeDisabled()
+      expect(
+        screen.getByRole('button', { name: pl.dashboardSettings.moveDown(pl.today.expenses) }),
+      ).toBeDisabled()
+    })
   })
 })

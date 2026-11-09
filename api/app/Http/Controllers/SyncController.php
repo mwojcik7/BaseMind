@@ -33,7 +33,10 @@ class SyncController
 
         return response()->json([
             ...$sync->pull($request->user(), (int) ($data['cursor'] ?? 0), (int) ($data['limit'] ?? 500)),
-            'settings' => ['theme' => $request->user()->settings?->settings['theme'] ?? null],
+            'settings' => [
+                'theme' => $request->user()->settings?->settings['theme'] ?? null,
+                'dashboard' => $request->user()->settings?->settings['dashboard'] ?? null,
+            ],
         ]);
     }
 }

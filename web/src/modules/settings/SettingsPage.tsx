@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import {
   Bell,
   ChevronRight,
+  LayoutDashboard,
   MonitorSmartphone,
   Monitor,
   Moon,
@@ -94,6 +95,15 @@ export function SettingsPage() {
           })}
         </div>
       </fieldset>
+
+      <Link
+        to="/settings/dashboard"
+        className="mt-4 flex min-h-14 items-center gap-3 rounded-lg bg-card px-4 text-sm font-medium text-card-foreground"
+      >
+        <LayoutDashboard aria-hidden className="size-5 text-muted-foreground" />
+        {pl.settings.dashboard}
+        <ChevronRight aria-hidden className="ml-auto size-5 text-muted-foreground" />
+      </Link>
 
       <section className="mt-8">
         <h2 className="text-sm font-semibold">{pl.settings.account}</h2>

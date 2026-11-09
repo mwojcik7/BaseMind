@@ -4,6 +4,7 @@ import { db, type OutboxEntry } from '@/db/db'
 import type { SyncedRecord } from '@/db/repository'
 import { api, ApiError, NetworkError } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { DASHBOARD_LAYOUT_KEY, type DashboardLayout } from '@/lib/dashboard'
 import { getTheme, setTheme, THEMES, type Theme } from '@/lib/theme'
 import {
   BACKGROUND_SYNC_TAG,
@@ -30,29 +31,30 @@ interface PullPage {
   changes: { entity: string; record: SyncedRecord }[]
   cursor: number
   has_more: boolean
-  settings: { theme: string | null }
+  settings: { theme: string | null; dashboard: DashboardLayout | null }
 }
 
 const CURSOR_KEY = 'sync_cursor'
 const PENDING_THEME_KEY = 'pending_theme'
+const PENDING_DASHBOARD_KEY = 'pending_dashboard_layout'
 const PULL_PAGE_SIZE = 500
 
 function postOperations(ops: OutgoingOperation[]) {
   return api.post<{ results: PushResult[] }>('/api/sync/push', { ops })
 }
 
-async function pushTheme() {
-  const pending = (await db.meta.get(PENDING_THEME_KEY))?.value
+async function pushPendingSetting(key: string, field: 'theme' | 'dashboard') {
+  const pending = (await db.meta.get(key))?.value
   if (!pending) {
     return
   }
 
-  await api.post('/api/settings', { theme: pending })
+  await api.post('/api/settings', { [field]: pending })
 
-  // The user may have picked another theme while the request was on its way.
+  // The user may have changed it again while the request was on its way.
   await db.transaction('rw', db.meta, async () => {
-    if ((await db.meta.get(PENDING_THEME_KEY))?.value === pending) {
-      await db.meta.delete(PENDING_THEME_KEY)
+    if (JSON.stringify((await db.meta.get(key))?.value) === JSON.stringify(pending)) {
+      await db.meta.delete(key)
     }
   })
 }
@@ -96,6 +98,11 @@ async function applyPage(page: PullPage, userId: number): Promise<boolean> {
     }
 
     await db.meta.put({ key: CURSOR_KEY, value: page.cursor })
+
+    if (page.settings.dashboard && !(await db.meta.get(PENDING_DASHBOARD_KEY))) {
+      await db.meta.put({ key: DASHBOARD_LAYOUT_KEY, value: page.settings.dashboard })
+    }
+
     return true
   })
 }
@@ -143,7 +150,8 @@ async function runCycle() {
   }
 
   try {
-    await pushTheme()
+    await pushPendingSetting(PENDING_THEME_KEY, 'theme')
+    await pushPendingSetting(PENDING_DASHBOARD_KEY, 'dashboard')
     await pushOutbox(postOperations)
     await pull(userId)
     useSyncStatus.setState({ connection: 'ok' })
@@ -193,6 +201,15 @@ export async function saveTheme(theme: Theme) {
   } catch {
     return // Still applied on this device.
   }
+  void runSync()
+}
+
+/** Saved on this device at once; the server hears about it whenever it can be reached. */
+export async function saveDashboardLayout(layout: DashboardLayout) {
+  await db.meta.bulkPut([
+    { key: DASHBOARD_LAYOUT_KEY, value: layout },
+    { key: PENDING_DASHBOARD_KEY, value: layout },
+  ])
   void runSync()
 }
 

@@ -7,6 +7,7 @@ import { useAuth, type Account } from '@/lib/auth'
 import { getTheme, setTheme } from '@/lib/theme'
 import {
   runSync,
+  saveDashboardLayout,
   saveTheme,
   sendChangesBeforeLogOut,
   startSync,
@@ -357,6 +358,80 @@ describe('synchronisation', () => {
       await runSync()
 
       expect(getTheme()).toBe('dark')
+    })
+  })
+
+  describe('dashboard layout', () => {
+    const LAYOUT = { order: ['events', 'tasks'], hidden: ['tasks'] }
+    const settingsRequests = () =>
+      fetchMock.mock.calls.filter(([input]) => String(input) === '/api/settings')
+
+    it('is saved at once and reaches the server', async () => {
+      await saveDashboardLayout(LAYOUT)
+
+      expect((await db.meta.get('dashboard_layout'))?.value).toEqual(LAYOUT)
+      await waitFor(() => expect(settingsRequests()).toHaveLength(1))
+      expect(JSON.parse(String(settingsRequests()[0][1]?.body))).toEqual({ dashboard: LAYOUT })
+      await waitFor(async () =>
+        expect(await db.meta.get('pending_dashboard_layout')).toBeUndefined(),
+      )
+    })
+
+    it('stays queued while offline', async () => {
+      goOffline()
+
+      await saveDashboardLayout(LAYOUT)
+      await waitFor(() => expect(useSyncStatus.getState().connection).toBe('offline'))
+
+      expect((await db.meta.get('pending_dashboard_layout'))?.value).toEqual(LAYOUT)
+    })
+
+    it('stays queued when changed again during the request', async () => {
+      const newer = { order: ['tasks', 'events'], hidden: [] }
+      await db.meta.put({ key: 'pending_dashboard_layout', value: LAYOUT })
+      fetchMock.mockImplementation(async (input) => {
+        if (String(input) === '/api/settings') {
+          await db.meta.put({ key: 'pending_dashboard_layout', value: newer })
+          return new Response(null, { status: 204 })
+        }
+        return json(EMPTY_PAGE)
+      })
+
+      await runSync()
+
+      expect((await db.meta.get('pending_dashboard_layout'))?.value).toEqual(newer)
+    })
+
+    it('follows a layout chosen on another device', async () => {
+      answerPull = () => json({ ...EMPTY_PAGE, settings: { theme: null, dashboard: LAYOUT } })
+
+      await runSync()
+
+      expect((await db.meta.get('dashboard_layout'))?.value).toEqual(LAYOUT)
+    })
+
+    it('does not let the server undo a change that was not sent yet', async () => {
+      const mine = { order: ['tasks'], hidden: [] }
+      await db.meta.put({ key: 'dashboard_layout', value: mine })
+      await db.meta.put({ key: 'pending_dashboard_layout', value: mine })
+      fetchMock.mockImplementation(async (input) => {
+        if (String(input) === '/api/settings') {
+          return new Response(null, { status: 500 })
+        }
+        return json({ ...EMPTY_PAGE, settings: { theme: null, dashboard: LAYOUT } })
+      })
+
+      await runSync()
+
+      expect((await db.meta.get('dashboard_layout'))?.value).toEqual(mine)
+    })
+
+    it('keeps the local layout when the server has none', async () => {
+      await db.meta.put({ key: 'dashboard_layout', value: LAYOUT })
+
+      await runSync()
+
+      expect((await db.meta.get('dashboard_layout'))?.value).toEqual(LAYOUT)
     })
   })
 

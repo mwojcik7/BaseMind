@@ -109,6 +109,15 @@ const notificationsRoute = createRoute({
   ),
 })
 
+const dashboardSettingsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings/dashboard',
+  component: lazyRouteComponent(
+    () => import('@/modules/settings/DashboardSettingsPage'),
+    'DashboardSettingsPage',
+  ),
+})
+
 // Preview of the design system; not linked from the app. Remove before deployment (stage 7).
 const designRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -133,6 +142,7 @@ const routeTree = rootRoute.addChildren([
     settingsRoute,
     sessionsRoute,
     notificationsRoute,
+    dashboardSettingsRoute,
     designRoute,
     moduleRoute,
   ]),

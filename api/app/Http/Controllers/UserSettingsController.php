@@ -25,6 +25,13 @@ class UserSettingsController
             'notifications.quiet_hours.end' => ['required_with:notifications.quiet_hours', 'date_format:H:i'],
             'notifications.digest.enabled' => ['required_with:notifications', 'boolean'],
             'notifications.digest.time' => ['required_with:notifications', 'date_format:H:i'],
+            // Widget ids are not checked against a list: the registry lives in the app, and
+            // devices may run different versions of it.
+            'dashboard' => ['sometimes', 'array:order,hidden'],
+            'dashboard.order' => ['present_with:dashboard', 'array', 'max:50'],
+            'dashboard.order.*' => ['string', 'max:40', 'regex:/^[a-z][a-z0-9_-]*$/', 'distinct'],
+            'dashboard.hidden' => ['present_with:dashboard', 'array', 'max:50'],
+            'dashboard.hidden.*' => ['string', 'max:40', 'regex:/^[a-z][a-z0-9_-]*$/', 'distinct'],
         ]);
 
         $settings = $request->user()->settings;

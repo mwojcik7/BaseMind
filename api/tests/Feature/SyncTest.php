@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class SyncItemFixture extends Model
@@ -401,5 +402,40 @@ class SyncTest extends TestCase
 
         $this->actingAs($this->user)->getJson('/api/sync/pull')->assertJsonPath('settings.theme', 'dark');
         $this->actingAs($this->user)->postJson('/api/settings', ['theme' => 'pink'])->assertUnprocessable();
+    }
+
+    public function test_dashboard_layout_is_saved_and_returned_by_pull(): void
+    {
+        $this->actingAs($this->user)->getJson('/api/sync/pull')->assertJsonPath('settings.dashboard', null);
+
+        $layout = ['order' => ['events', 'tasks'], 'hidden' => []];
+        $this->actingAs($this->user)->postJson('/api/settings', ['theme' => 'dark'])->assertNoContent();
+        $this->actingAs($this->user)->postJson('/api/settings', ['dashboard' => $layout])->assertNoContent();
+
+        $this->actingAs($this->user)->getJson('/api/sync/pull')
+            ->assertJsonPath('settings.dashboard', $layout)
+            ->assertJsonPath('settings.theme', 'dark');
+    }
+
+    #[DataProvider('invalidDashboardLayouts')]
+    public function test_invalid_dashboard_layout_is_refused(array $layout): void
+    {
+        $this->actingAs($this->user)->postJson('/api/settings', ['dashboard' => $layout])->assertUnprocessable();
+    }
+
+    /**
+     * @return array<string, array{array<string, mixed>}>
+     */
+    public static function invalidDashboardLayouts(): array
+    {
+        return [
+            'missing hidden' => [['order' => ['tasks']]],
+            'missing order' => [['hidden' => []]],
+            'unknown key' => [['order' => [], 'hidden' => [], 'extra' => 1]],
+            'id with markup' => [['order' => ['<b>'], 'hidden' => []]],
+            'id too long' => [['order' => [str_repeat('a', 41)], 'hidden' => []]],
+            'duplicate id' => [['order' => ['tasks', 'tasks'], 'hidden' => []]],
+            'too many ids' => [['order' => array_map(fn (int $i) => "w$i", range(1, 51)), 'hidden' => []]],
+        ];
     }
 }
