@@ -17,7 +17,7 @@
 
 **Najpierw**
 1. **Co dalej:** część 2 zadań (podzadania, cykliczność, sortowanie przeciąganiem, reszta zwrotów parsera, kanały powiadomień dla typu) i kiedy robimy kosz z 1.12 (propozycja: zaraz po części 2). Propozycja Claude: sortowanie przeciąganiem odłożyć.
-1a. **Telefon po ostatnich poprawkach:** kliknąć „Odśwież” w banerze i porównać liczbę zadań z komputerem. Jeśli fałszywe wylogowanie zostawiło niekompletne dane, usunąć kursor synchronizacji, jak w Chrome. Sprawdzić też punkty z „Otwartych spraw” i poranne podsumowanie.
+1a. **Telefon po ostatnich poprawkach:** kliknąć „Odśwież” w banerze i porównać liczbę zadań z komputerem. Jeśli fałszywe wylogowanie zostawiło niekompletne dane, usunąć kursor synchronizacji (procedura: `projekt.md`, pkt 15). Sprawdzić też punkty z „Otwartych spraw” i poranne podsumowanie.
 1b. **Do potwierdzenia:** czy `+liczba` w arkuszu [+] to wpływ (przyjęte w 3.1).
 
 **Starsze, bez odpowiedzi (nie blokują części 2)**
@@ -27,24 +27,24 @@
 
 ---
 
-## Stan bieżący (ostatnia sesja: 2026-11-09)
+## Stan bieżący (ostatnia sesja: 2026-11-09/10)
 
 - **Faza:** Etap 0 zamknięty. **Etap 1 w toku: kroki 1.1 (konta, logowanie, przestrzenie), 1.2 (szyfrowanie), 1.3 (warstwa danych offline), 1.4 (synchronizacja), 1.5 (PWA), 1.6 (tagi i powiązania: dane i synchronizacja), 1.7 (wyszukiwanie), 1.8 (przypomnienia i powiadomienia), 1.9 (dashboard „Dziś”), 1.10 (szybkie dodawanie [+]) i poprawki 1.11 zrobione. Etap 2 w toku: część 1 zadań (2.1) zrobiona. Następna jest część 2 zadań, potem kosz (1.12) do ustalenia.**
-- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca, łącznie z częścią 1 zadań, jest wypchnięta.
+- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cały kod jest wypchnięty (ostatni commit kodu: `ec5393b`). Na końcu sesji poprawiono jeszcze dokumentację: `git status` pokaże, czy te zmiany czekają na commit.
 - **Backend (`api/`):** Laravel 13.40, Sanctum + Fortify (`/api/auth`), utwardzenie PHP/Apache, kontrola luk PHP, nagłówki z CSP, powłoka PWA serwowana przez Laravela, przestrzenie i uprawnienia, ekran sesji, szyfrowanie libsodium (serwis `Crypto`, casty, komendy klucza), synchronizacja (`SyncService`, `config/sync.php`, trait `Syncable`, makro `$table->syncable()`), tagi i powiązania, przypomnienia i powiadomienia (`ReminderDispatcher`, `WebPushService`, zadania `SendReminder` i `SendDigest`, komendy `basemind:send-reminders`, `basemind:send-digests`, `basemind:vapid`), układ dashboardu w `user_settings`, zadania i listy (`Task`, `TaskList`, sekcje podsumowania w `app/Digest/`), operacja `restore` w synchronizacji. 247 testów OK.
 - **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia, lokalna baza Dexie z repozytorium encji (`web/src/db/`), silnik synchronizacji ze wskaźnikiem stanu (`web/src/sync/`), instalacja i aktualizacje PWA (`web/src/lib/pwa.ts`, `PwaBanner`), repozytoria tagów i powiązań (`web/src/db/tags.ts`), globalne wyszukiwanie (`web/src/search/`, `SearchDialog`), powiadomienia push i ich ustawienia (`web/src/lib/push.ts`, `NotificationsPage`), licznik na ikonie, dashboard z rejestrem widżetów (`web/src/modules/today/widgets.ts`, `web/src/lib/dashboard.ts`, `DashboardSettingsPage`), moduł zadań (`web/src/modules/tasks/`), arkusz [+] z rejestrem (`web/src/modules/quickAddRegistry.ts`) i parser (`web/src/lib/quick-parser.ts`). 292 testy OK.
 - **Dane lokalne:** w bazie `basemind` jest **prawdziwe konto użytkownika**, założone przez niego na telefonie. Nie usuwać go i nie czyścić tej bazy. Są tam też dane z testów: tagi, „Testowe przypomnienia”, zadania i subskrypcja push telefonu.
 - **Telefon:** BaseMind jest zainstalowany jako aplikacja, powiadomienia są włączone.
-- **Klucz szyfrowania:** lokalny `SODIUM_KEY` (identyfikator `2ca17bb1`) jest w `api/.env`, a użytkownik ma jego kopię w menedżerze haseł. Są nim już zaszyfrowane tytuły przypomnień, więc utrata klucza oznacza ich utratę. Produkcja dostanie własny klucz.
+- **Klucz szyfrowania:** lokalny `SODIUM_KEY` (identyfikator `2ca17bb1`) jest w `api/.env`, a użytkownik ma jego kopię w menedżerze haseł. Są nim już zaszyfrowane tytuły przypomnień oraz tytuły i notatki zadań, więc utrata klucza oznacza ich utratę. Produkcja dostanie własny klucz.
 - **Klucze VAPID** są w `api/.env` (tylko lokalne). Nowe klucze odłączają wszystkie urządzenia od powiadomień; `basemind:vapid` nie nadpisuje istniejących.
 - **Czeka na użytkownika:** ustalenia do części 2 zadań i kosza oraz odpowiedzi na pozostałe „Pytania na start” (wyżej).
 - **Uwaga:** ta sama instalacja MariaDB trzyma bazy innego projektu użytkownika (np. `syslead_test`). Nie używać `migrate:fresh` na bazie `basemind` ani poleceń obejmujących cały serwer; testy działają na `basemind_test`.
-- **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. Przed uruchomieniem sprawdzić, czy już nie działają. W chwili zakończenia sesji są zatrzymane, harmonogram też.
+- **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. Przed uruchomieniem sprawdzić, czy już nie działają. W chwili zakończenia sesji są zatrzymane, harmonogram też. Polecenia (każde jako proces w tle): `C:\xampp\mysql\bin\mysqld.exe --defaults-file=C:\xampp\mysql\bin\my.ini --standalone`, `C:\xampp\apache\bin\httpd.exe`, harmonogram z katalogu `api/` z ustawionym `OPENSSL_CONF` (`projekt.md`, pkt 14, 7c). Zatrzymanie MariaDB: `mysqladmin --protocol=tcp -h 127.0.0.1 -u root shutdown`, Apache: zakończyć procesy `httpd`.
 
 ### ▶ Wznowienie pracy — od czego zacząć następną sesję
 1. Przeczytać `projekt.md` (szczególnie pkt 0, 3, 8, 13 „Rejestr decyzji”, 14 „Konfiguracja poza repozytorium”, 15 „Pułapki”) i ten plik.
 2. Sprawdzić stan: `git status`, `git log --oneline -5`, `composer audit` w `api/` (nowe poprawki bezpieczeństwa pojawiają się często; Symfony miało je już 2026-11-04) i `pnpm audit --prod` w `web/`.
-3. Uruchomić Apache i MariaDB (panel XAMPP lub poleceniami; Apache startuje ok. 30 s). Sprawdzić `http://localhost:8080/api/health`, testy `cd api && php artisan test` oraz `cd web && pnpm test`. Do testów powiadomień na żywo uruchomić też harmonogram z ustawionym `OPENSSL_CONF` (`projekt.md`, pkt 14).
+3. Uruchomić Apache i MariaDB (panel XAMPP lub poleceniami; Apache startuje do ok. 30 s; ma zostać `ThreadsPerChild 1`, `projekt.md`, pkt 14, 4a). Sprawdzić `http://localhost:8080/api/health`, testy `cd api && php artisan test` oraz `cd web && pnpm test`. Do testów powiadomień na żywo uruchomić też harmonogram z ustawionym `OPENSSL_CONF` (`projekt.md`, pkt 14).
 4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zadać „Pytania na start”** (na górze pliku), w tym o część 2 zadań i kosz. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
 5. **Część 2 zadań:** niezrobione punkty w sekcji 2.1 poniżej. Na stronie `/design` są prawdziwe tagi i przycisk „Przypomnij za minutę” do testów na żywo.
 6. **Test na telefonie przez USB** (instrukcja w `README.md`): do sprawdzania PWA używać builda, czyli port `8080 → localhost:8080` i na telefonie `http://localhost:8080`. Telefon użytkownika: Samsung S25 Ultra, debugowanie USB już włączone. Jeśli logowanie zgłasza brak połączenia, najpierw sprawdzić `http://localhost:8080/api/health` na telefonie (`projekt.md`, pkt 15). Do testu offline odłączyć kabel: tryb samolotowy nie przerywa przekierowania portu przez USB.
@@ -72,7 +72,10 @@
 - Przyczyna zniknięcia rejestracji push telefonu 2026-11-09 nie jest pewna. Hipoteza: fałszywy 401 (`projekt.md`, pkt 15) wylogował telefon, co wyrejestrowuje powiadomienia. Telefon zgłasza się teraz przy każdym uruchomieniu, a serwer zapisuje powód usunięcia w logu: sprawdzić, jeśli się powtórzy.
 - Przy każdym module: wpis w `config/digest.php` (jeśli dotyczy) i kanały powiadomień osobno dla typu (decyzja użytkownika: razem z modułami).
 - Przyciski na powiadomieniu bez internetu nie działają: odpowiedź przepada, przypomnienie zostaje bez odpowiedzi.
-- Ekran z listą przypomnień nie istnieje: w aplikacji można je dziś tworzyć tylko z `/design`.
+- Ekran z listą przypomnień nie istnieje: tworzy się je przy zadaniach (arkusz [+], edycja) i testowo z `/design`.
+- Dotknięcie powiadomienia o zadaniu otwiera aplikację na ekranie głównym (`'url' => '/'` w `SendReminder`), a nie samo zadanie: do rozważenia w części 2.
+- Skrót „Nowe zadanie” w manifeście PWA prowadzi na `/tasks`, nie do arkusza [+] (punkt z 1.5). Pozostałe skróty czekają na swoje moduły.
+- Usuwanie: „Cofnij” działa 8 s, potem nie ma jak przywrócić elementu do czasu kosza (1.12).
 - Prawdziwa wysyłka e-mail do sprawdzenia przy wdrożeniu (lokalnie trafia do logu).
 - Widżety Wydarzenia i Ostatnie wydatki to puste zaślepki (`PlaceholderWidgets.tsx`): moduły podmienią je w 2.2 i 3.1. Identyfikatorów widżetów nie zmieniać, bo są zapisane w układzie użytkownika.
 - Maile lokalnie trafiają do `api/storage/logs/laravel.log`: prawdziwa wysyłka SMTP do sprawdzenia przy wdrożeniu.
@@ -87,7 +90,7 @@
 |---|---|---|---|
 | 0 | Przygotowanie | Decyzje, środowisko, szkielet (Laravel + React PWA), design system | ✅ |
 | 1 | Fundament | Auth, przestrzenie, szyfrowanie, PWA, offline + sync, nawigacja, wyszukiwanie, tagi/powiązania, przypomnienia, dashboard (szkielet) | 🟡 w trakcie |
-| 2 | Codzienność | Zadania, kalendarz, notatki Markdown z backlinkami, szybka notatka | ⬜ |
+| 2 | Codzienność | Zadania, kalendarz, notatki Markdown z backlinkami, szybka notatka | 🟡 w trakcie (część 1 zadań gotowa) |
 | 3 | Pieniądze | Finanse (portfele, kategorie, transakcje, raporty, wykresy, budżety), subskrypcje | ⬜ |
 | 4 | Schowek | Zakładki z podglądem (rich links) + Share Target, listy mediów, baza kodów | ⬜ |
 | 5 | Życie | Grafik pracy, nawyki, CRM bliskich, bank prezentów | ⬜ |
@@ -299,7 +302,7 @@ Zrobione razem z 2.1 (decyzja użytkownika).
 - [ ] Kanały powiadomień dla typu (przeniesione z 1.8; dotyczy też kolejnych modułów).
 - [ ] Cykliczność (rrule; „od terminu” vs „od ukończenia”).
 - [ ] Sortowanie przeciąganiem.
-- [ ] Reszta parsera: „co tydzień” i inne zwroty.
+- [ ] Reszta parsera: „co tydzień”, godzina i inne zwroty.
 
 ### 2.2 Kalendarz
 - [ ] Encja `events` (rrule, przypomnienia).
@@ -492,3 +495,4 @@ Zrobione razem z 2.1 (decyzja użytkownika).
 | 2026-11-09 | Poprawki 1.11: krzyżyk przy ostatnich wyszukiwaniach, synchronizacja po dotknięciu ikony stanu. Testy: web 223 OK; backend bez zmian. Użytkownik potwierdził działanie. Commit i push za zgodą użytkownika. Kolejność dalej: 1.10, potem zadania z 2.1 (decyzja użytkownika). | 1.10 (szybkie dodawanie) — po ustaleniu zakresu. |
 | 2026-11-09 | Część 1 zadań razem z krokiem 1.10: tabele i synchronizacja (tytuł i notatka szyfrowane), widoki, listy, edycja, gesty z „Cofnij” (nowa operacja `restore`), arkusz [+] z polami i parserem, skrót Q, panele nad klawiaturą, przypomnienia, „Zrobione” odhaczające zadanie, sekcje podsumowania, widżet, wyszukiwarka. Naprawione: serwer gubił rejestrację push telefonu, a aplikacja tego nie wykrywała. Do planu dopisany kosz (1.12) i rozpoznawanie `-liczba`/`+liczba` (3.1). Testy: api 247 OK, web 284 OK; migracja na `basemind`. Użytkownik potwierdził gesty i powiadomienia z „Zrobione”. Commit i push za zgodą użytkownika. | Część 2 zadań i termin kosza — po ustaleniu z użytkownikiem. |
 | 2026-11-10 | Test w Chrome wykrył fałszywe wylogowania: równoległe żądania gubiły konfigurację z `.env` (Apache na Windows działa wątkami), a pojedynczy 401 kasował dane urządzenia. Naprawione: 401 liczy się dopiero po powtórzeniu, tylko 401 może wylogować przy sprawdzaniu konta, karta nie zapisuje danych po wylogowaniu w innej karcie, lokalnie `ThreadsPerChild 1` i `KeepAlive Off` (przed: 3 z 25 równoległych żądań z błędem 500, po: 0 z 25). Ikony akcji wiersza na komputerze powiększone. W Chrome odtworzone dane lokalne (usunięty kursor); potwierdzone: wyszukiwanie, listy, skrót Q, „Cofnij”. Testy: web 292 OK, api 247 OK (backend bez zmian od ostatniego uruchomienia). | Część 2 zadań i termin kosza — po ustaleniu z użytkownikiem. |
+| 2026-11-10 | Koniec sesji na prośbę użytkownika: kod wypchnięty (`ec5393b`), dokumentacja przygotowana do wznowienia (nieaktualne zapisy poprawione, polecenia startu serwerów, procedura naprawy danych lokalnych). Serwery i harmonogram zatrzymane. | „Pytania na start”, potem część 2 zadań — po zgodzie użytkownika. |

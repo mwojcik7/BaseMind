@@ -31,7 +31,8 @@ W `.env` uzupełnij `BASEMIND_OWNER_EMAIL` oraz `BASEMIND_REGISTRATION_CODE` (ko
 - API: <http://localhost:8080/api/health> → `{"status":"ok", ...}`
 - Testy: `php artisan test` (wymaga działającej MariaDB, baza `basemind_test`)
 - Kontrola bezpieczeństwa PHP: `php artisan basemind:security-check`
-- Harmonogram (przypomnienia itp.): `php artisan schedule:work`
+- Harmonogram (przypomnienia itp.): `php artisan schedule:work`, z ustawionym `OPENSSL_CONF` (`projekt.md`, pkt 14, 7c)
+- Apache na Windows musi działać z `ThreadsPerChild 1` (`projekt.md`, pkt 14, 4a), inaczej równoległe żądania gubią konfigurację z `.env`
 
 ### Klucz szyfrowania (`SODIUM_KEY`)
 

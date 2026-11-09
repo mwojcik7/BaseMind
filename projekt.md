@@ -78,7 +78,7 @@ Kluczowe cechy:
 - Uniwersalne powiązania między dowolnymi elementami (`[[...]]`, `@osoba`, `#tag`).
 - Jeden wspólny silnik przypomnień + poranny „daily digest” (push/e-mail).
 - Kalendarz jako agregator dat z modułów (grafik, subskrypcje, urodziny, gwarancje, przeglądy, daty ważności).
-- Szybkie dodawanie: przycisk „+” na mobile, `Ctrl+K` na desktopie, parser typu `-45 paliwo karta`.
+- Szybkie dodawanie: przycisk „+” na mobile, klawisz `Q` na desktopie (`Ctrl+K` to wyszukiwarka), parser typu `-45 paliwo karta`.
 - Automatyczne powiązania: subskrypcja → wydatek, naprawa auta → wydatek, zakup sprzętu → wydatek.
 - Bank prezentów powiązany z CRM + przypomnienia przed urodzinami/świętami.
 - Grafik pracy wylicza nadgodziny i szacowaną wypłatę.
@@ -332,7 +332,7 @@ Kluczowe cechy:
 3. **Pull:** `GET /api/sync/pull?cursor=<rev>&limit=500` — zmiany o `rev > cursor` w przestrzeniach użytkownika (z nagrobkami), stronicowane. Pola 🔐 są odszyfrowywane na serwerze przed wysłaniem (przez HTTPS).
 4. **Kiedy:** start aplikacji, zdarzenie `online`, powrót do aplikacji, po lokalnej zmianie (debounce ~2 s), co ~60 s gdy aplikacja widoczna, **Background Sync API** (Android Chrome). Serwer nie może sam powiadomić urządzenia (hosting współdzielony, bez WebSocketów), więc otwarte drugie urządzenie widzi zmianę z opóźnieniem do ~60 s albo od razu po powrocie do aplikacji.
 5. **Pliki:** załączniki zapisywane lokalnie jako Blob w IndexedDB, wysyłane osobną kolejką (w kawałkach, jeśli duże — limity hostingu); miniatury generowane na kliencie.
-6. **Wylogowanie** czyści lokalną bazę. Najpierw próba wysłania zmian z `outbox`, a gdy się nie uda, ostrzeżenie „Wyloguj mimo to / Anuluj” (od kroku 1.4). Zakończenie sesji przez serwer (401: odwołane urządzenie, wygaśnięcie) czyści bazę bez pytania, także z niewysłanymi zmianami, żeby odwołanie zgubionego telefonu usuwało z niego odszyfrowane dane. Zalogowanie na inne konto też czyści bazę.
+6. **Wylogowanie** czyści lokalną bazę. Najpierw próba wysłania zmian z `outbox`, a gdy się nie uda, ostrzeżenie „Wyloguj mimo to / Anuluj” (od kroku 1.4). Zakończenie sesji przez serwer (401 potwierdzony powtórzeniem żądania po 300 ms: odwołane urządzenie, wygaśnięcie) czyści bazę bez pytania, także z niewysłanymi zmianami, żeby odwołanie zgubionego telefonu usuwało z niego odszyfrowane dane. Zalogowanie na inne konto też czyści bazę.
 7. Wskaźnik w UI: „zsynchronizowano / X zmian czeka / offline / błąd”.
 8. Operacje push to `create`, `update`, `delete` i `restore` (przywrócenie usuniętego rekordu: „Cofnij”, a później kosz).
 9. Rejestr encji synchronizowanych po obu stronach (front: nowy wpis w `SCHEMA_VERSIONS` w `web/src/db/db.ts`; back: model z traitem `Syncable` i `syncRules()` + wpis w `config/sync.php`, uprawnienia z `SpaceItemPolicy`) — dodanie modułu = wpis w rejestrze. Nazwa encji musi być taka sama po obu stronach.
@@ -361,7 +361,7 @@ Kluczowe cechy:
 - **Typografia:** Inter, cyfry tabelaryczne w kwotach.
 - **Kształty:** zaokrąglenia 12–16 px, delikatne cienie tylko na elementach wyniesionych.
 - **Nawigacja mobile:** dolny pasek: **Dziś** · **Zadania** · **[+]** · **Kalendarz** · **Więcej**. Wyszukiwarka zawsze u góry.
-- **Desktop:** boczny pasek + `Ctrl+K`.
+- **Desktop:** boczny pasek, `Ctrl+K` (wyszukiwarka), `Q` (szybkie dodawanie).
 - **Mikroanimacje:** 150–250 ms, z poszanowaniem `prefers-reduced-motion`.
 
 ---
@@ -414,7 +414,7 @@ Kluczowe cechy:
 
 ## 9. Struktura repozytorium (plan docelowy)
 
-> **Stan na 2026-11-09 — co już istnieje poza poniższym planem:** `api/app/Actions/Fortify/`, `api/app/Enums/`, `api/app/Models/Concerns/BelongsToSpace.php`, `api/app/Http/Responses/`, `api/lang/pl/`, `web/src/lib/` (`api`, `auth`, `money`, `theme`, `device`, `form-errors`), `web/src/i18n/pl.ts`, `web/src/modules/` (`auth`, `today`, `tasks`, `calendar`, `more`, `settings`, `design`, `registry.ts`), `web/public/app-icons/`, `web/public/theme-init.js`, `api/app/Casts/`, `api/app/Services/` (`Crypto`, `EncryptedFieldRotator`), `api/app/Exceptions/`. Rejestr synchronizacji jest w `api/config/sync.php`, logika w `api/app/Services/SyncService.php` (zamiast planowanego `app/Sync/`). Build zapisuje do `api/public/`: `assets/`, `app-icons/`, `index.html`, `sw.js`, `theme-init.js`, `manifest.webmanifest` (pliki w `.gitignore`).
+> **Stan na 2026-11-10 — co już istnieje poza poniższym planem:** `api/app/Digest/` (sekcje porannego podsumowania), `web/src/modules/quickAddRegistry.ts` (rejestr arkusza [+]), `web/src/lib/quick-parser.ts`, `web/src/modules/today/widgets.ts` (rejestr widżetów), `api/app/Actions/Fortify/`, `api/app/Enums/`, `api/app/Models/Concerns/BelongsToSpace.php`, `api/app/Http/Responses/`, `api/lang/pl/`, `web/src/lib/` (`api`, `auth`, `money`, `theme`, `device`, `form-errors`), `web/src/i18n/pl.ts`, `web/src/modules/` (`auth`, `today`, `tasks`, `calendar`, `more`, `settings`, `design`, `registry.ts`), `web/public/app-icons/`, `web/public/theme-init.js`, `api/app/Casts/`, `api/app/Services/` (`Crypto`, `EncryptedFieldRotator`), `api/app/Exceptions/`. Rejestr synchronizacji jest w `api/config/sync.php`, logika w `api/app/Services/SyncService.php` (zamiast planowanego `app/Sync/`). Build zapisuje do `api/public/`: `assets/`, `app-icons/`, `index.html`, `sw.js`, `theme-init.js`, `manifest.webmanifest` (pliki w `.gitignore`).
 
 ```
 BaseMind/
@@ -494,6 +494,8 @@ Hosting musi zapewniać:
 6. Automatyczne okładki z TMDB/OpenLibrary/IGDB (Etap 4).
 7. Ewentualne rozszerzenie listy pól 🔐 (przy każdym module).
 8. (rozstrzygnięte: ograniczenie zaakceptowane, pkt 8.4)
+9. Czy `+liczba` w arkuszu [+] to wpływ (przyjęte przez Claude, do potwierdzenia przy 3.1).
+10. Kosz (`plan.md`, 1.12): co zostaje po 30 dniach, żeby urządzenia offline dowiedziały się o usunięciu, a treść zniknęła.
 
 ---
 
@@ -691,7 +693,7 @@ php artisan schedule:work   # z katalogu api/
 - **jsdom nie ma `setPointerCapture`,** którego używają komunikaty `sonner` (uzupełnione w `src/test/setup.ts`). Dla Radix Select w testach brakuje więcej API, dlatego wybór z listy jest testowany przez funkcje, a nie kliknięcia.
 - **Apache na Windows obsługuje żądania wątkami, a odczyt `.env` nie jest bezpieczny wątkowo.** Przy równoległych żądaniach Laravel gubił konfigurację: błąd 500 z bazą SQLite (dowód w logu) i fałszywe 401. Lokalnie: `ThreadsPerChild 1` (pkt 14, 4a). Nie używać lokalnie `config:cache`: testy mogłyby wtedy trafić w prawdziwą bazę `basemind`. Objaw nawrotu: `seq 1 25 | xargs -P 12 -I{} curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8080/api/health` zwraca 500.
 - **Na produkcji `php artisan config:cache` przy każdym wdrożeniu** i sprawdzić ten sam test równoległych żądań, zwłaszcza gdyby PHP na hostingu działał wątkowo.
-- **Baza IndexedDB jest wspólna dla kart:** wylogowanie w jednej kasuje dane wszystkim, więc `applyPage` sprawdza zapamiętane konto w tej samej transakcji. Gdyby strona z synchronizacji zapisała się po wyczyszczeniu, kursor stanąłby za skasowanymi rekordami i dane nie wróciłyby same.
+- **Baza IndexedDB jest wspólna dla kart:** wylogowanie w jednej kasuje dane wszystkim, więc `applyPage` sprawdza zapamiętane konto w tej samej transakcji. Gdyby strona z synchronizacji zapisała się po wyczyszczeniu, kursor stanąłby za skasowanymi rekordami i dane nie wróciłyby same. Naprawa niekompletnych danych na urządzeniu (dane na serwerze są całe): przy pustym `outbox` usunąć klucz `sync_cursor` z tabeli `meta` w IndexedDB `basemind` i przeładować aplikację; pobierze wszystko od nowa. Wylogowanie i zalogowanie daje ten sam efekt.
 - **Apache z XAMPP startuje u nas około 30 sekund.** Przy sprawdzaniu `/api/health` zaraz po starcie dać mu tyle czasu, zanim uzna się start za nieudany.
 - **Nie czyścić `api/public/` przy buildzie w całości** (są tam `index.php`, `.htaccess`) — tylko `web/scripts/clean-build.mjs` z jawną listą.
 - **MariaDB nasłuchuje tylko na 127.0.0.1** — łączyć się przez `127.0.0.1`, nie `::1`/`localhost` z IPv6.
