@@ -16,9 +16,9 @@
 > Po rozstrzygnięciu: usunąć pytanie stąd, a decyzję wpisać do rejestru w `projekt.md`, pkt 13.
 
 **Najpierw**
-1. **Krok 1.8:** czy zaczynamy przypomnienia i powiadomienia? Do ustalenia godzina i zawartość porannego digestu (`projekt.md`, pkt 12) oraz co zbudować teraz, skoro moduły jeszcze nie istnieją (tak jak przy 1.6 i 1.7).
+1. **Krok 1.9:** czy zaczynamy dashboard „Dziś” (system widżetów, powitanie, szybka notatka)? Szybka notatka potrzebuje notatek z Etapu 2, więc do ustalenia, co zrobić teraz. Warto też spytać, czy po 1.9 i 1.10 od razu przechodzimy do Etapu 2, gdzie powstaną pierwsze moduły z danymi.
 
-**Starsze, bez odpowiedzi (nie blokują 1.8)**
+**Starsze, bez odpowiedzi (nie blokują 1.9)**
 2. **Decyzje techniczne Claude „do oceny użytkownika”:** TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2 (podklucze, identyfikator klucza, dwie komendy rotacji, `basemind:key` bez wypisywania klucza). Szczegóły: `projekt.md`, pkt 13.
 3. **Testy API:** zostajemy przy PHPUnit czy przechodzimy na Pest, jak zakładał plan? Czy wdrażamy Larastan?
 4. **Testy e2e:** czy dodać Playwright i stałe scenariusze (lista w „Otwarte sprawy” → „Dług techniczny”)?
@@ -27,26 +27,28 @@
 
 ## Stan bieżący (ostatnia sesja: 2026-11-09)
 
-- **Faza:** Etap 0 zamknięty. **Etap 1 w toku: kroki 1.1 (konta, logowanie, przestrzenie), 1.2 (szyfrowanie), 1.3 (warstwa danych offline), 1.4 (synchronizacja), 1.5 (PWA), 1.6 (tagi i powiązania: dane i synchronizacja) i 1.7 (wyszukiwanie) zrobione. Następny jest krok 1.8 (przypomnienia), jeszcze nie zaczęty.**
-- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca, łącznie z krokiem 1.7, jest wypchnięta.
-- **Backend (`api/`):** Laravel 13.40, Sanctum + Fortify (`/api/auth`), utwardzenie PHP/Apache, kontrola luk PHP, nagłówki z CSP, powłoka PWA serwowana przez Laravela, przestrzenie i uprawnienia, ekran sesji, szyfrowanie libsodium (serwis `Crypto`, casty, komendy klucza), synchronizacja (`SyncService`, `config/sync.php`, trait `Syncable`, makro `$table->syncable()`), tagi i powiązania. 173 testy OK.
-- **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia, lokalna baza Dexie z repozytorium encji (`web/src/db/`), silnik synchronizacji ze wskaźnikiem stanu (`web/src/sync/`), instalacja i aktualizacje PWA (`web/src/lib/pwa.ts`, `PwaBanner`), repozytoria tagów i powiązań (`web/src/db/tags.ts`), globalne wyszukiwanie (`web/src/search/`, `SearchDialog`). 177 testów OK.
-- **Dane lokalne:** w bazie `basemind` jest **prawdziwe konto użytkownika**, założone przez niego na telefonie. Nie usuwać go i nie czyścić tej bazy.
-- **Klucz szyfrowania:** lokalny `SODIUM_KEY` (identyfikator `2ca17bb1`) jest w `api/.env`, a użytkownik ma jego kopię w menedżerze haseł. Nic jeszcze nim nie zaszyfrowano. Produkcja dostanie własny klucz.
-- **Czeka na użytkownika:** zgoda na krok 1.8 i odpowiedzi na pozostałe „Pytania na start” (wyżej).
+- **Faza:** Etap 0 zamknięty. **Etap 1 w toku: kroki 1.1 (konta, logowanie, przestrzenie), 1.2 (szyfrowanie), 1.3 (warstwa danych offline), 1.4 (synchronizacja), 1.5 (PWA), 1.6 (tagi i powiązania: dane i synchronizacja), 1.7 (wyszukiwanie) i 1.8 (przypomnienia i powiadomienia) zrobione. Następny jest krok 1.9 (dashboard „Dziś”), jeszcze nie zaczęty.**
+- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca, łącznie z krokiem 1.8 i notatkami z zakończenia sesji, jest wypchnięta.
+- **Backend (`api/`):** Laravel 13.40, Sanctum + Fortify (`/api/auth`), utwardzenie PHP/Apache, kontrola luk PHP, nagłówki z CSP, powłoka PWA serwowana przez Laravela, przestrzenie i uprawnienia, ekran sesji, szyfrowanie libsodium (serwis `Crypto`, casty, komendy klucza), synchronizacja (`SyncService`, `config/sync.php`, trait `Syncable`, makro `$table->syncable()`), tagi i powiązania, przypomnienia i powiadomienia (`ReminderDispatcher`, `WebPushService`, zadania `SendReminder` i `SendDigest`, komendy `basemind:send-reminders`, `basemind:send-digests`, `basemind:vapid`). 219 testów OK.
+- **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia, lokalna baza Dexie z repozytorium encji (`web/src/db/`), silnik synchronizacji ze wskaźnikiem stanu (`web/src/sync/`), instalacja i aktualizacje PWA (`web/src/lib/pwa.ts`, `PwaBanner`), repozytoria tagów i powiązań (`web/src/db/tags.ts`), globalne wyszukiwanie (`web/src/search/`, `SearchDialog`), powiadomienia push i ich ustawienia (`web/src/lib/push.ts`, `NotificationsPage`), licznik na ikonie. 195 testów OK.
+- **Dane lokalne:** w bazie `basemind` jest **prawdziwe konto użytkownika**, założone przez niego na telefonie. Nie usuwać go i nie czyścić tej bazy. Są tam też dane z testów: tagi, 3 „Testowe przypomnienia” (jedno odłożone: przyjdzie przy najbliższym uruchomieniu harmonogramu) i subskrypcja push telefonu.
+- **Telefon:** BaseMind jest zainstalowany jako aplikacja, powiadomienia są włączone.
+- **Klucz szyfrowania:** lokalny `SODIUM_KEY` (identyfikator `2ca17bb1`) jest w `api/.env`, a użytkownik ma jego kopię w menedżerze haseł. Są nim już zaszyfrowane tytuły przypomnień, więc utrata klucza oznacza ich utratę. Produkcja dostanie własny klucz.
+- **Klucze VAPID** są w `api/.env` (tylko lokalne). Nowe klucze odłączają wszystkie urządzenia od powiadomień; `basemind:vapid` nie nadpisuje istniejących.
+- **Czeka na użytkownika:** zgoda na krok 1.9 i odpowiedzi na pozostałe „Pytania na start” (wyżej).
 - **Uwaga:** ta sama instalacja MariaDB trzyma bazy innego projektu użytkownika (np. `syslead_test`). Nie używać `migrate:fresh` na bazie `basemind` ani poleceń obejmujących cały serwer; testy działają na `basemind_test`.
-- **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. Przed uruchomieniem sprawdzić, czy już nie działają. W chwili zakończenia sesji są zatrzymane.
+- **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. Przed uruchomieniem sprawdzić, czy już nie działają. W chwili zakończenia sesji są zatrzymane, harmonogram też.
 
 ### ▶ Wznowienie pracy — od czego zacząć następną sesję
 1. Przeczytać `projekt.md` (szczególnie pkt 0, 3, 8, 13 „Rejestr decyzji”, 14 „Konfiguracja poza repozytorium”, 15 „Pułapki”) i ten plik.
 2. Sprawdzić stan: `git status`, `git log --oneline -5`, `composer audit` w `api/` (nowe poprawki bezpieczeństwa pojawiają się często; Symfony miało je już 2026-11-04) i `pnpm audit --prod` w `web/`.
-3. Uruchomić Apache i MariaDB (panel XAMPP lub poleceniami). Sprawdzić `http://localhost:8080/api/health`, testy `cd api && php artisan test` oraz `cd web && pnpm test`.
-4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zadać „Pytania na start”** (na górze pliku), w tym o zgodę na krok 1.8. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
-5. **Krok 1.8 (przypomnienia):** szczegóły w sekcji 1.8 poniżej i w `projekt.md`, pkt 4.3. Na stronie `/design` jest lista prawdziwych tagów do testów na żywo między urządzeniami.
+3. Uruchomić Apache i MariaDB (panel XAMPP lub poleceniami; Apache startuje ok. 30 s). Sprawdzić `http://localhost:8080/api/health`, testy `cd api && php artisan test` oraz `cd web && pnpm test`. Do testów powiadomień na żywo uruchomić też harmonogram z ustawionym `OPENSSL_CONF` (`projekt.md`, pkt 14).
+4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zadać „Pytania na start”** (na górze pliku), w tym o zgodę na krok 1.9. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
+5. **Krok 1.9 (dashboard):** szczegóły w sekcji 1.9 poniżej. Na stronie `/design` są prawdziwe tagi i przycisk „Przypomnij za minutę” do testów na żywo.
 6. **Test na telefonie przez USB** (instrukcja w `README.md`): do sprawdzania PWA używać builda, czyli port `8080 → localhost:8080` i na telefonie `http://localhost:8080`. Telefon użytkownika: Samsung S25 Ultra, debugowanie USB już włączone. Jeśli logowanie zgłasza brak połączenia, najpierw sprawdzić `http://localhost:8080/api/health` na telefonie (`projekt.md`, pkt 15). Do testu offline odłączyć kabel: tryb samolotowy nie przerywa przekierowania portu przez USB.
 7. Po sesji: zaktualizować ten plik („Stan bieżący”, checklisty, „Dziennik zmian”) i rejestr decyzji w `projekt.md`, a po zgodzie zrobić commit i `git push`.
 
-### Otwarte sprawy (nic z tego nie blokuje kroku 1.8)
+### Otwarte sprawy (nic z tego nie blokuje kroku 1.9)
 **Do wiadomości lub decyzji użytkownika**
 - Decyzje techniczne Claude z rejestru w `projekt.md` oznaczone „do oceny użytkownika”, jeszcze niepotwierdzone: TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2.
 - Kod rejestracji jest w `api/.env`. Przed wdrożeniem ustawić długi kod na produkcji, a po założeniu kont zostawić go pustym.
@@ -63,6 +65,11 @@
 
 **Czekają na swoje kroki**
 - Background Sync: nadal niesprawdzony na żywo (przesyłanie rekordów między urządzeniami już tak).
+- Poranne podsumowanie: mechanizm sprawdzony tylko testami, bo nie ma jeszcze treści. Sprawdzić na żywo przy pierwszym module, który doda sekcję w `config/digest.php`.
+- Przy każdym module: wpis w `config/digest.php` (jeśli dotyczy) i kanały powiadomień osobno dla typu (decyzja użytkownika: razem z modułami).
+- Przyciski na powiadomieniu bez internetu nie działają: odpowiedź przepada, przypomnienie zostaje bez odpowiedzi.
+- Ekran z listą przypomnień nie istnieje: w aplikacji można je dziś tworzyć tylko z `/design`.
+- Prawdziwa wysyłka e-mail do sprawdzenia przy wdrożeniu (lokalnie trafia do logu).
 - Przycisk [+] jest na razie informacyjny: właściwa wersja w 1.10.
 - Maile lokalnie trafiają do `api/storage/logs/laravel.log`: prawdziwa wysyłka SMTP do sprawdzenia przy wdrożeniu.
 - Usunąć stronę `/design` przed wdrożeniem (Etap 7).
@@ -142,7 +149,7 @@
 - [x] Ekrany szkieletowe: „Dziś”, „Zadania”, „Kalendarz”, „Więcej” z siatką modułów, strona zastępcza modułu pod własnym adresem (`/notes`, `/finance`…), dolna nawigacja, arkusz [+] (na razie informacyjny; właściwy w 1.10).
 - [x] „Ustawienia” (`/settings`) z wyborem motywu: system / jasny / ciemny. Zapis w `localStorage`, `public/theme-init.js` ustawia motyw przed pierwszym renderem (CSP zabrania skryptów inline). Synchronizacja z `user_settings` — Etap 1.
 - [x] Proxy Vite → Apache (`/api`, `/sanctum`, `/s/`); build do `api/public/` (czyszczenie: `web/scripts/clean-build.mjs`, tylko jawna lista plików); fallback SPA w Laravelu.
-- [~] ESLint + Prettier + `tsc` + Vitest (web) — zrobione, 177 testów OK. Pint jest; Larastan i Pest (api) — do zrobienia (testy api na razie w PHPUnit, 173 OK).
+- [~] ESLint + Prettier + `tsc` + Vitest (web) — zrobione, 195 testów OK. Pint jest; Larastan i Pest (api) — do zrobienia (testy api na razie w PHPUnit, 219 OK).
 - [ ] Sprawdzić nowe reguły `.htaccess` w trybie awaryjnym (docroot = cały `api/`) — testowane tylko z docroot `public/`.
 - [x] `README.md` (główny) — uruchomienie backendu i frontendu, build, telefon po USB.
 - [x] `CLAUDE.md` (główny) — krótki wskaźnik dla Claude: zasady współpracy + „czytaj `projekt.md` i `plan.md`”.
@@ -231,15 +238,17 @@
 - [x] Test użytkownika na telefonie: wyszukiwanie, literówki, usuwanie z wyników, ostatnie wyszukiwania, offline.
 
 ### 1.8 Przypomnienia i powiadomienia
-- [ ] Migracje: `reminders`, `push_subscriptions`, `jobs`, `failed_jobs`.
-- [ ] Klucze VAPID (komenda), endpoint subskrypcji push, ekran zgody na powiadomienia (w odpowiednim momencie).
-- [ ] Scheduler (`routes/console.php`): co minutę — wybór przypomnień do wysłania, cykliczne i „X dni przed”; `queue:work --stop-when-empty`.
-- [ ] Wysyłka push (web-push) z akcjami („Zrobione”, „Odłóż”) + obsługa w SW; usuwanie wygasłych subskrypcji (410).
-- [ ] Wysyłka e-mail (Laravel Mail, szablony; lokalnie Mailpit).
-- [ ] Ustawienia: kanały per typ, godziny ciszy.
-- [ ] 🔒 Daily digest (godzina, zawartość).
-- [ ] Badging API.
-- [ ] Lokalnie: `php artisan schedule:work`; produkcyjnie: instrukcja crona.
+- [x] Migracje: `reminders` (tytuł 🔐, synchronizowane), `push_subscriptions` (powiązane z sesją: koniec sesji zatrzymuje powiadomienia); `jobs`, `failed_jobs` już były.
+- [x] Klucze VAPID (`basemind:vapid`), endpoint subskrypcji push (tylko prawdziwe serwery push: ochrona SSRF), zgoda na powiadomienia na ekranie ustawień.
+- [x] Scheduler (`routes/console.php`): co minutę przypomnienia, digesty i `queue:work --stop-when-empty`. Cykliczne w strefie użytkownika (także przy zmianie czasu), „X dni przed” przez `offset_minutes`, pominięte terminy nie idą seriami.
+- [x] Wysyłka push z akcjami („Zrobione”, „Odłóż 1 h”) + obsługa w SW; usuwanie wygasłych subskrypcji (404/410).
+- [x] Wysyłka e-mail (Laravel Mail, tekst; lokalnie do logu).
+- [x] Ustawienia: `/settings/notifications` — powiadomienia na urządzeniu, e-mail, godziny ciszy, podsumowanie.
+- [-] Kanały per typ — przeniesione do modułów (decyzja użytkownika), bo typy jeszcze nie istnieją.
+- [x] Daily digest: domyślnie 7:00, zmiana w ustawieniach; wysyłany tylko z treścią. Sekcje (zadania i wydarzenia na dziś, zaległe, płatności, urodziny) dodają moduły przez `config/digest.php`.
+- [x] Badging API (przypomnienia wysłane i bez odpowiedzi).
+- [x] Lokalnie: `php artisan schedule:work` (z `OPENSSL_CONF`, `projekt.md`, pkt 14); produkcyjnie: instrukcja crona w `routes/console.php`.
+- [x] Test użytkownika na telefonie: zgoda, powiadomienie przy zamkniętej aplikacji, przyciski, licznik, ustawienia. Logi potwierdziły stany i e-maile.
 
 ### 1.9 Dashboard „Dziś” (szkielet)
 - [ ] System widżetów (rejestr, kolejność i widoczność w ustawieniach).
@@ -258,6 +267,7 @@
 - [ ] Encje `task_lists`, `tasks` (+ sync, wyszukiwanie, powiązania).
 - [ ] Widoki: Dziś, Nadchodzące, Zaległe, Listy, Ukończone.
 - [ ] Priorytety P1–P4, termin (data + opcjonalnie godzina), podzadania, notatka Markdown.
+- [ ] Sekcje porannego podsumowania i kanały powiadomień dla typu (przeniesione z 1.8; dotyczy też kolejnych modułów).
 - [ ] Cykliczność (rrule; „od terminu” vs „od ukończenia”).
 - [ ] Przypomnienia.
 - [ ] Swipe: odhacz / na jutro / usuń; sortowanie przeciąganiem.
@@ -449,3 +459,4 @@
 | 2026-11-09 | Krok 1.5: skróty w manifeście, baner instalacji, instrukcja iOS, aktualizacje na żądanie zamiast automatycznych, sprawdzanie nowej wersji po powrocie do aplikacji. Testy: web 148 OK; backend bez zmian. Użytkownik potwierdził na telefonie instalację, skróty i komunikat o nowej wersji. Ekrany startowe iOS pominięte, cache obrazków przeniesiony do 4.1. Serwery zatrzymane. Commit i push za zgodą użytkownika. | 1.6 (tagi i powiązania) — po zgodzie użytkownika. |
 | 2026-11-09 | Krok 1.6 w ustalonym zakresie: tabele, modele, synchronizacja i tabele lokalne dla tagów i powiązań; lista testowa na `/design`. Testy: api 173 OK, web 151 OK; audyt `composer` czysty; migracja wykonana na `basemind`. Użytkownik potwierdził przesyłanie rekordów między telefonem a komputerem. Zgłoszone opóźnienie: serwer odpowiada w ok. 60 ms, zwłoka wynika z pobierania zmian co 60 s na drugim urządzeniu. Interfejs i parser przeniesione do 2.3. Serwery zatrzymane. Commit i push za zgodą użytkownika. | 1.7 (wyszukiwanie) — po zgodzie użytkownika. |
 | 2026-11-09 | Interwał pobierania zmian zostaje 60 s (decyzja użytkownika). Krok 1.7: indeks MiniSearch w Web Workerze, polskie znaki, literówki i przestawione litery, ekran wyników, ostatnie wyszukiwania, rejestr źródeł (na razie tagi). Testy: web 177 OK; backend bez zmian. Użytkownik potwierdził na telefonie; test wykrył brak tolerancji przestawionych liter, poprawione. Serwery zatrzymane. Commit i push za zgodą użytkownika. | 1.8 (przypomnienia) — po zgodzie użytkownika. |
+| 2026-11-09 | Krok 1.8: przypomnienia (także cykliczne, odkładanie, godziny ciszy), Web Push z przyciskami, e-maile, ustawienia, licznik na ikonie, mechanizm porannego podsumowania. Tytuły przypomnień szyfrowane (decyzja użytkownika; 3 testowe zaszyfrowane jednorazowo w lokalnej bazie). Testy: api 219 OK, web 195 OK; oba audyty czyste; migracja na `basemind`, klucze VAPID w `.env`. Użytkownik potwierdził na telefonie. Koniec sesji na prośbę użytkownika, dokumentacja przygotowana do wznowienia. Serwery i harmonogram zatrzymane. Commit i push za zgodą użytkownika. | 1.9 (dashboard) — po zgodzie użytkownika. |

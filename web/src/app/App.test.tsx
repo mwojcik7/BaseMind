@@ -406,6 +406,93 @@ describe('search', () => {
   })
 })
 
+describe('notification settings', () => {
+  const SETTINGS = {
+    push: true,
+    email: true,
+    quiet_hours: null,
+    digest: { enabled: true, time: '07:00' },
+  }
+
+  function serverHasSettings() {
+    fetchMock.mockImplementation(async (input) => {
+      const path = String(input)
+      if (path === '/api/me') {
+        return json(200, ACCOUNT)
+      }
+      if (path === '/api/settings') {
+        return json(200, { notifications: SETTINGS })
+      }
+      return new Response(null, { status: 204 })
+    })
+  }
+
+  const saved = () =>
+    JSON.parse(
+      String(
+        fetchMock.mock.calls.find(
+          ([input, init]) => input === '/api/settings' && init?.method === 'POST',
+        )?.[1]?.body,
+      ),
+    )
+
+  it('saves the chosen digest time and quiet hours', async () => {
+    const user = userEvent.setup()
+    serverHasSettings()
+    renderAt('/settings/notifications')
+
+    const digestTime = await screen.findByLabelText(pl.notifications.time)
+    expect(digestTime).toHaveValue('07:00')
+    fireEvent.change(digestTime, { target: { value: '06:30' } })
+    await user.click(screen.getByRole('switch', { name: pl.notifications.quietHours }))
+    expect(screen.getByLabelText(pl.notifications.from)).toHaveValue('22:00')
+    await user.click(screen.getByRole('switch', { name: pl.notifications.email }))
+    await user.click(screen.getByRole('button', { name: pl.notifications.save }))
+
+    await waitFor(() =>
+      expect(saved()).toEqual({
+        notifications: {
+          push: true,
+          email: false,
+          quiet_hours: { start: '22:00', end: '07:00' },
+          digest: { enabled: true, time: '06:30' },
+        },
+      }),
+    )
+  })
+
+  it('explains when this browser cannot show notifications', async () => {
+    serverHasSettings()
+    renderAt('/settings/notifications')
+
+    expect(await screen.findByText(pl.notifications.pushUnsupported)).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: pl.notifications.push })).toBeDisabled()
+  })
+
+  it('explains when the settings need a connection', async () => {
+    fetchMock.mockImplementation(async (input) => {
+      if (String(input) === '/api/me') {
+        return json(200, ACCOUNT)
+      }
+      throw new TypeError('Failed to fetch')
+    })
+    renderAt('/settings/notifications')
+
+    expect(await screen.findByText(pl.errors.offline)).toBeInTheDocument()
+  })
+
+  it('is reachable from the settings screen', async () => {
+    const user = userEvent.setup()
+    serverHasSettings()
+    renderAt('/settings')
+    await heading(pl.settings.title)
+
+    await user.click(screen.getByRole('link', { name: pl.settings.notifications }))
+
+    expect(await heading(pl.settings.notifications)).toBeInTheDocument()
+  })
+})
+
 describe('app banners', () => {
   afterEach(() =>
     usePwa.setState({ applyUpdate: null, installPrompt: null, showIosInstructions: false }),

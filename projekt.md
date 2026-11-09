@@ -236,7 +236,7 @@ Kluczowe cechy:
 - `space_members` — space_id, user_id, role (`owner` | `editor` | `viewer`).
 - `item_shares` (przyszłość) — udostępnienie pojedynczego rekordu: entity_type, entity_id, user_id, permission.
 - **Zasada:** każde zapytanie API i każdy rekord synchronizacji przechodzi przez Laravel Policy/Gate „czy użytkownik jest członkiem `space_id` z odpowiednią rolą”. CRM i bank prezentów zawsze w przestrzeni prywatnej.
-- `push_subscriptions` — user_id, endpoint, p256dh, auth, device_name, created_at.
+- `push_subscriptions` — user_id, session_id (koniec sesji zatrzymuje powiadomienia), endpoint, endpoint_hash, p256dh, auth, device_name, created_at.
 - `user_settings` — user_id, JSON ustawień (motyw, widżety dashboardu, godzina digestu, kanały powiadomień, waluta domyślna, start tygodnia).
 - `sync_counter` — jeden wiersz z globalnym licznikiem `rev`.
 
@@ -244,7 +244,7 @@ Kluczowe cechy:
 - `tags` — id, space_id, name, color.
 - `entity_tags` — entity_type, entity_id, tag_id.
 - `entity_links` — source_type, source_id, target_type, target_id, origin (`manual` | `parsed`). Podstawa backlinków między WSZYSTKIMI modułami.
-- `reminders` — id, space_id, entity_type, entity_id, title, remind_at, rrule, offset_rule (np. „3 dni przed datą X”), channels (`push`, `email`), status (`scheduled` | `sent` | `dismissed` | `snoozed`), last_sent_at.
+- `reminders` — id, space_id, entity_type, entity_id, title 🔐, remind_at (najbliższe wysłanie), rrule (bez COUNT i DTSTART), offset_minutes (np. „3 dni przed datą X”), channels (`push`, `email`), status (`scheduled` | `sent` | `dismissed` | `snoozed`), snoozed_until, last_sent_at (ustawia tylko serwer).
 - `attachments` — id, space_id, entity_type, entity_id, file_name 🔐, mime, size, storage_key, thumbnail_key, sha256, upload_status. **Pliki na dysku szyfrowane** (sodium secretstream), przechowywane w `storage/app/private`.
 - `file_shares` — id, attachment_id, token_hash (token 32+ bajtów, w bazie tylko hash), expires_at, max_downloads, download_count, password (hash, opcjonalnie), revoked_at.
 - `jobs`, `failed_jobs`, `cache` — tabele techniczne Laravela.
@@ -484,7 +484,7 @@ Hosting musi zapewniać:
 
 1. (rozstrzygnięte: `localhost:8080`)
 2. (rozstrzygnięte: rejestracja z kodem zaproszenia)
-3. Godzina porannego digestu i jego zawartość (Etap 1).
+3. (rozstrzygnięte: 7:00 ze zmianą w ustawieniach; zadania i wydarzenia na dziś, zaległe, płatności, urodziny; wysyłany tylko z treścią)
 4. Reguły nadgodzin u obecnego pracodawcy, wynagrodzenie godzinowe czy miesięczne (Etap 5).
 5. Waluty obce — z kursami NBP czy bez (Etap 3).
 6. Automatyczne okładki z TMDB/OpenLibrary/IGDB (Etap 4).
@@ -542,6 +542,11 @@ Hosting musi zapewniać:
 | 2026-11-09 | Szyfrowanie pól zostaje przy `secretbox` bez wiązania szyfrogramu z wierszem i kolumną (na razie jeden użytkownik) | Użytkownik |
 | 2026-11-09 | Wylogowanie z niewysłanymi zmianami: próba wysłania, potem ostrzeżenie „Wyloguj mimo to / Anuluj” (krok 1.4) | Użytkownik |
 | 2026-11-09 | Zakończenie sesji przez serwer kasuje lokalne dane bez pytania, także niewysłane zmiany (ochrona zgubionego telefonu) | Użytkownik |
+| 2026-11-09 | Przypomnienia: teraz silnik i wysyłka (test z `/design`), przypomnienia z modułów i kanały dla typu razem z modułami | Użytkownik |
+| 2026-11-09 | Poranne podsumowanie: 7:00 ze zmianą w ustawieniach, zawartość jak w pkt 12, wysyłane tylko z treścią | Użytkownik |
+| 2026-11-09 | Tytuły przypomnień szyfrowane (nowe pole 🔐) | Użytkownik |
+| 2026-11-09 | Godziny ciszy wstrzymują oba kanały do ich końca; `offset_minutes` zamiast `offset_rule`; odkładanie przez `snoozed_until`, żeby nie przesuwać terminów cyklicznych; powiadomienia wiązane z sesją | Claude (działanie zaakceptowane przez użytkownika po teście) |
+| 2026-11-09 | Pakiety: `minishlink/web-push` 11, `rlanvin/php-rrule` 3 (backend), `minisearch` 7 (frontend) | Claude (do oceny użytkownika) |
 | 2026-11-09 | Pobieranie zmian co 60 s, gdy aplikacja jest widoczna, bez skracania interwału | Użytkownik |
 | 2026-11-09 | Wyszukiwanie: najpierw silnik i ekran na tagach, kolejne moduły dopisują się do rejestru. Indeks tylko w pamięci, ostatnie wyszukiwania w lokalnej bazie (kasowane przy wylogowaniu) i tylko te, które coś znalazły | Użytkownik / Claude |
 | 2026-11-09 | Tagi i powiązania: teraz dane i synchronizacja, interfejs i parser razem z notatkami (2.3) | Użytkownik |
@@ -605,7 +610,15 @@ Po świeżym `git clone`: `cd api && composer install && copy .env.example .env 
 
 `api/.env` zawiera też `BASEMIND_REGISTRATION_CODE` (losowy kod do zakładania kont, tylko lokalny) i `SESSION_LIFETIME=43200`. Bez kodu rejestracja jest wyłączona; aby założyć kolejne konto, wystarczy odczytać lub ustawić kod w tym pliku.
 
-**7a. Dane tylko lokalne:** baza `basemind` trzyma prawdziwe konto użytkownika (nie ma go w git). Przy reinstalacji XAMPP lub nowym komputerze trzeba zrobić kopię bazy lub założyć konto od nowa kodem zaproszenia. Na razie konto nie ma żadnych danych modułów, tylko ustawienie motywu.
+`api/.env` zawiera też `VAPID_PUBLIC_KEY` i `VAPID_PRIVATE_KEY` (`php artisan basemind:vapid`). Przy nowych kluczach telefon trzeba podłączyć do powiadomień od nowa. Po świeżym `git clone` uruchomić tę komendę z `OPENSSL_CONF` (niżej).
+
+**7c. `OPENSSL_CONF` (tylko Windows z XAMPP):** PHP nie generuje kluczy EC bez wskazania konfiguracji OpenSSL, a musi to być zmienna środowiskowa ustawiona przed startem procesu (wpis w `.env` nie działa). Potrzebne do `basemind:vapid` i wysyłki powiadomień, więc także do harmonogramu. W PowerShell:
+```powershell
+$env:OPENSSL_CONF='C:\xampp\apache\conf\openssl.cnf'
+php artisan schedule:work   # z katalogu api/
+```
+
+**7a. Dane tylko lokalne:** baza `basemind` trzyma prawdziwe konto użytkownika (nie ma go w git). Przy reinstalacji XAMPP lub nowym komputerze trzeba zrobić kopię bazy lub założyć konto od nowa kodem zaproszenia. Na razie konto ma tylko dane z testów (tagi, przypomnienia, subskrypcję push telefonu) i ustawienia.
 
 **7b. Inne projekty na tym serwerze:** MariaDB z XAMPP trzyma też bazy innego projektu użytkownika (np. `syslead_test`). Nie wolno ich ruszać ani używać poleceń obejmujących cały serwer.
 
@@ -624,6 +637,10 @@ Po świeżym `git clone`: `cd api && composer install && copy .env.example .env 
 - **Pobieranie programów z internetu (np. Mailpit) może zostać zablokowane** przez zabezpieczenia sesji Claude — wtedy poprosić użytkownika o ręczne pobranie lub zgodę.
 - **Sanctum uruchamia sesję tylko dla żądań z nagłówkiem `Referer`/`Origin` z `SANCTUM_STATEFUL_DOMAINS`.** Bez tego kontroler dostaje `Session store not set` (także w testach: `withHeader('Referer', …)`). Na produkcji trzeba tam wpisać domenę.
 - **Na serwerze MariaDB są też bazy innego projektu** (np. `syslead_test`) — nie używać `migrate:fresh` na `basemind` i sprawdzać `DB::getDatabaseName()` przed operacjami na danych.
+- **Composer może nie zapisać paczek do `vendor/` (`Permission denied`) przy pobieraniu równoległym.** Pomaga `$env:COMPOSER_MAX_PARALLEL_HTTP='1'` i ponowne uruchomienie. Po nieudanym `composer require` sprawdzić, czy w `composer.json` nie zostało `"*"` zamiast wersji.
+- **Harmonogram i powiadomienia lokalnie wymagają `OPENSSL_CONF`** (pkt 14, 7c). Bez tego przypomnienia zapiszą się jako wysłane, a push się nie uda.
+- **Pola zapisywane tylko przez serwer (`last_sent_at`) nie mogą trafić do `create` z klienta,** bo serwer odrzuci zmianę jako nieznane pole. Dlatego są opcjonalne w typie TS i wymienione w `syncReadOnlyFields()`.
+- **Nowe pole 🔐 w istniejącej tabeli wymaga zaszyfrowania starych wierszy,** inaczej ich odczyt się nie uda (`basemind:reencrypt` obsługuje tylko wartości już zaszyfrowane).
 - **Web Worker wyszukiwarki nie działa w Vitest (jsdom).** Logika jest w `search/engine.ts` i tam ją testować; sam worker sprawdzać w prawdziwym buildzie.
 - **`web/src/search/sources.ts` trafia do workera:** tylko importy typów, bez Reacta i ikon (ikony są w `presentation.ts`).
 - **Tolerancja literówek w MiniSearch nie obejmuje przestawionych liter** (liczą się jako dwa błędy), dlatego `engine.ts` szuka też wariantów z zamienionymi sąsiednimi literami.

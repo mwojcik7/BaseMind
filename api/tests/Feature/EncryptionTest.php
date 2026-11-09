@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Exceptions\CryptoException;
+use App\Models\Reminder;
 use App\Services\Crypto;
 use App\Services\EncryptedFieldRotator;
 use Illuminate\Database\Schema\Blueprint;
@@ -245,9 +246,9 @@ class EncryptionTest extends TestCase
         $this->assertSame('dobry', $good->fresh()->secret);
     }
 
-    public function test_reencrypt_finds_no_models_yet_and_succeeds(): void
+    public function test_reencrypt_finds_the_real_models_and_succeeds(): void
     {
-        $this->assertSame([], app(EncryptedFieldRotator::class)->discoverModels());
+        $this->assertContains(Reminder::class, app(EncryptedFieldRotator::class)->discoverModels());
         $this->assertSame(0, Artisan::call('basemind:reencrypt'));
     }
 

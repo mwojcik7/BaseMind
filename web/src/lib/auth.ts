@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { clearLocalData, db } from '@/db/db'
 import { api, ApiError, NetworkError, setUnauthorizedHandler } from '@/lib/api'
+import { forgetPushSubscription } from '@/lib/push'
 
 export interface Account {
   user: {
@@ -78,6 +79,7 @@ async function setSignedIn(account: Account) {
 /** Also runs when the server ends the session, so revoking a lost phone wipes its data. */
 async function setSignedOut() {
   useAuth.setState({ status: 'guest', account: null })
+  void forgetPushSubscription()
   try {
     await clearLocalData()
   } catch (error) {

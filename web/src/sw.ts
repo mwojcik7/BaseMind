@@ -6,11 +6,12 @@ import {
   precacheAndRoute,
 } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
+import { pl } from './i18n/pl'
 import { BACKGROUND_SYNC_TAG, pushOutbox, type PostOperations } from './sync/push'
 
 declare const self: ServiceWorkerGlobalScope
 
-// Push notifications and share target arrive with their steps.
+// Share target arrives with its step.
 
 // A new version waits until the user chooses to refresh, so nothing reloads mid-typing.
 self.addEventListener('message', (event) => {
@@ -46,9 +47,9 @@ async function csrfToken(): Promise<string | undefined> {
   return cookie ? decodeURIComponent(cookie.value) : undefined
 }
 
-const postOperations: PostOperations = async (ops) => {
+async function post(path: string, body: unknown) {
   const token = await csrfToken()
-  const response = await fetch('/api/sync/push', {
+  const response = await fetch(path, {
     method: 'POST',
     credentials: 'same-origin',
     headers: {
@@ -56,14 +57,86 @@ const postOperations: PostOperations = async (ops) => {
       'Content-Type': 'application/json',
       ...(token ? { 'X-XSRF-TOKEN': token } : {}),
     },
-    body: JSON.stringify({ ops }),
+    body: JSON.stringify(body),
   })
 
   if (!response.ok) {
-    throw new Error(`Push failed with status ${response.status}`)
+    throw new Error(`Request failed with status ${response.status}`)
   }
-  return response.json()
+  return response
 }
+
+const postOperations: PostOperations = async (ops) => (await post('/api/sync/push', { ops })).json()
+
+interface PushPayload {
+  title: string
+  body?: string
+  url?: string
+  reminder_id?: string
+  badge?: number
+}
+
+const NOTIFICATION_ICON = '/app-icons/pwa-192x192.png'
+const SNOOZE_MINUTES = 60
+
+self.addEventListener('push', (event) => {
+  const payload = event.data?.json() as PushPayload | undefined
+  if (!payload) {
+    return
+  }
+
+  const options: NotificationOptions & { actions?: { action: string; title: string }[] } = {
+    body: payload.body,
+    icon: NOTIFICATION_ICON,
+    badge: NOTIFICATION_ICON,
+    // A repeat of the same reminder replaces the old notification instead of piling up.
+    tag: payload.reminder_id,
+    data: payload,
+    actions: payload.reminder_id
+      ? [
+          { action: 'done', title: pl.notifications.done },
+          { action: 'snooze', title: pl.notifications.snooze },
+        ]
+      : [],
+  }
+
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(payload.title, options),
+      payload.badge === undefined
+        ? undefined
+        : navigator.setAppBadge?.(payload.badge).catch(() => {}),
+    ]),
+  )
+})
+
+async function openApp(url: string) {
+  const [open] = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+  if (open) {
+    await open.focus()
+    return
+  }
+  await self.clients.openWindow(url)
+}
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+
+  const { reminder_id: reminderId, url } = (event.notification.data ?? {}) as PushPayload
+  const answer = reminderId
+    ? event.action === 'snooze'
+      ? post(`/api/reminders/${reminderId}/snooze`, { minutes: SNOOZE_MINUTES })
+      : post(`/api/reminders/${reminderId}/dismiss`, {})
+    : Promise.resolve()
+
+  event.waitUntil(
+    Promise.all([
+      // Offline, the answer is lost and the reminder simply stays unanswered in the app.
+      answer.catch(() => {}),
+      event.action ? undefined : openApp(url ?? '/'),
+    ]),
+  )
+})
 
 interface BackgroundSyncEvent extends ExtendableEvent {
   readonly tag: string

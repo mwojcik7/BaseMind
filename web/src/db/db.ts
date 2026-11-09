@@ -35,6 +35,7 @@ export const SCHEMA_VERSIONS: SchemaVersion[] = [
     entity_tags: 'id, [entity_type+entity_id], tag_id',
     entity_links: 'id, [source_type+source_id], [target_type+target_id]',
   },
+  { reminders: 'id, status' },
 ]
 
 export class LocalDatabase extends Dexie {

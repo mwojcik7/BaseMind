@@ -60,6 +60,20 @@ trait Syncable
      */
     public function toSyncArray(): array
     {
-        return Arr::only($this->attributesToArray(), [...self::SYSTEM_FIELDS, ...$this->syncFields()]);
+        return Arr::only($this->attributesToArray(), [
+            ...self::SYSTEM_FIELDS,
+            ...$this->syncFields(),
+            ...$this->syncReadOnlyFields(),
+        ]);
+    }
+
+    /**
+     * Fields clients receive but cannot write.
+     *
+     * @return list<string>
+     */
+    public function syncReadOnlyFields(): array
+    {
+        return [];
     }
 }

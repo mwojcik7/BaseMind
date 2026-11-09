@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import { createAppRouter } from '@/app/router'
 import { startAuth } from '@/lib/auth'
+import { startBadge } from '@/lib/badge'
 import { offerUpdate, startInstallTracking, watchForUpdates } from '@/lib/pwa'
 import { applyTheme, getTheme } from '@/lib/theme'
 import { startSync } from '@/sync/engine'
@@ -12,6 +13,7 @@ import './index.css'
 
 applyTheme(getTheme())
 startInstallTracking()
+startBadge()
 startSync()
 void startAuth()
 

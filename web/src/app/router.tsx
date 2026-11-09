@@ -100,6 +100,15 @@ const sessionsRoute = createRoute({
   component: lazyRouteComponent(() => import('@/modules/settings/SessionsPage'), 'SessionsPage'),
 })
 
+const notificationsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings/notifications',
+  component: lazyRouteComponent(
+    () => import('@/modules/settings/NotificationsPage'),
+    'NotificationsPage',
+  ),
+})
+
 // Preview of the design system; not linked from the app. Remove before deployment (stage 7).
 const designRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -123,6 +132,7 @@ const routeTree = rootRoute.addChildren([
     moreRoute,
     settingsRoute,
     sessionsRoute,
+    notificationsRoute,
     designRoute,
     moduleRoute,
   ]),

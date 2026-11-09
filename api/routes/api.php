@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\DeviceSessionController;
 use App\Http\Controllers\MeController;
+use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\ReminderActionController;
 use App\Http\Controllers\SpaceController;
 use App\Http\Controllers\SyncController;
 use App\Http\Controllers\UserSettingsController;
@@ -52,5 +54,13 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/sync/push', [SyncController::class, 'push']);
     Route::get('/sync/pull', [SyncController::class, 'pull']);
 
+    Route::get('/settings', [UserSettingsController::class, 'show']);
     Route::post('/settings', [UserSettingsController::class, 'update']);
+
+    Route::get('/push/public-key', [PushSubscriptionController::class, 'publicKey']);
+    Route::post('/push/subscriptions', [PushSubscriptionController::class, 'store']);
+    Route::delete('/push/subscriptions', [PushSubscriptionController::class, 'destroy']);
+
+    Route::post('/reminders/{reminder}/dismiss', [ReminderActionController::class, 'dismiss']);
+    Route::post('/reminders/{reminder}/snooze', [ReminderActionController::class, 'snooze']);
 });

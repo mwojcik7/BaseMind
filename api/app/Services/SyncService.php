@@ -186,6 +186,23 @@ class SyncService
     }
 
     /**
+     * A change made by the server itself, e.g. a reminder going out. Devices receive it
+     * like any other, and it takes part in conflicts. Call inside a transaction.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function recordServerChange(Model $record, array $attributes): void
+    {
+        $now = CarbonImmutable::now('UTC');
+
+        $this->save($record, [
+            ...$attributes,
+            'version' => $record->version + 1,
+            'field_stamps' => [...($record->field_stamps ?? []), ...array_fill_keys(array_keys($attributes), $this->stamp($now))],
+        ], $now);
+    }
+
+    /**
      * @param  array<string, mixed>  $attributes
      */
     private function save(Model $record, array $attributes, CarbonImmutable $changedAt): void

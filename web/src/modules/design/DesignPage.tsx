@@ -32,6 +32,7 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toaster'
 import { useRecords } from '@/db/hooks'
+import { reminders } from '@/db/reminders'
 import { tags } from '@/db/tags'
 import { formatMoney } from '@/lib/money'
 
@@ -67,6 +68,30 @@ function Field({ id, label, children }: { id: string; label: string; children: R
       <Label htmlFor={id}>{label}</Label>
       {children}
     </div>
+  )
+}
+
+/** Real data: goes through synchronisation, the scheduler and the push service. */
+function ReminderPreview() {
+  async function remindInAMinute() {
+    await reminders.create({
+      entity_type: null,
+      entity_id: null,
+      title: 'Testowe przypomnienie',
+      remind_at: new Date(Date.now() + 60_000).toISOString(),
+      rrule: null,
+      offset_minutes: 0,
+      channels: ['push', 'email'],
+      status: 'scheduled',
+      snoozed_until: null,
+    })
+    toast('Przypomnienie przyjdzie za około 1–2 minuty')
+  }
+
+  return (
+    <Section title="Przypomnienia (prawdziwe dane)">
+      <Button onClick={() => void remindInAMinute()}>Przypomnij za minutę</Button>
+    </Section>
   )
 }
 
@@ -129,6 +154,7 @@ export function DesignPage() {
       <PageHeader title="Design system" description="Podgląd wszystkich elementów aplikacji" />
 
       <SyncPreview />
+      <ReminderPreview />
 
       <Section title="Kolory">
         <div className="grid grid-cols-3 gap-3">

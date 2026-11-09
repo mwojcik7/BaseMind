@@ -1,5 +1,13 @@
 import { Link } from '@tanstack/react-router'
-import { ChevronRight, MonitorSmartphone, Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
+import {
+  Bell,
+  ChevronRight,
+  MonitorSmartphone,
+  Monitor,
+  Moon,
+  Sun,
+  type LucideIcon,
+} from 'lucide-react'
 import { useState } from 'react'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -90,6 +98,14 @@ export function SettingsPage() {
       <section className="mt-8">
         <h2 className="text-sm font-semibold">{pl.settings.account}</h2>
         {account && <p className="mt-1 text-sm text-muted-foreground">{account.user.email}</p>}
+        <Link
+          to="/settings/notifications"
+          className="mt-2 flex min-h-14 items-center gap-3 rounded-lg bg-card px-4 text-sm font-medium text-card-foreground"
+        >
+          <Bell aria-hidden className="size-5 text-muted-foreground" />
+          {pl.settings.notifications}
+          <ChevronRight aria-hidden className="ml-auto size-5 text-muted-foreground" />
+        </Link>
         <Link
           to="/settings/sessions"
           className="mt-2 flex min-h-14 items-center gap-3 rounded-lg bg-card px-4 text-sm font-medium text-card-foreground"

@@ -36,6 +36,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Web Push (VAPID)
+    |--------------------------------------------------------------------------
+    | Identify this server to push services. Generate with: php artisan basemind:vapid
+    */
+    'push' => [
+        'public_key' => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Minimum patched PHP versions per branch
     |--------------------------------------------------------------------------
     | PHP2Shell (CVE-2026-109618, CVE-2026-109619) is fixed in these releases.

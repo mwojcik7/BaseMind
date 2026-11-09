@@ -2,6 +2,7 @@
 
 use App\Models\EntityLink;
 use App\Models\EntityTag;
+use App\Models\Reminder;
 use App\Models\Tag;
 
 return [
@@ -15,6 +16,7 @@ return [
         'tags' => Tag::class,
         'entity_tags' => EntityTag::class,
         'entity_links' => EntityLink::class,
+        'reminders' => Reminder::class,
     ],
 
 ];
