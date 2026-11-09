@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { clearLocalData, db } from '@/db/db'
 import { api, ApiError, NetworkError, setUnauthorizedHandler } from '@/lib/api'
 
 export interface Account {
@@ -25,65 +26,95 @@ interface AuthState {
 export const useAuth = create<AuthState>(() => ({ status: 'loading', account: null }))
 
 // Remembered on the device so the app opens offline. Holds no secrets: the session
-// itself stays in an HttpOnly cookie. Moves to the local database in step 1.3.
-const STORAGE_KEY = 'basemind.account'
+// itself stays in an HttpOnly cookie.
+const ACCOUNT_KEY = 'account'
 
-function readRemembered(): Account | null {
+// Where earlier versions of the app remembered the account.
+const LEGACY_STORAGE_KEY = 'basemind.account'
+
+function takeLegacyAccount(): Account | null {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = localStorage.getItem(LEGACY_STORAGE_KEY)
+    localStorage.removeItem(LEGACY_STORAGE_KEY)
     return stored ? (JSON.parse(stored) as Account) : null
   } catch {
     return null
   }
 }
 
-function setSignedIn(account: Account) {
+/** Another person's account on this device must never see the previous one's data. */
+async function rememberAccount(account: Account) {
+  await db.transaction('rw', db.tables, async () => {
+    const previous = (await db.meta.get(ACCOUNT_KEY))?.value as Account | undefined
+    if (previous && previous.user.id !== account.user.id) {
+      await clearLocalData()
+    }
+    await db.meta.put({ key: ACCOUNT_KEY, value: account })
+  })
+}
+
+async function readRemembered(): Promise<Account | null> {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(account))
+    const legacy = takeLegacyAccount()
+    if (legacy) {
+      await rememberAccount(legacy)
+      return legacy
+    }
+    return ((await db.meta.get(ACCOUNT_KEY))?.value as Account | undefined) ?? null
+  } catch {
+    return null
+  }
+}
+
+async function setSignedIn(account: Account) {
+  try {
+    await rememberAccount(account)
   } catch {
     // Still signed in for this visit; it just won't open offline.
   }
   useAuth.setState({ status: 'authenticated', account })
 }
 
-function setSignedOut() {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // Nothing to clean up if storage is unavailable.
-  }
+/** Also runs when the server ends the session, so revoking a lost phone wipes its data. */
+async function setSignedOut() {
   useAuth.setState({ status: 'guest', account: null })
+  try {
+    await clearLocalData()
+  } catch (error) {
+    // The account stays remembered with the data, so the next start retries the wipe.
+    console.error('Could not clear local data', error)
+  }
 }
 
 /** Loads the account from the server. Only the server's answer can sign the user out here. */
 async function refreshAccount() {
   try {
-    setSignedIn(await api.get<Account>('/api/me'))
+    await setSignedIn(await api.get<Account>('/api/me'))
   } catch (error) {
     const unreachable = error instanceof NetworkError
     const serverProblem = error instanceof ApiError && error.status >= 500
 
     // Offline or a server failure: trust the remembered account until the server can answer.
     if (!unreachable && !serverProblem) {
-      setSignedOut()
+      await setSignedOut()
     } else if (useAuth.getState().status === 'loading') {
       useAuth.setState({ status: 'guest' })
     }
   }
 }
 
-/** Call once at startup. A remembered account opens the app at once, without waiting for the network. */
-export function startAuth(): Promise<void> {
-  setUnauthorizedHandler(setSignedOut)
+/** Call once at startup. A remembered account opens the app without waiting for the network. */
+export async function startAuth(): Promise<void> {
+  setUnauthorizedHandler(() => void setSignedOut())
 
-  const remembered = readRemembered()
+  const remembered = await readRemembered()
   useAuth.setState(
     remembered
       ? { status: 'authenticated', account: remembered }
       : { status: 'loading', account: null },
   )
 
-  return refreshAccount()
+  await refreshAccount()
 }
 
 export async function logIn(credentials: { email: string; password: string }) {
@@ -108,5 +139,5 @@ export async function register(data: {
  */
 export async function logOut() {
   await api.post('/api/auth/logout')
-  setSignedOut()
+  await setSignedOut()
 }

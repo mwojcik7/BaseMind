@@ -16,28 +16,24 @@
 > Po rozstrzygnięciu: usunąć pytanie stąd, a decyzję wpisać do rejestru w `projekt.md`, pkt 13.
 
 **Najpierw**
-1. **Kopia klucza:** czy `SODIUM_KEY` z `api/.env` jest już w menedżerze haseł, razem z identyfikatorem `2ca17bb1`? Nic jeszcze nim nie zaszyfrowano, ale kopia musi powstać, zanim pojawią się dane.
-2. **Ograniczenie szyfrowania pól:** ktoś z prawem zapisu do bazy nie odczyta danych, ale mógłby niezauważenie przenieść szyfrogram do innego wiersza lub kolumny, bo `secretbox` nie wiąże go z miejscem zapisu (`projekt.md`, pkt 8.4). Do wyboru:
-   - zaakceptować (propozycja Claude: przy jednym użytkowniku to mało realny scenariusz),
-   - przejść na szyfrowanie wiążące wartość z wierszem i kolumną. Teraz jest najtaniej, bo nie ma jeszcze zaszyfrowanych danych, ale to odstępstwo od zapisanego `secretbox` i bardziej złożone casty.
-3. **Krok 1.3:** czy zaczynamy lokalną bazę offline w przeglądarce (Dexie)? Pytanie 2 najlepiej rozstrzygnąć wcześniej.
+1. **Krok 1.4:** czy zaczynamy synchronizację z serwerem?
 
-**Starsze, bez odpowiedzi (nie blokują 1.3)**
-4. **Decyzje techniczne Claude „do oceny użytkownika”:** TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2 (podklucze, identyfikator klucza, dwie komendy rotacji, `basemind:key` bez wypisywania klucza). Szczegóły: `projekt.md`, pkt 13.
-5. **Testy API:** zostajemy przy PHPUnit czy przechodzimy na Pest, jak zakładał plan? Czy wdrażamy Larastan?
-6. **Testy e2e:** czy dodać Playwright i stałe scenariusze (lista w „Otwarte sprawy” → „Dług techniczny”)?
+**Starsze, bez odpowiedzi (nie blokują 1.4)**
+2. **Decyzje techniczne Claude „do oceny użytkownika”:** TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2 (podklucze, identyfikator klucza, dwie komendy rotacji, `basemind:key` bez wypisywania klucza). Szczegóły: `projekt.md`, pkt 13.
+3. **Testy API:** zostajemy przy PHPUnit czy przechodzimy na Pest, jak zakładał plan? Czy wdrażamy Larastan?
+4. **Testy e2e:** czy dodać Playwright i stałe scenariusze (lista w „Otwarte sprawy” → „Dług techniczny”)?
 
 ---
 
-## Stan bieżący (ostatnia sesja: 2026-11-05)
+## Stan bieżący (ostatnia sesja: 2026-11-09)
 
-- **Faza:** Etap 0 zamknięty. **Etap 1 w toku: kroki 1.1 (konta, logowanie, przestrzenie) i 1.2 (szyfrowanie) zrobione. Następny jest krok 1.3 (warstwa danych offline), jeszcze nie zaczęty.**
-- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca, łącznie z krokiem 1.2 i notatkami z zakończenia sesji, jest wypchnięta.
+- **Faza:** Etap 0 zamknięty. **Etap 1 w toku: kroki 1.1 (konta, logowanie, przestrzenie), 1.2 (szyfrowanie) i 1.3 (warstwa danych offline) zrobione. Następny jest krok 1.4 (synchronizacja), jeszcze nie zaczęty.**
+- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca, łącznie z krokiem 1.3, jest wypchnięta.
 - **Backend (`api/`):** Laravel 13.40, Sanctum + Fortify (`/api/auth`), utwardzenie PHP/Apache, kontrola luk PHP, nagłówki z CSP, powłoka PWA serwowana przez Laravela, przestrzenie i uprawnienia, ekran sesji, szyfrowanie libsodium (serwis `Crypto`, casty, komendy klucza). 141 testów OK.
-- **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia. 79 testów OK.
+- **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia, lokalna baza Dexie z repozytorium encji (`web/src/db/`). 99 testów OK.
 - **Dane lokalne:** w bazie `basemind` jest **prawdziwe konto użytkownika**, założone przez niego na telefonie. Nie usuwać go i nie czyścić tej bazy.
-- **Klucz szyfrowania:** lokalny `SODIUM_KEY` (identyfikator `2ca17bb1`) jest w `api/.env`. Nic jeszcze nim nie zaszyfrowano. Produkcja dostanie własny klucz.
-- **Czeka na użytkownika:** odpowiedzi na „Pytania na start” (wyżej).
+- **Klucz szyfrowania:** lokalny `SODIUM_KEY` (identyfikator `2ca17bb1`) jest w `api/.env`, a użytkownik ma jego kopię w menedżerze haseł. Nic jeszcze nim nie zaszyfrowano. Produkcja dostanie własny klucz.
+- **Czeka na użytkownika:** zgoda na krok 1.4 i odpowiedzi na pozostałe „Pytania na start” (wyżej).
 - **Uwaga:** ta sama instalacja MariaDB trzyma bazy innego projektu użytkownika (np. `syslead_test`). Nie używać `migrate:fresh` na bazie `basemind` ani poleceń obejmujących cały serwer; testy działają na `basemind_test`.
 - **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. Przed uruchomieniem sprawdzić, czy już nie działają. W chwili zakończenia sesji są zatrzymane.
 
@@ -45,15 +41,14 @@
 1. Przeczytać `projekt.md` (szczególnie pkt 0, 3, 8, 13 „Rejestr decyzji”, 14 „Konfiguracja poza repozytorium”, 15 „Pułapki”) i ten plik.
 2. Sprawdzić stan: `git status`, `git log --oneline -5`, `composer audit` w `api/` (nowe poprawki bezpieczeństwa pojawiają się często; Symfony miało je już 2026-11-04) i `pnpm audit --prod` w `web/`.
 3. Uruchomić Apache i MariaDB (panel XAMPP lub poleceniami). Sprawdzić `http://localhost:8080/api/health`, testy `cd api && php artisan test` oraz `cd web && pnpm test`.
-4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zadać „Pytania na start”** (na górze pliku), w tym o zgodę na krok 1.3. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
-5. **Krok 1.3 (warstwa danych offline):** szczegóły w sekcji 1.3 poniżej i w `projekt.md`, pkt 3.1 i 5. Przy okazji przenieść zapamiętane konto z `localStorage` do Dexie.
+4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zadać „Pytania na start”** (na górze pliku), w tym o zgodę na krok 1.4. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
+5. **Krok 1.4 (synchronizacja):** szczegóły w sekcji 1.4 poniżej i w `projekt.md`, pkt 5. Przy okazji dołożyć ostrzeżenie o niewysłanych zmianach przy wylogowaniu i zsynchronizować motyw z `user_settings`.
 6. **Test na telefonie przez USB** (instrukcja w `README.md`): do sprawdzania PWA używać builda, czyli port `8080 → localhost:8080` i na telefonie `http://localhost:8080`. Telefon użytkownika: Samsung S25 Ultra, debugowanie USB już włączone. Jeśli logowanie zgłasza brak połączenia, najpierw sprawdzić `http://localhost:8080/api/health` na telefonie (`projekt.md`, pkt 15).
 7. Po sesji: zaktualizować ten plik („Stan bieżący”, checklisty, „Dziennik zmian”) i rejestr decyzji w `projekt.md`, a po zgodzie zrobić commit i `git push`.
 
-### Otwarte sprawy (nic z tego nie blokuje kroku 1.3)
+### Otwarte sprawy (nic z tego nie blokuje kroku 1.4)
 **Do wiadomości lub decyzji użytkownika**
 - Decyzje techniczne Claude z rejestru w `projekt.md` oznaczone „do oceny użytkownika”, jeszcze niepotwierdzone: TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2.
-- Ograniczenie szyfrowania pól: `secretbox` nie wiąże szyfrogramu z wierszem ani kolumną. Ktoś z prawem zapisu do bazy nie odczyta wartości, ale mógłby przenieść szyfrogram w inne miejsce i nie zostanie to wykryte (`projekt.md`, pkt 8.4). Do decyzji, czy to akceptujemy.
 - Kod rejestracji jest w `api/.env`. Przed wdrożeniem ustawić długi kod na produkcji, a po założeniu kont zostawić go pustym.
 
 **Dług techniczny**
@@ -64,7 +59,7 @@
 - Paczka startowa ma ok. 180 kB (gzip): sprawdzić przy audycie wydajności w Etapie 7.
 
 **Czekają na swoje kroki**
-- Zapamiętane konto jest w `localStorage`: przenieść do Dexie w 1.3 i czyścić lokalną bazę przy wylogowaniu.
+- Wylogowanie (1.4): najpierw próba wysłania zmian z `outbox`, a gdy się nie uda, ostrzeżenie „X zmian nie zostało wysłanych. Wyloguj mimo to / Anuluj” (ustalone z użytkownikiem).
 - Motyw jest zapisany tylko na urządzeniu: zsynchronizować z `user_settings` (kolumna już jest, brak endpointu) razem z synchronizacją w 1.4.
 - Pasek wyszukiwarki i przycisk [+] są na razie informacyjne: właściwe wersje w 1.7 i 1.10.
 - Maile lokalnie trafiają do `api/storage/logs/laravel.log`: prawdziwa wysyłka SMTP do sprawdzenia przy wdrożeniu.
@@ -145,7 +140,7 @@
 - [x] Ekrany szkieletowe: „Dziś”, „Zadania”, „Kalendarz”, „Więcej” z siatką modułów, strona zastępcza modułu pod własnym adresem (`/notes`, `/finance`…), dolna nawigacja, arkusz [+] (na razie informacyjny; właściwy w 1.10).
 - [x] „Ustawienia” (`/settings`) z wyborem motywu: system / jasny / ciemny. Zapis w `localStorage`, `public/theme-init.js` ustawia motyw przed pierwszym renderem (CSP zabrania skryptów inline). Synchronizacja z `user_settings` — Etap 1.
 - [x] Proxy Vite → Apache (`/api`, `/sanctum`, `/s/`); build do `api/public/` (czyszczenie: `web/scripts/clean-build.mjs`, tylko jawna lista plików); fallback SPA w Laravelu.
-- [~] ESLint + Prettier + `tsc` + Vitest (web) — zrobione, 79 testów OK. Pint jest; Larastan i Pest (api) — do zrobienia (testy api na razie w PHPUnit, 70 OK).
+- [~] ESLint + Prettier + `tsc` + Vitest (web) — zrobione, 99 testów OK. Pint jest; Larastan i Pest (api) — do zrobienia (testy api na razie w PHPUnit, 70 OK).
 - [ ] Sprawdzić nowe reguły `.htaccess` w trybie awaryjnym (docroot = cały `api/`) — testowane tylko z docroot `public/`.
 - [x] `README.md` (główny) — uruchomienie backendu i frontendu, build, telefon po USB.
 - [x] `CLAUDE.md` (główny) — krótki wskaźnik dla Claude: zasady współpracy + „czytaj `projekt.md` i `plan.md`”.
@@ -189,10 +184,12 @@
 - [ ] Rotacja zaszyfrowanych plików — razem z tabelą `attachments` (6.5). Do tego czasu pliki czytamy starymi kluczami z `SODIUM_PREVIOUS_KEYS`.
 
 ### 1.3 Warstwa danych offline (klient)
-- [ ] Dexie: schemat, wersjonowanie, tabele `outbox`, `meta` (kursor sync, user).
-- [ ] Generyczne repozytorium encji (`create/update/softDelete/get/list`) → Dexie + outbox, pola wspólne (UUIDv7, space_id, timestamps, version).
-- [ ] Hooki React (`useLiveQuery`).
-- [ ] Czyszczenie danych przy wylogowaniu.
+- [x] Dexie: schemat, wersjonowanie, tabele `outbox`, `meta` (`web/src/db/db.ts`; nowy moduł dopisuje kolejną wersję do `SCHEMA_VERSIONS`).
+- [x] Generyczne repozytorium encji (`create/update/softDelete/get/list`) → Dexie + outbox w jednej transakcji, pola wspólne (UUIDv7, space_id, timestamps, version). `update` wysyła tylko zmienione pola; zapis tych samych wartości nie jest zmianą.
+- [x] Hooki React: `useRecords`, `useRecord` (`useLiveQuery`).
+- [x] Czyszczenie danych przy wylogowaniu, po zakończeniu sesji przez serwer i przy zalogowaniu na inne konto.
+- [x] Zapamiętane konto przeniesione z `localStorage` do Dexie (także automatycznie na istniejących urządzeniach).
+- [x] Test użytkownika na telefonie: konto zostało przeniesione, aplikacja otwiera się w trybie samolotowym.
 
 ### 1.4 Synchronizacja
 - [ ] Rejestr encji sync w Laravelu (model, reguły walidacji, policy, pola dozwolone).
@@ -432,3 +429,4 @@
 | 2026-11-05 | Koniec sesji na prośbę użytkownika: dokumentacja przygotowana do wznowienia (stan, lista otwartych spraw, konfiguracja poza repozytorium). Kod bez zmian. Serwery zatrzymane. | 1.2 (szyfrowanie) — po zgodzie użytkownika. |
 | 2026-11-05 | Krok 1.2: serwis `Crypto`, casty `SodiumEncrypted` i `SodiumEncryptedJson`, komendy `basemind:key` i `basemind:reencrypt`, lokalny `SODIUM_KEY`. Testy: api 141 OK, web 79 OK (bez zmian), oba audyty czyste; plik 50 MB odszyfrowany identycznie. Rotacja plików odłożona do 6.5. Commit i push za zgodą użytkownika. | Kopia klucza w menedżerze haseł, potem 1.3 — po zgodzie użytkownika. |
 | 2026-11-05 | Koniec sesji na prośbę użytkownika: pytania bez odpowiedzi zapisane w „Pytania na start”, wnioski w `projekt.md`, pkt 15. Kod bez zmian. Serwery zatrzymane. Commit i push za zgodą użytkownika. | „Pytania na start”, potem 1.3 — po zgodzie użytkownika. |
+| 2026-11-09 | Krok 1.3: Dexie (`outbox`, `meta`), repozytorium encji, hooki, konto w Dexie, czyszczenie lokalnych danych. Rozstrzygnięte: kopia klucza w menedżerze haseł, ograniczenie `secretbox` zaakceptowane, zakończenie sesji przez serwer kasuje dane urządzenia. Testy: web 99 OK; audyty `pnpm --prod` i `composer` czyste; testów API nie uruchamiano, bo backend bez zmian. Użytkownik potwierdził działanie na telefonie. Serwery zatrzymane. Commit i push za zgodą użytkownika. | 1.4 (synchronizacja) — po zgodzie użytkownika. |

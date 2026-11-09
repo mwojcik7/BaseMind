@@ -162,7 +162,7 @@ Kluczowe cechy:
 | Daty | date-fns (locale `pl`), rrule | Strefa `Europe/Warsaw` |
 | Markdown | CodeMirror 6 (edytor), react-markdown + remark-gfm (podgląd) | |
 | Wyszukiwanie | MiniSearch w Web Workerze | Normalizacja polskich znaków |
-| ID | UUIDv7 generowane na kliencie | Tworzenie offline bez konfliktów |
+| ID | UUIDv7 generowane na kliencie (pakiet `uuid`) | Tworzenie offline bez konfliktów |
 | **Backend** | | |
 | Język | PHP **≥ 8.4.27 lub ≥ 8.5.12** (wersje z poprawką PHP2Shell) | Lokalnie XAMPP: PHP 8.5.12 |
 | Framework | **Laravel** (aktualna stabilna wersja — sprawdzimy przy instalacji) | |
@@ -326,7 +326,7 @@ Kluczowe cechy:
 3. **Pull:** `GET /api/sync/pull?cursor=<rev>&limit=500` — zmiany o `rev > cursor` w przestrzeniach użytkownika (z nagrobkami), stronicowane. Pola 🔐 są odszyfrowywane na serwerze przed wysłaniem (przez HTTPS).
 4. **Kiedy:** start aplikacji, zdarzenie `online`, po lokalnej zmianie (debounce ~2 s), co ~60 s gdy aplikacja widoczna, **Background Sync API** (Android Chrome).
 5. **Pliki:** załączniki zapisywane lokalnie jako Blob w IndexedDB, wysyłane osobną kolejką (w kawałkach, jeśli duże — limity hostingu); miniatury generowane na kliencie.
-6. **Wylogowanie** czyści lokalną bazę.
+6. **Wylogowanie** czyści lokalną bazę. Najpierw próba wysłania zmian z `outbox`, a gdy się nie uda, ostrzeżenie „Wyloguj mimo to / Anuluj” (od kroku 1.4). Zakończenie sesji przez serwer (401: odwołane urządzenie, wygaśnięcie) czyści bazę bez pytania, także z niewysłanymi zmianami, żeby odwołanie zgubionego telefonu usuwało z niego odszyfrowane dane. Zalogowanie na inne konto też czyści bazę.
 7. Wskaźnik w UI: „zsynchronizowano / X zmian czeka / offline / błąd”.
 8. Rejestr encji synchronizowanych po obu stronach (front: definicja tabeli Dexie; back: model + reguły walidacji + policy) — dodanie modułu = wpis w rejestrze.
 
@@ -391,7 +391,7 @@ Kluczowe cechy:
 - **Pliki**: `sodium_crypto_secretstream_xchacha20poly1305` (strumieniowo, kawałki po 64 KiB, wykrywa zmianę, ucięcie i zamianę kawałków). Metody `Crypto::encryptStream` i `decryptStream`.
 - **Klucz** `SODIUM_KEY` (32 bajty, base64) w `.env`, osobny od `APP_KEY`. Pola i pliki używają osobnych podkluczy (`sodium_crypto_kdf`). Identyfikator klucza to 4 bajty wyprowadzone z klucza, zapisane w szyfrogramie.
 - **Rotacja:** `php artisan basemind:key --rotate` (stary klucz trafia do `SODIUM_PREVIOUS_KEYS`), potem `php artisan basemind:reencrypt`. Pliki: dopiero przy tabeli `attachments` (Etap 6.5), do tego czasu czytane starymi kluczami. Stare klucze zostają w menedżerze haseł, bo potrzebują ich starsze kopie bazy.
-- **Ograniczenie:** `secretbox` nie wiąże szyfrogramu z wierszem ani kolumną. Atakujący z prawem zapisu do bazy nie odczyta danych, ale mógłby niezauważenie przenieść szyfrogram w inne miejsce.
+- **Ograniczenie (zaakceptowane przez użytkownika 2026-11-09, wrócić do tematu przy kolejnych użytkownikach):** `secretbox` nie wiąże szyfrogramu z wierszem ani kolumną. Atakujący z prawem zapisu do bazy nie odczyta danych, ale mógłby niezauważenie przenieść szyfrogram w inne miejsce.
 - **Kopia klucza** musi być przechowywana bezpiecznie poza serwerem (np. w menedżerze haseł) — utrata klucza = utrata danych 🔐.
 - **Uczciwe ograniczenie:** szyfrowanie chroni przed wyciekiem samej bazy (np. zrzut, backup, SQL injection). Jeśli atakujący przejmie wykonanie kodu na serwerze (RCE), może odczytać klucz z `.env`. Dlatego kluczowe są pkt 8.1–8.3.
 - Dane na urządzeniu (IndexedDB) są odszyfrowane → opcjonalna blokada PIN-em (Etap 7) + czyszczenie danych przy wylogowaniu.
@@ -406,7 +406,7 @@ Kluczowe cechy:
 
 ## 9. Struktura repozytorium (plan docelowy)
 
-> **Stan na 2026-11-05 — co już istnieje poza poniższym planem:** `api/app/Actions/Fortify/`, `api/app/Enums/`, `api/app/Models/Concerns/BelongsToSpace.php`, `api/app/Http/Responses/`, `api/lang/pl/`, `web/src/lib/` (`api`, `auth`, `money`, `theme`, `device`, `form-errors`), `web/src/i18n/pl.ts`, `web/src/modules/` (`auth`, `today`, `tasks`, `calendar`, `more`, `settings`, `design`, `registry.ts`), `web/public/app-icons/`, `web/public/theme-init.js`, `api/app/Casts/`, `api/app/Services/` (`Crypto`, `EncryptedFieldRotator`), `api/app/Exceptions/`. Jeszcze nie ma: `Sync/`, `web/src/db/`, `web/src/sync/`, `web/src/search/`. Build zapisuje do `api/public/`: `assets/`, `app-icons/`, `index.html`, `sw.js`, `theme-init.js`, `manifest.webmanifest` (pliki w `.gitignore`).
+> **Stan na 2026-11-09 — co już istnieje poza poniższym planem:** `api/app/Actions/Fortify/`, `api/app/Enums/`, `api/app/Models/Concerns/BelongsToSpace.php`, `api/app/Http/Responses/`, `api/lang/pl/`, `web/src/lib/` (`api`, `auth`, `money`, `theme`, `device`, `form-errors`), `web/src/i18n/pl.ts`, `web/src/modules/` (`auth`, `today`, `tasks`, `calendar`, `more`, `settings`, `design`, `registry.ts`), `web/public/app-icons/`, `web/public/theme-init.js`, `api/app/Casts/`, `api/app/Services/` (`Crypto`, `EncryptedFieldRotator`), `api/app/Exceptions/`. Jeszcze nie ma: `Sync/`, `web/src/sync/`, `web/src/search/`. Build zapisuje do `api/public/`: `assets/`, `app-icons/`, `index.html`, `sw.js`, `theme-init.js`, `manifest.webmanifest` (pliki w `.gitignore`).
 
 ```
 BaseMind/
@@ -485,7 +485,7 @@ Hosting musi zapewniać:
 5. Waluty obce — z kursami NBP czy bez (Etap 3).
 6. Automatyczne okładki z TMDB/OpenLibrary/IGDB (Etap 4).
 7. Ewentualne rozszerzenie listy pól 🔐 (przy każdym module).
-8. Czy akceptujemy, że szyfrogram nie jest związany z wierszem i kolumną (pkt 8.4; przed krokiem 1.3, patrz `plan.md`, „Pytania na start”).
+8. (rozstrzygnięte: ograniczenie zaakceptowane, pkt 8.4)
 
 ---
 
@@ -535,6 +535,10 @@ Hosting musi zapewniać:
 | 2026-11-04 | CSP: style inline dozwolone (Radix UI), skrypty tylko z `'self'`; `img-src` bez zewnętrznych domen do czasu Etapu 4 | Claude (do oceny użytkownika) |
 | 2026-11-05 | Szyfrowanie: osobne podklucze dla pól i plików; identyfikator klucza wyprowadzany z klucza zamiast ręcznej numeracji; rotacja jako dwie komendy (`basemind:key --rotate`, `basemind:reencrypt`), rotacja plików odłożona do Etapu 6.5 | Claude (do oceny użytkownika) |
 | 2026-11-05 | `basemind:key` nie wypisuje klucza (tylko z `--show`) i nie nadpisuje istniejącego, żeby klucz nie trafił do historii terminala i żeby nie stracić danych przez pomyłkę | Claude (do oceny użytkownika) |
+| 2026-11-09 | Szyfrowanie pól zostaje przy `secretbox` bez wiązania szyfrogramu z wierszem i kolumną (na razie jeden użytkownik) | Użytkownik |
+| 2026-11-09 | Wylogowanie z niewysłanymi zmianami: próba wysłania, potem ostrzeżenie „Wyloguj mimo to / Anuluj” (krok 1.4) | Użytkownik |
+| 2026-11-09 | Zakończenie sesji przez serwer kasuje lokalne dane bez pytania, także niewysłane zmiany (ochrona zgubionego telefonu) | Użytkownik |
+| 2026-11-09 | Pakiet `uuid` do UUIDv7, `fake-indexeddb` w testach; repozytorium odrzuca lokalnie zapis do przestrzeni bez prawa edycji, zanim zmiana utknie w `outbox` | Claude (do oceny użytkownika) |
 
 ---
 
@@ -617,6 +621,10 @@ Po świeżym `git clone`: `cd api && composer install && copy .env.example .env 
 - **Nigdy nie wypisywać `SODIUM_KEY` w terminalu ani w sesji Claude** (trafiłby do historii i logów). `basemind:key` zapisuje go tylko do `.env`; użytkownik kopiuje go stamtąd sam. Do sprawdzania służy identyfikator klucza.
 - **Testy nie używają prawdziwego klucza ani `.env`:** `phpunit.xml` ustawia jawny klucz testowy, a test komendy `basemind:key` działa na tymczasowym `.env`. Nowe testy tej komendy muszą robić tak samo (`useEnvironmentPath`).
 - **Model z polami 🔐 nie wymaga rejestracji w rotacji:** `basemind:reencrypt` sam skanuje `app/Models` i wykrywa casty `SodiumEncrypted`. Kolumny takich pól: `TEXT`, a dla długich treści `MEDIUMTEXT`.
+- **Opublikowanych wpisów w `SCHEMA_VERSIONS` (`web/src/db/db.ts`) nie wolno zmieniać** — działają jak migracje na każdym urządzeniu; zmiana schematu to nowy wpis na końcu listy.
+- **Testy frontendu używają `fake-indexeddb`** (`src/test/setup.ts`): sprawdzają logikę, ale nie zastępują testu w prawdziwej przeglądarce.
+- **Po nowym buildzie pierwsze otwarcie PWA może pokazać starą wersję** (Service Worker pobiera nową w tle). Przy testach poczekać chwilę, zamknąć aplikację i otworzyć ponownie.
+- **Apache z XAMPP startuje u nas około 30 sekund.** Przy sprawdzaniu `/api/health` zaraz po starcie dać mu tyle czasu, zanim uzna się start za nieudany.
 - **Nie czyścić `api/public/` przy buildzie w całości** (są tam `index.php`, `.htaccess`) — tylko `web/scripts/clean-build.mjs` z jawną listą.
 - **MariaDB nasłuchuje tylko na 127.0.0.1** — łączyć się przez `127.0.0.1`, nie `::1`/`localhost` z IPv6.
 - `max_allowed_packet=1M` w `my.ini` — może trzeba podnieść przy synchronizacji (Etap 1.4).

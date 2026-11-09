@@ -10,7 +10,7 @@ export function AppLayout() {
     return <Navigate to="/login" replace />
   }
 
-  // Only shows on the very first launch: a remembered account skips the wait.
+  // A moment while the local database opens; only the first launch also waits for the server.
   if (status === 'loading') {
     return null
   }

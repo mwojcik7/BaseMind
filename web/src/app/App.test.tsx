@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAppRouter } from '@/app/router'
+import { db } from '@/db/db'
 import { pl } from '@/i18n/pl'
 import { startAuth, type Account } from '@/lib/auth'
 import { getTheme } from '@/lib/theme'
@@ -154,7 +155,7 @@ describe('signing in', () => {
 
   it('keeps a signed-in person away from the login screen', async () => {
     serverAnswers((path) => (path === '/api/me' ? json(200, ACCOUNT) : json(200)))
-    localStorage.setItem('basemind.account', JSON.stringify(ACCOUNT))
+    await db.meta.put({ key: 'account', value: ACCOUNT })
 
     renderAt('/login')
 
