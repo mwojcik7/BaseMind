@@ -28,7 +28,14 @@ type SchemaVersion = Record<string, string | null>
  * Local schema, oldest first. Like server migrations, these run on every device, so a
  * published entry must never change: to add or alter a table, append a new entry.
  */
-export const SCHEMA_VERSIONS: SchemaVersion[] = [{ outbox: '++seq, &op_id', meta: 'key' }]
+export const SCHEMA_VERSIONS: SchemaVersion[] = [
+  { outbox: '++seq, &op_id', meta: 'key' },
+  {
+    tags: 'id, name',
+    entity_tags: 'id, [entity_type+entity_id], tag_id',
+    entity_links: 'id, [source_type+source_id], [target_type+target_id]',
+  },
+]
 
 export class LocalDatabase extends Dexie {
   outbox!: EntityTable<OutboxEntry, 'seq'>

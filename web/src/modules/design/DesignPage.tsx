@@ -31,6 +31,8 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toaster'
+import { useRecords } from '@/db/hooks'
+import { tags } from '@/db/tags'
 import { formatMoney } from '@/lib/money'
 
 // Developer preview, so the sample copy stays here instead of in the translation files.
@@ -68,6 +70,48 @@ function Field({ id, label, children }: { id: string; label: string; children: R
   )
 }
 
+/** Real data: writes through the repository, so it shows synchronisation working end to end. */
+function SyncPreview() {
+  const [name, setName] = useState('')
+  const records = useRecords(tags)
+
+  async function add() {
+    if (name.trim()) {
+      await tags.create({ name: name.trim(), color: null })
+      setName('')
+    }
+  }
+
+  return (
+    <Section title="Synchronizacja (prawdziwe dane)">
+      <div className="flex gap-2">
+        <Input
+          aria-label="Nowy tag"
+          placeholder="Nowy tag"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
+        <Button onClick={() => void add()}>Dodaj</Button>
+      </div>
+      <ul className="mt-3 flex flex-col gap-1">
+        {records?.map((tag) => (
+          <li key={tag.id} className="flex items-center justify-between text-sm">
+            {tag.name}
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Usuń ${tag.name}`}
+              onClick={() => void tags.softDelete(tag.id)}
+            >
+              <Trash2 aria-hidden />
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  )
+}
+
 export function DesignPage() {
   const [amount, setAmount] = useState<number | null>(4599)
   const [date, setDate] = useState<string | null>(null)
@@ -83,6 +127,8 @@ export function DesignPage() {
   return (
     <>
       <PageHeader title="Design system" description="Podgląd wszystkich elementów aplikacji" />
+
+      <SyncPreview />
 
       <Section title="Kolory">
         <div className="grid grid-cols-3 gap-3">

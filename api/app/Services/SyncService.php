@@ -91,7 +91,7 @@ class SyncService
 
         return match ($op['op']) {
             'create' => $this->create($user, $model, $record, $op, $changedAt),
-            'update' => $this->update($user, $model, $record, $op, $changedAt),
+            'update' => $this->update($user, $record, $op, $changedAt),
             'delete' => $this->delete($user, $record, $changedAt),
         };
     }
@@ -115,7 +115,7 @@ class SyncService
         $record->forceFill(['id' => $op['record_id'], 'space_id' => $spaceId]);
         $this->authorizeEdit($user, $record);
 
-        $fields = $this->validated($model, $op['payload'], [...$model::SYSTEM_FIELDS, ...$model::syncFields()], partial: false);
+        $fields = $this->validated($record, $op['payload'], [...$model::SYSTEM_FIELDS, ...$record->syncFields()], partial: false);
 
         $this->save($record, [
             ...$fields,
@@ -134,10 +134,9 @@ class SyncService
      * touch are never affected. Even if every field loses, the record gets a new `rev`,
      * so the device pulls the values that won.
      *
-     * @param  class-string<Model>  $model
      * @param  array<string, mixed>  $op
      */
-    private function update(User $user, string $model, ?Model $record, array $op, CarbonImmutable $changedAt): string
+    private function update(User $user, ?Model $record, array $op, CarbonImmutable $changedAt): string
     {
         if ($record === null) {
             throw new RejectedSyncOperation('not_found');
@@ -149,7 +148,7 @@ class SyncService
             throw new RejectedSyncOperation('deleted');
         }
 
-        $fields = $this->validated($model, $op['payload'], $model::syncFields(), partial: true);
+        $fields = $this->validated($record, $op['payload'], $record->syncFields(), partial: true);
         $conflict = (int) $op['base_version'] !== $record->version;
         $stamps = $record->field_stamps ?? [];
         $stamp = $this->stamp($changedAt);
@@ -215,18 +214,17 @@ class SyncService
     }
 
     /**
-     * @param  class-string<Model>  $model
      * @param  array<string, mixed>  $payload
      * @param  list<string>  $allowed
      * @return array<string, mixed>
      */
-    private function validated(string $model, array $payload, array $allowed, bool $partial): array
+    private function validated(Model $record, array $payload, array $allowed, bool $partial): array
     {
         if (array_diff(array_keys($payload), $allowed) !== []) {
             throw new RejectedSyncOperation('unknown_field');
         }
 
-        $rules = $model::syncRules();
+        $rules = $record->syncRules();
         if ($partial) {
             $rules = array_map(fn ($rule) => is_array($rule) ? ['sometimes', ...$rule] : "sometimes|{$rule}", $rules);
         }

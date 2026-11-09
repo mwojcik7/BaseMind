@@ -16,9 +16,9 @@
 > Po rozstrzygnięciu: usunąć pytanie stąd, a decyzję wpisać do rejestru w `projekt.md`, pkt 13.
 
 **Najpierw**
-1. **Krok 1.6:** czy zaczynamy tagi i powiązania między elementami?
+1. **Krok 1.7:** czy zaczynamy globalne wyszukiwanie? Moduły jeszcze nie istnieją, więc do ustalenia, co zbudować teraz, a co razem z notatkami (tak jak przy 1.6).
 
-**Starsze, bez odpowiedzi (nie blokują 1.6)**
+**Starsze, bez odpowiedzi (nie blokują 1.7)**
 2. **Decyzje techniczne Claude „do oceny użytkownika”:** TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2 (podklucze, identyfikator klucza, dwie komendy rotacji, `basemind:key` bez wypisywania klucza). Szczegóły: `projekt.md`, pkt 13.
 3. **Testy API:** zostajemy przy PHPUnit czy przechodzimy na Pest, jak zakładał plan? Czy wdrażamy Larastan?
 4. **Testy e2e:** czy dodać Playwright i stałe scenariusze (lista w „Otwarte sprawy” → „Dług techniczny”)?
@@ -27,13 +27,13 @@
 
 ## Stan bieżący (ostatnia sesja: 2026-11-09)
 
-- **Faza:** Etap 0 zamknięty. **Etap 1 w toku: kroki 1.1 (konta, logowanie, przestrzenie), 1.2 (szyfrowanie), 1.3 (warstwa danych offline), 1.4 (synchronizacja) i 1.5 (PWA) zrobione. Następny jest krok 1.6 (tagi i powiązania), jeszcze nie zaczęty.**
-- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca, łącznie z krokiem 1.5, jest wypchnięta.
-- **Backend (`api/`):** Laravel 13.40, Sanctum + Fortify (`/api/auth`), utwardzenie PHP/Apache, kontrola luk PHP, nagłówki z CSP, powłoka PWA serwowana przez Laravela, przestrzenie i uprawnienia, ekran sesji, szyfrowanie libsodium (serwis `Crypto`, casty, komendy klucza), synchronizacja (`SyncService`, `config/sync.php`, trait `Syncable`, makro `$table->syncable()`). 162 testy OK.
-- **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia, lokalna baza Dexie z repozytorium encji (`web/src/db/`), silnik synchronizacji ze wskaźnikiem stanu (`web/src/sync/`), instalacja i aktualizacje PWA (`web/src/lib/pwa.ts`, `PwaBanner`). 148 testów OK.
+- **Faza:** Etap 0 zamknięty. **Etap 1 w toku: kroki 1.1 (konta, logowanie, przestrzenie), 1.2 (szyfrowanie), 1.3 (warstwa danych offline), 1.4 (synchronizacja), 1.5 (PWA) i 1.6 (tagi i powiązania: dane i synchronizacja) zrobione. Następny jest krok 1.7 (wyszukiwanie), jeszcze nie zaczęty.**
+- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca, łącznie z krokiem 1.6, jest wypchnięta.
+- **Backend (`api/`):** Laravel 13.40, Sanctum + Fortify (`/api/auth`), utwardzenie PHP/Apache, kontrola luk PHP, nagłówki z CSP, powłoka PWA serwowana przez Laravela, przestrzenie i uprawnienia, ekran sesji, szyfrowanie libsodium (serwis `Crypto`, casty, komendy klucza), synchronizacja (`SyncService`, `config/sync.php`, trait `Syncable`, makro `$table->syncable()`), tagi i powiązania. 173 testy OK.
+- **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia, lokalna baza Dexie z repozytorium encji (`web/src/db/`), silnik synchronizacji ze wskaźnikiem stanu (`web/src/sync/`), instalacja i aktualizacje PWA (`web/src/lib/pwa.ts`, `PwaBanner`), repozytoria tagów i powiązań (`web/src/db/tags.ts`). 151 testów OK.
 - **Dane lokalne:** w bazie `basemind` jest **prawdziwe konto użytkownika**, założone przez niego na telefonie. Nie usuwać go i nie czyścić tej bazy.
 - **Klucz szyfrowania:** lokalny `SODIUM_KEY` (identyfikator `2ca17bb1`) jest w `api/.env`, a użytkownik ma jego kopię w menedżerze haseł. Nic jeszcze nim nie zaszyfrowano. Produkcja dostanie własny klucz.
-- **Czeka na użytkownika:** zgoda na krok 1.6 i odpowiedzi na pozostałe „Pytania na start” (wyżej).
+- **Czeka na użytkownika:** zgoda na krok 1.7 i odpowiedzi na pozostałe „Pytania na start” (wyżej).
 - **Uwaga:** ta sama instalacja MariaDB trzyma bazy innego projektu użytkownika (np. `syslead_test`). Nie używać `migrate:fresh` na bazie `basemind` ani poleceń obejmujących cały serwer; testy działają na `basemind_test`.
 - **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. Przed uruchomieniem sprawdzić, czy już nie działają. W chwili zakończenia sesji są zatrzymane.
 
@@ -41,12 +41,12 @@
 1. Przeczytać `projekt.md` (szczególnie pkt 0, 3, 8, 13 „Rejestr decyzji”, 14 „Konfiguracja poza repozytorium”, 15 „Pułapki”) i ten plik.
 2. Sprawdzić stan: `git status`, `git log --oneline -5`, `composer audit` w `api/` (nowe poprawki bezpieczeństwa pojawiają się często; Symfony miało je już 2026-11-04) i `pnpm audit --prod` w `web/`.
 3. Uruchomić Apache i MariaDB (panel XAMPP lub poleceniami). Sprawdzić `http://localhost:8080/api/health`, testy `cd api && php artisan test` oraz `cd web && pnpm test`.
-4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zadać „Pytania na start”** (na górze pliku), w tym o zgodę na krok 1.6. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
-5. **Krok 1.6 (tagi i powiązania):** szczegóły w sekcji 1.6 poniżej i w `projekt.md`, pkt 4.3. To pierwsze prawdziwe encje w synchronizacji, więc przy okazji sprawdzić na żywo przesyłanie rekordów między urządzeniami i Background Sync.
+4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zadać „Pytania na start”** (na górze pliku), w tym o zgodę na krok 1.7. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
+5. **Krok 1.7 (wyszukiwanie):** szczegóły w sekcji 1.7 poniżej. Na stronie `/design` jest lista prawdziwych tagów do testów na żywo między urządzeniami.
 6. **Test na telefonie przez USB** (instrukcja w `README.md`): do sprawdzania PWA używać builda, czyli port `8080 → localhost:8080` i na telefonie `http://localhost:8080`. Telefon użytkownika: Samsung S25 Ultra, debugowanie USB już włączone. Jeśli logowanie zgłasza brak połączenia, najpierw sprawdzić `http://localhost:8080/api/health` na telefonie (`projekt.md`, pkt 15). Do testu offline odłączyć kabel: tryb samolotowy nie przerywa przekierowania portu przez USB.
 7. Po sesji: zaktualizować ten plik („Stan bieżący”, checklisty, „Dziennik zmian”) i rejestr decyzji w `projekt.md`, a po zgodzie zrobić commit i `git push`.
 
-### Otwarte sprawy (nic z tego nie blokuje kroku 1.6)
+### Otwarte sprawy (nic z tego nie blokuje kroku 1.7)
 **Do wiadomości lub decyzji użytkownika**
 - Decyzje techniczne Claude z rejestru w `projekt.md` oznaczone „do oceny użytkownika”, jeszcze niepotwierdzone: TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2.
 - Kod rejestracji jest w `api/.env`. Przed wdrożeniem ustawić długi kod na produkcji, a po założeniu kont zostawić go pustym.
@@ -62,7 +62,7 @@
 - Synchronizacja przy dołączeniu do przestrzeni wspólnej: starsze rekordy mają `rev` poniżej kursora, więc nowy członek ich nie pobierze. Rozwiązać razem ze współdzieleniem (Etap 7).
 
 **Czekają na swoje kroki**
-- Pierwszy moduł z danymi (1.6 lub Etap 2): sprawdzić na żywo pełną ścieżkę rekordu między dwoma urządzeniami i Background Sync. Dotąd rekordy sprawdzały tylko testy automatyczne, na żywo tylko motyw.
+- Background Sync: nadal niesprawdzony na żywo (przesyłanie rekordów między urządzeniami już tak).
 - Pasek wyszukiwarki i przycisk [+] są na razie informacyjne: właściwe wersje w 1.7 i 1.10.
 - Maile lokalnie trafiają do `api/storage/logs/laravel.log`: prawdziwa wysyłka SMTP do sprawdzenia przy wdrożeniu.
 - Usunąć stronę `/design` przed wdrożeniem (Etap 7).
@@ -142,7 +142,7 @@
 - [x] Ekrany szkieletowe: „Dziś”, „Zadania”, „Kalendarz”, „Więcej” z siatką modułów, strona zastępcza modułu pod własnym adresem (`/notes`, `/finance`…), dolna nawigacja, arkusz [+] (na razie informacyjny; właściwy w 1.10).
 - [x] „Ustawienia” (`/settings`) z wyborem motywu: system / jasny / ciemny. Zapis w `localStorage`, `public/theme-init.js` ustawia motyw przed pierwszym renderem (CSP zabrania skryptów inline). Synchronizacja z `user_settings` — Etap 1.
 - [x] Proxy Vite → Apache (`/api`, `/sanctum`, `/s/`); build do `api/public/` (czyszczenie: `web/scripts/clean-build.mjs`, tylko jawna lista plików); fallback SPA w Laravelu.
-- [~] ESLint + Prettier + `tsc` + Vitest (web) — zrobione, 148 testów OK. Pint jest; Larastan i Pest (api) — do zrobienia (testy api na razie w PHPUnit, 162 OK).
+- [~] ESLint + Prettier + `tsc` + Vitest (web) — zrobione, 151 testów OK. Pint jest; Larastan i Pest (api) — do zrobienia (testy api na razie w PHPUnit, 173 OK).
 - [ ] Sprawdzić nowe reguły `.htaccess` w trybie awaryjnym (docroot = cały `api/`) — testowane tylko z docroot `public/`.
 - [x] `README.md` (główny) — uruchomienie backendu i frontendu, build, telefon po USB.
 - [x] `CLAUDE.md` (główny) — krótki wskaźnik dla Claude: zasady współpracy + „czytaj `projekt.md` i `plan.md`”.
@@ -205,7 +205,8 @@
 - [x] Motyw synchronizowany przez `user_settings` (`POST /api/settings`, `settings` w odpowiedzi pull).
 - [x] Testy automatyczne: konflikty, ponowne wysłanie partii, uprawnienia, szyfrowanie, stronicowanie, edycje w trakcie synchronizacji.
 - [x] Test użytkownika: start bez kabla, stan offline, przeniesienie motywu z telefonu na komputer.
-- [ ] Na żywo: rekord między dwoma urządzeniami i Background Sync — przy pierwszym module z danymi.
+- [x] Na żywo: rekordy między telefonem a komputerem, także dodane bez połączenia (test użytkownika przy 1.6).
+- [ ] Na żywo: Background Sync.
 
 ### 1.5 PWA
 - [x] Manifest: ikony (192, 512, maskable), `shortcuts`, kolory, `standalone`. Skróty otwierają na razie ekrany modułów; przekierować na formularze dodawania, gdy powstaną.
@@ -218,9 +219,9 @@
 - [x] Test użytkownika na telefonie: instalacja, skróty, komunikat o nowej wersji.
 
 ### 1.6 Tagi i powiązania
-- [ ] Migracje i sync: `tags`, `entity_tags`, `entity_links`.
-- [ ] Komponent wyboru tagów; komponent „Powiązania” (linki wychodzące + backlinki, dodawanie ręczne).
-- [ ] Parser treści `[[tytuł]]`, `@osoba`, `#tag` → `entity_links` (`origin=parsed`).
+- [x] Migracje i sync: `tags`, `entity_tags`, `entity_links` (modele, reguły, tabele lokalne, repozytoria). Tag i źródło powiązania muszą być w tej samej przestrzeni; cel powiązania może być w innej.
+- [x] Test użytkownika: rekordy między telefonem a komputerem, usuwanie, dodawanie bez połączenia (strona `/design`).
+- [-] Komponenty wyboru tagów i „Powiązania”, parser treści — przeniesione do 2.3 (decyzja użytkownika), bo nie ma jeszcze modułu, do którego można by je podpiąć.
 
 ### 1.7 Globalne wyszukiwanie
 - [ ] Worker MiniSearch: indeks wszystkich encji z Dexie, aktualizacja przy zmianach.
@@ -274,6 +275,9 @@
 - [ ] Encje `notes` (content 🔐, kolumna `MEDIUMTEXT`, bo szyfrogram jest o ok. 1/3 dłuższy), `note_folders`.
 - [ ] Edytor CodeMirror 6 z paskiem narzędzi nad klawiaturą, tryb podglądu.
 - [ ] Autouzupełnianie `[[`, `@`, `#`.
+- [ ] Komponent wyboru tagów; komponent „Powiązania” (linki wychodzące + backlinki, dodawanie ręczne) (przeniesione z 1.6).
+- [ ] Parser treści `[[tytuł]]`, `@osoba`, `#tag` → `entity_links` (`origin=parsed`) (przeniesione z 1.6).
+- [ ] Tagi i powiązania: pokazywanie bez duplikatów (dwa urządzenia offline mogą utworzyć ten sam tag lub przypiąć go dwa razy) i sprzątanie po usunięciu elementu.
 - [ ] Panel backlinków; tworzenie notatki z nieistniejącego `[[linku]]`.
 - [ ] Przypinanie, foldery, archiwum.
 - [ ] Kopia konfliktu przy sync (przeniesiona z 1.4; miejsce na nią to gałąź konfliktu w `SyncService::update`).
@@ -442,3 +446,4 @@
 | 2026-11-09 | Krok 1.3: Dexie (`outbox`, `meta`), repozytorium encji, hooki, konto w Dexie, czyszczenie lokalnych danych. Rozstrzygnięte: kopia klucza w menedżerze haseł, ograniczenie `secretbox` zaakceptowane, zakończenie sesji przez serwer kasuje dane urządzenia. Testy: web 99 OK; audyty `pnpm --prod` i `composer` czyste; testów API nie uruchamiano, bo backend bez zmian. Użytkownik potwierdził działanie na telefonie. Serwery zatrzymane. Commit i push za zgodą użytkownika. | 1.4 (synchronizacja) — po zgodzie użytkownika. |
 | 2026-11-09 | Krok 1.4: push i pull z rejestrem encji, LWW per pole, `sync_ops`, silnik na kliencie, wskaźnik stanu, Background Sync, ostrzeżenie przy wylogowaniu, motyw w `user_settings`. Testy: api 162 OK, web 131 OK; audyt `composer` czysty; migracja `sync_ops` wykonana na `basemind`. Użytkownik potwierdził na telefonie i komputerze: start bez kabla, stan offline, przeniesienie motywu. Korekta: tryb samolotowy nie odcina serwera przy USB. Serwery zatrzymane. Commit i push za zgodą użytkownika. | 1.5 (PWA) — po zgodzie użytkownika. |
 | 2026-11-09 | Krok 1.5: skróty w manifeście, baner instalacji, instrukcja iOS, aktualizacje na żądanie zamiast automatycznych, sprawdzanie nowej wersji po powrocie do aplikacji. Testy: web 148 OK; backend bez zmian. Użytkownik potwierdził na telefonie instalację, skróty i komunikat o nowej wersji. Ekrany startowe iOS pominięte, cache obrazków przeniesiony do 4.1. Serwery zatrzymane. Commit i push za zgodą użytkownika. | 1.6 (tagi i powiązania) — po zgodzie użytkownika. |
+| 2026-11-09 | Krok 1.6 w ustalonym zakresie: tabele, modele, synchronizacja i tabele lokalne dla tagów i powiązań; lista testowa na `/design`. Testy: api 173 OK, web 151 OK; audyt `composer` czysty; migracja wykonana na `basemind`. Użytkownik potwierdził przesyłanie rekordów między telefonem a komputerem. Zgłoszone opóźnienie: serwer odpowiada w ok. 60 ms, zwłoka wynika z pobierania zmian co 60 s na drugim urządzeniu. Interfejs i parser przeniesione do 2.3. Serwery zatrzymane. Commit i push za zgodą użytkownika. | 1.7 (wyszukiwanie) — po zgodzie użytkownika. |

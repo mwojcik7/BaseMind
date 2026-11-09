@@ -1,5 +1,9 @@
 <?php
 
+use App\Models\EntityLink;
+use App\Models\EntityTag;
+use App\Models\Tag;
+
 return [
 
     /*
@@ -8,7 +12,9 @@ return [
     | the client (web/src/db/db.ts). Modules add themselves here.
     */
     'entities' => [
-        //
+        'tags' => Tag::class,
+        'entity_tags' => EntityTag::class,
+        'entity_links' => EntityLink::class,
     ],
 
 ];

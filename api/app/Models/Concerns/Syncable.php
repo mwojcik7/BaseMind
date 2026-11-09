@@ -22,11 +22,12 @@ trait Syncable
     /**
      * Fields a client may write, with their validation rules. A field not listed
      * here cannot be synchronised. Rules should mark required fields as `required`:
-     * partial updates only validate the fields they contain.
+     * partial updates only validate the fields they contain. `space_id` is already
+     * set when this is called, so rules can require references to stay in the space.
      *
      * @return array<string, mixed>
      */
-    abstract public static function syncRules(): array;
+    abstract public function syncRules(): array;
 
     public function initializeSyncable(): void
     {
@@ -47,9 +48,9 @@ trait Syncable
      *
      * @return list<string>
      */
-    public static function syncFields(): array
+    public function syncFields(): array
     {
-        return array_values(array_filter(array_keys(static::syncRules()), fn (string $field) => ! str_contains($field, '.')));
+        return array_values(array_filter(array_keys($this->syncRules()), fn (string $field) => ! str_contains($field, '.')));
     }
 
     /**
@@ -59,6 +60,6 @@ trait Syncable
      */
     public function toSyncArray(): array
     {
-        return Arr::only($this->attributesToArray(), [...self::SYSTEM_FIELDS, ...static::syncFields()]);
+        return Arr::only($this->attributesToArray(), [...self::SYSTEM_FIELDS, ...$this->syncFields()]);
     }
 }

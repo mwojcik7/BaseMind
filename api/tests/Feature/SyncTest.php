@@ -28,7 +28,7 @@ class SyncItemFixture extends Model
         return ['secret' => SodiumEncrypted::class];
     }
 
-    public static function syncRules(): array
+    public function syncRules(): array
     {
         return [
             'title' => ['required', 'string', 'max:50'],

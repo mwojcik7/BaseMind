@@ -327,7 +327,7 @@ Kluczowe cechy:
    - idempotentność: `op_id` zapamiętywany (tabela `sync_ops`), ponowne wysłanie nie dubluje zmian,
    - zwraca wynik per operacja; klient usuwa z outboxa potwierdzone.
 3. **Pull:** `GET /api/sync/pull?cursor=<rev>&limit=500` — zmiany o `rev > cursor` w przestrzeniach użytkownika (z nagrobkami), stronicowane. Pola 🔐 są odszyfrowywane na serwerze przed wysłaniem (przez HTTPS).
-4. **Kiedy:** start aplikacji, zdarzenie `online`, po lokalnej zmianie (debounce ~2 s), co ~60 s gdy aplikacja widoczna, **Background Sync API** (Android Chrome).
+4. **Kiedy:** start aplikacji, zdarzenie `online`, powrót do aplikacji, po lokalnej zmianie (debounce ~2 s), co ~60 s gdy aplikacja widoczna, **Background Sync API** (Android Chrome). Serwer nie może sam powiadomić urządzenia (hosting współdzielony, bez WebSocketów), więc otwarte drugie urządzenie widzi zmianę z opóźnieniem do ~60 s albo od razu po powrocie do aplikacji.
 5. **Pliki:** załączniki zapisywane lokalnie jako Blob w IndexedDB, wysyłane osobną kolejką (w kawałkach, jeśli duże — limity hostingu); miniatury generowane na kliencie.
 6. **Wylogowanie** czyści lokalną bazę. Najpierw próba wysłania zmian z `outbox`, a gdy się nie uda, ostrzeżenie „Wyloguj mimo to / Anuluj” (od kroku 1.4). Zakończenie sesji przez serwer (401: odwołane urządzenie, wygaśnięcie) czyści bazę bez pytania, także z niewysłanymi zmianami, żeby odwołanie zgubionego telefonu usuwało z niego odszyfrowane dane. Zalogowanie na inne konto też czyści bazę.
 7. Wskaźnik w UI: „zsynchronizowano / X zmian czeka / offline / błąd”.
@@ -542,6 +542,8 @@ Hosting musi zapewniać:
 | 2026-11-09 | Szyfrowanie pól zostaje przy `secretbox` bez wiązania szyfrogramu z wierszem i kolumną (na razie jeden użytkownik) | Użytkownik |
 | 2026-11-09 | Wylogowanie z niewysłanymi zmianami: próba wysłania, potem ostrzeżenie „Wyloguj mimo to / Anuluj” (krok 1.4) | Użytkownik |
 | 2026-11-09 | Zakończenie sesji przez serwer kasuje lokalne dane bez pytania, także niewysłane zmiany (ochrona zgubionego telefonu) | Użytkownik |
+| 2026-11-09 | Tagi i powiązania: teraz dane i synchronizacja, interfejs i parser razem z notatkami (2.3) | Użytkownik |
+| 2026-11-09 | Tag i źródło powiązania w tej samej przestrzeni, cel powiązania może być w innej; duplikaty z pracy offline dozwolone na serwerze, ukrywane w interfejsie | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Ekrany startowe iOS pominięte, cache obrazków przeniesiony do Etapu 4 | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Aktualizacje PWA na żądanie („Odśwież”) zamiast automatycznych; baner instalacji po zamknięciu wraca po 30 dniach | Claude (działanie zaakceptowane przez użytkownika po teście) |
 | 2026-11-09 | Konflikty synchronizacji: wygrywa późniejsza zmiana każdego pola (`field_stamps`), czas urządzenia ograniczony czasem serwera | Claude (zaakceptowane przez użytkownika) |

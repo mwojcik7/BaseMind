@@ -1,6 +1,6 @@
 import { waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { db } from '@/db/db'
+import { db, SCHEMA_VERSIONS } from '@/db/db'
 import { createRepository, type SyncedRecord } from '@/db/repository'
 import { NetworkError } from '@/lib/api'
 import { useAuth, type Account } from '@/lib/auth'
@@ -66,7 +66,7 @@ describe('synchronisation', () => {
   beforeAll(async () => {
     // Test files are isolated, so only this file's database gets the extra table.
     db.close()
-    db.version(2).stores({ items: 'id' })
+    db.version(SCHEMA_VERSIONS.length + 1).stores({ items: 'id' })
     await db.open()
     items = createRepository<Item>('items')
   })
