@@ -13,6 +13,8 @@ export class ApiError extends Error {
 /** The server could not be reached, usually because the device is offline. */
 export class NetworkError extends Error {}
 
+const UNAUTHORIZED_RETRY_MS = 300
+
 let onUnauthorized: () => void = () => {}
 
 /** Called when the server says the session has ended, e.g. it was revoked on another device. */
@@ -64,6 +66,13 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   // 419: the CSRF token expired while the app stayed open. Get a new one and retry once.
   if (response.status === 419) {
     await refreshCsrfCookie()
+    response = await send(method, path, body)
+  }
+
+  // Acting on a 401 wipes this device's data, so a one-off glitch on the server must not count:
+  // the session has only ended if asking again a moment later gets the same answer.
+  if (response.status === 401) {
+    await new Promise((done) => setTimeout(done, UNAUTHORIZED_RETRY_MS))
     response = await send(method, path, body)
   }
 

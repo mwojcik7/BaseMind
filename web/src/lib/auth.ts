@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { clearLocalData, db } from '@/db/db'
-import { api, ApiError, NetworkError, setUnauthorizedHandler } from '@/lib/api'
+import { api, ApiError, setUnauthorizedHandler } from '@/lib/api'
 import { forgetPushSubscription, refreshPushSubscription } from '@/lib/push'
 
 export interface Account {
@@ -28,7 +28,7 @@ export const useAuth = create<AuthState>(() => ({ status: 'loading', account: nu
 
 // Remembered on the device so the app opens offline. Holds no secrets: the session
 // itself stays in an HttpOnly cookie.
-const ACCOUNT_KEY = 'account'
+export const ACCOUNT_KEY = 'account'
 
 // Where earlier versions of the app remembered the account.
 const LEGACY_STORAGE_KEY = 'basemind.account'
@@ -94,11 +94,9 @@ async function refreshAccount() {
     await setSignedIn(await api.get<Account>('/api/me'))
     void refreshPushSubscription()
   } catch (error) {
-    const unreachable = error instanceof NetworkError
-    const serverProblem = error instanceof ApiError && error.status >= 500
-
-    // Offline or a server failure: trust the remembered account until the server can answer.
-    if (!unreachable && !serverProblem) {
+    // Offline or any other failure: trust the remembered account until the server can answer.
+    // Only an explicit "not signed in" may end the session, as that wipes this device's data.
+    if (error instanceof ApiError && error.status === 401) {
       await setSignedOut()
     } else if (useAuth.getState().status === 'loading') {
       useAuth.setState({ status: 'guest' })

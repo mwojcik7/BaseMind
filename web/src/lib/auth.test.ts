@@ -147,11 +147,34 @@ describe('auth', () => {
     await startAuth()
     await addLocalChange()
 
-    fetchMock.mockResolvedValueOnce(json(401))
+    fetchMock.mockResolvedValueOnce(json(401)).mockResolvedValueOnce(json(401))
     await expect(api.get('/api/sessions')).rejects.toThrow()
 
     expect(useAuth.getState().status).toBe('guest')
     await waitFor(async () => expect(await db.outbox.count()).toBe(0))
+  })
+
+  it('keeps the device signed in after a one-off 401', async () => {
+    fetchMock.mockResolvedValueOnce(json(200, ACCOUNT))
+    await startAuth()
+    await addLocalChange()
+
+    fetchMock.mockResolvedValueOnce(json(401)).mockResolvedValueOnce(json(200))
+    await api.get('/api/sessions')
+
+    expect(useAuth.getState().status).toBe('authenticated')
+    expect(await db.outbox.count()).toBe(1)
+  })
+
+  it.each([403, 404, 429])('keeps local data when the account check answers %i', async (status) => {
+    await db.meta.put({ key: 'account', value: ACCOUNT })
+    await addLocalChange()
+    fetchMock.mockResolvedValue(json(status))
+
+    await startAuth()
+
+    expect(useAuth.getState()).toMatchObject({ status: 'authenticated', account: ACCOUNT })
+    expect(await db.outbox.count()).toBe(1)
   })
 
   it('logs in and loads the account', async () => {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { api, ApiError, NetworkError } from '@/lib/api'
+import { api, ApiError, NetworkError, setUnauthorizedHandler } from '@/lib/api'
 
 function json(status: number, body: unknown = {}) {
   return new Response(JSON.stringify(body), {
@@ -62,6 +62,43 @@ describe('api', () => {
 
     await expect(api.post('/api/thing')).resolves.toEqual({ ok: true })
     expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+
+  describe('when the server answers 401', () => {
+    const onUnauthorized = vi.fn()
+
+    beforeEach(() => {
+      onUnauthorized.mockReset()
+      setUnauthorizedHandler(onUnauthorized)
+    })
+
+    afterEach(() => setUnauthorizedHandler(() => {}))
+
+    it('treats a one-off 401 as a glitch and carries on', async () => {
+      fetchMock.mockResolvedValueOnce(json(401)).mockResolvedValueOnce(json(200, { ok: true }))
+
+      await expect(api.get('/api/thing')).resolves.toEqual({ ok: true })
+
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(onUnauthorized).not.toHaveBeenCalled()
+    })
+
+    it('reports the session as ended only when the repeat gets a 401 too', async () => {
+      fetchMock.mockResolvedValue(json(401))
+
+      await expect(api.get('/api/thing')).rejects.toMatchObject({ status: 401 })
+
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(onUnauthorized).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not end the session when the repeat cannot reach the server', async () => {
+      fetchMock.mockResolvedValueOnce(json(401)).mockRejectedValueOnce(new TypeError('offline'))
+
+      await expect(api.get('/api/thing')).rejects.toBeInstanceOf(NetworkError)
+
+      expect(onUnauthorized).not.toHaveBeenCalled()
+    })
   })
 
   it('reports validation errors', async () => {

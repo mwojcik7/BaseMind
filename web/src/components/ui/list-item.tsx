@@ -150,7 +150,8 @@ export function ListItem({
             aria-label={action.label}
             title={action.label}
             onClick={action.onAction}
-            className="sr-only mr-2 pointer-fine:not-sr-only"
+            // not-sr-only resets size and margin, so they are set again for the mouse.
+            className="sr-only pointer-fine:not-sr-only pointer-fine:mr-1 pointer-fine:size-9"
           >
             <action.icon aria-hidden />
           </Button>

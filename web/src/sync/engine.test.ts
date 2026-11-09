@@ -75,7 +75,8 @@ describe('synchronisation', () => {
 
   afterAll(() => db.close())
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await db.meta.put({ key: 'account', value: ACCOUNT })
     pushes = []
     pullUrls = []
     answerPush = (ops) =>
@@ -269,6 +270,18 @@ describe('synchronisation', () => {
     await runSync()
 
     expect(await items.get('server-item')).toBeDefined()
+  })
+
+  it('drops a page when another tab has signed out and wiped the database', async () => {
+    answerPull = async () => {
+      await db.meta.delete('account')
+      return json(pageWith(serverItem(), 5))
+    }
+
+    await runSync()
+
+    expect(await items.get('server-item')).toBeUndefined()
+    expect(await db.meta.get('sync_cursor')).toBeUndefined()
   })
 
   it('drops a page that arrives after signing out', async () => {

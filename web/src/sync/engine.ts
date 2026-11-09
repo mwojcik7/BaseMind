@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { db, type OutboxEntry } from '@/db/db'
 import type { SyncedRecord } from '@/db/repository'
 import { api, ApiError, NetworkError } from '@/lib/api'
-import { useAuth } from '@/lib/auth'
+import { ACCOUNT_KEY, useAuth, type Account } from '@/lib/auth'
 import { DASHBOARD_LAYOUT_KEY, type DashboardLayout } from '@/lib/dashboard'
 import { getTheme, setTheme, THEMES, type Theme } from '@/lib/theme'
 import {
@@ -87,7 +87,10 @@ async function applyPage(page: PullPage, userId: number): Promise<boolean> {
 
   return db.transaction('rw', db.tables, async () => {
     // Checked inside the transaction: a sign-out's wipe runs either fully before or after it.
-    if (useAuth.getState().account?.user.id !== userId) {
+    // The database is shared between tabs, so the remembered account covers a sign-out in
+    // another tab, which would otherwise leave a cursor pointing past the wiped records.
+    const remembered = (await db.meta.get(ACCOUNT_KEY))?.value as Account | undefined
+    if (useAuth.getState().account?.user.id !== userId || remembered?.user.id !== userId) {
       return false
     }
 

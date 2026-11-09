@@ -561,6 +561,8 @@ Hosting musi zapewniać:
 | 2026-11-09 | Kopia konfliktu notatek przeniesiona z 1.4 do 2.3 | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Zmiany odrzucone przez serwer zostają w `outbox`, nie są ponownie wysyłane i są pokazywane we wskaźniku | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Pakiet `uuid` do UUIDv7, `fake-indexeddb` w testach; repozytorium odrzuca lokalnie zapis do przestrzeni bez prawa edycji, zanim zmiana utknie w `outbox` | Claude (do oceny użytkownika) |
+| 2026-11-10 | Pojedynczy 401 nie wylogowuje: decyduje powtórzone żądanie po 300 ms; przy sprawdzaniu konta inne błędy (403, 404, 429) nie kasują danych | Użytkownik / Claude |
+| 2026-11-10 | Lokalnie `ThreadsPerChild 1` i `KeepAlive Off` zamiast `config:cache` (ryzyko testów na prawdziwej bazie) | Użytkownik / Claude |
 | 2026-11-09 | Zadania w dwóch częściach; 1.10 połączone z 2.1; przypomnienia przeniesione do części 1, bo mają być w arkuszu [+] | Użytkownik |
 | 2026-11-09 | Tytuł i notatka zadania szyfrowane (nowe pola 🔐) | Użytkownik |
 | 2026-11-09 | Zaległe jako sekcja na górze zakładki Dziś zamiast osobnego widoku; zadania bez listy widoczne jako Skrzynka (`list_id` puste), bez tworzonej automatycznie listy | Użytkownik |
@@ -614,6 +616,8 @@ Listen 127.0.0.1:8080
     CustomLog "logs/basemind-access.log" common
 </VirtualHost>
 ```
+
+**4a. Jeden wątek Apache'a** (kopie: `httpd-mpm.conf.bak-basemind-20261110`, `httpd-vhosts.conf.bak-basemind-20261110`): w `extra/httpd-mpm.conf`, sekcja `mpm_winnt_module`, `ThreadsPerChild 1` (było 150); w bloku BaseMind w `extra/httpd-vhosts.conf` `KeepAlive Off`. Powód w pkt 15. Dotyczy całego XAMPP, także innych projektów.
 
 **5. Bazy danych** (MariaDB, root bez hasła):
 ```sql
@@ -685,6 +689,9 @@ php artisan schedule:work   # z katalogu api/
 - **`window.visualViewport` to jedyny sposób na pozycję klawiatury ekranowej:** Chrome na Androidzie nakłada ją na stronę, więc elementy `fixed bottom-0` lądują pod nią (`use-keyboard-inset.ts`).
 - **Pole z przypomnieniem zmieniać tylko przez funkcje z `modules/tasks/repo.ts`** (`completeTask`, `moveTask`, `removableTasks`…): zwykłe `tasks.update` nie zaktualizuje przypomnienia.
 - **jsdom nie ma `setPointerCapture`,** którego używają komunikaty `sonner` (uzupełnione w `src/test/setup.ts`). Dla Radix Select w testach brakuje więcej API, dlatego wybór z listy jest testowany przez funkcje, a nie kliknięcia.
+- **Apache na Windows obsługuje żądania wątkami, a odczyt `.env` nie jest bezpieczny wątkowo.** Przy równoległych żądaniach Laravel gubił konfigurację: błąd 500 z bazą SQLite (dowód w logu) i fałszywe 401. Lokalnie: `ThreadsPerChild 1` (pkt 14, 4a). Nie używać lokalnie `config:cache`: testy mogłyby wtedy trafić w prawdziwą bazę `basemind`. Objaw nawrotu: `seq 1 25 | xargs -P 12 -I{} curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8080/api/health` zwraca 500.
+- **Na produkcji `php artisan config:cache` przy każdym wdrożeniu** i sprawdzić ten sam test równoległych żądań, zwłaszcza gdyby PHP na hostingu działał wątkowo.
+- **Baza IndexedDB jest wspólna dla kart:** wylogowanie w jednej kasuje dane wszystkim, więc `applyPage` sprawdza zapamiętane konto w tej samej transakcji. Gdyby strona z synchronizacji zapisała się po wyczyszczeniu, kursor stanąłby za skasowanymi rekordami i dane nie wróciłyby same.
 - **Apache z XAMPP startuje u nas około 30 sekund.** Przy sprawdzaniu `/api/health` zaraz po starcie dać mu tyle czasu, zanim uzna się start za nieudany.
 - **Nie czyścić `api/public/` przy buildzie w całości** (są tam `index.php`, `.htaccess`) — tylko `web/scripts/clean-build.mjs` z jawną listą.
 - **MariaDB nasłuchuje tylko na 127.0.0.1** — łączyć się przez `127.0.0.1`, nie `::1`/`localhost` z IPv6.
