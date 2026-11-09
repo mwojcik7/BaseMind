@@ -338,9 +338,10 @@ Kluczowe cechy:
 ## 6. PWA i mobile (Android priorytet, iOS przygotowany)
 
 - **Manifest:** nazwa „BaseMind”, ikony (w tym maskable), `display: standalone`, `theme_color`, `background_color`, `shortcuts` (Szybki wydatek, Nowe zadanie, Szybka notatka, Dodaj link), `share_target` (Android).
-- **Service Worker:** precache powłoki aplikacji, cache obrazków, `push` i `notificationclick` (akcje „Zrobione”, „Odłóż 1h”), `sync`, obsługa share target.
+- **Service Worker:** precache powłoki aplikacji, cache obrazków (od Etapu 4), `push` i `notificationclick` (akcje „Zrobione”, „Odłóż 1h”), `sync`, obsługa share target.
 - **Instalacja:** własny baner (`beforeinstallprompt`), na iOS instrukcja „Udostępnij → Do ekranu początkowego”.
-- **iOS:** `apple-touch-icon`, meta tagi, splash screeny, `env(safe-area-inset-*)`, push tylko po instalacji (iOS 16.4+).
+- **Aktualizacje:** nowa wersja czeka na „Odśwież”, żeby strona nie przeładowała się w trakcie pisania.
+- **iOS:** `apple-touch-icon`, meta tagi, `env(safe-area-inset-*)`, bez ekranów startowych (dodać, gdy ktoś zacznie używać iPhone'a), push tylko po instalacji (iOS 16.4+).
 - **Odczucie natywne:** dolna nawigacja, gesty swipe, pull-to-refresh, haptyka (`navigator.vibrate`), duże pola dotyku (min. 44 px), bottom sheets zamiast modali, `inputmode="decimal"` przy kwotach.
 - **Badging API** — licznik zaległych na ikonie.
 - **Wydajność:** lazy loading modułów, wirtualizacja list, cel Lighthouse ≥ 90 na mobile.
@@ -541,6 +542,8 @@ Hosting musi zapewniać:
 | 2026-11-09 | Szyfrowanie pól zostaje przy `secretbox` bez wiązania szyfrogramu z wierszem i kolumną (na razie jeden użytkownik) | Użytkownik |
 | 2026-11-09 | Wylogowanie z niewysłanymi zmianami: próba wysłania, potem ostrzeżenie „Wyloguj mimo to / Anuluj” (krok 1.4) | Użytkownik |
 | 2026-11-09 | Zakończenie sesji przez serwer kasuje lokalne dane bez pytania, także niewysłane zmiany (ochrona zgubionego telefonu) | Użytkownik |
+| 2026-11-09 | Ekrany startowe iOS pominięte, cache obrazków przeniesiony do Etapu 4 | Claude (zaakceptowane przez użytkownika) |
+| 2026-11-09 | Aktualizacje PWA na żądanie („Odśwież”) zamiast automatycznych; baner instalacji po zamknięciu wraca po 30 dniach | Claude (działanie zaakceptowane przez użytkownika po teście) |
 | 2026-11-09 | Konflikty synchronizacji: wygrywa późniejsza zmiana każdego pola (`field_stamps`), czas urządzenia ograniczony czasem serwera | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Kopia konfliktu notatek przeniesiona z 1.4 do 2.3 | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Zmiany odrzucone przez serwer zostają w `outbox`, nie są ponownie wysyłane i są pokazywane we wskaźniku | Claude (zaakceptowane przez użytkownika) |
@@ -633,7 +636,8 @@ Po świeżym `git clone`: `cd api && composer install && copy .env.example .env 
 - **Model z polami 🔐 nie wymaga rejestracji w rotacji:** `basemind:reencrypt` sam skanuje `app/Models` i wykrywa casty `SodiumEncrypted`. Kolumny takich pól: `TEXT`, a dla długich treści `MEDIUMTEXT`.
 - **Opublikowanych wpisów w `SCHEMA_VERSIONS` (`web/src/db/db.ts`) nie wolno zmieniać** — działają jak migracje na każdym urządzeniu; zmiana schematu to nowy wpis na końcu listy.
 - **Testy frontendu używają `fake-indexeddb`** (`src/test/setup.ts`): sprawdzają logikę, ale nie zastępują testu w prawdziwej przeglądarce.
-- **Po nowym buildzie pierwsze otwarcie PWA może pokazać starą wersję** (Service Worker pobiera nową w tle). Przy testach poczekać chwilę, zamknąć aplikację i otworzyć ponownie.
+- **Po nowym buildzie PWA działa na starej wersji, dopóki nie klikniesz „Odśwież”** w banerze (Service Worker pobiera nową w tle). Baner pojawia się kilka sekund po otwarciu. Żeby sprawdzić go bez zmian w kodzie, wystarczy dopisać komentarz na końcu zbudowanego `api/public/sw.js`.
+- **Android pokazuje zwykle cztery pozycje po przytrzymaniu ikony, a jedną zajmuje „Ustawienia witryn” Chrome'a.** Z czterech skrótów w manifeście widać trzy pierwsze, więc najważniejsze muszą być na początku listy.
 - **Apache z XAMPP startuje u nas około 30 sekund.** Przy sprawdzaniu `/api/health` zaraz po starcie dać mu tyle czasu, zanim uzna się start za nieudany.
 - **Nie czyścić `api/public/` przy buildzie w całości** (są tam `index.php`, `.htaccess`) — tylko `web/scripts/clean-build.mjs` z jawną listą.
 - **MariaDB nasłuchuje tylko na 127.0.0.1** — łączyć się przez `127.0.0.1`, nie `::1`/`localhost` z IPv6.

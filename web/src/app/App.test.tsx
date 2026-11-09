@@ -6,6 +6,7 @@ import { createAppRouter } from '@/app/router'
 import { db } from '@/db/db'
 import { pl } from '@/i18n/pl'
 import { startAuth, type Account } from '@/lib/auth'
+import { usePwa, type BeforeInstallPromptEvent } from '@/lib/pwa'
 import { getTheme } from '@/lib/theme'
 import { useSyncStatus } from '@/sync/engine'
 
@@ -291,6 +292,49 @@ describe('synchronisation in the app', () => {
     expect(await heading(pl.auth.loginTitle)).toBeInTheDocument()
     expect(logOutCalls()).toHaveLength(1)
     await waitFor(async () => expect(await db.outbox.count()).toBe(0))
+  })
+})
+
+describe('app banners', () => {
+  afterEach(() =>
+    usePwa.setState({ applyUpdate: null, installPrompt: null, showIosInstructions: false }),
+  )
+
+  it('offers a new version and reloads into it on request', async () => {
+    const user = userEvent.setup()
+    const applyUpdate = vi.fn()
+    renderAt('/')
+    await heading(pl.nav.today)
+
+    act(() => usePwa.setState({ applyUpdate }))
+    await user.click(screen.getByRole('button', { name: pl.pwa.updateAction }))
+
+    expect(applyUpdate).toHaveBeenCalledOnce()
+  })
+
+  it('shows iPhone instructions without an install button, and hides them', async () => {
+    const user = userEvent.setup()
+    renderAt('/')
+    await heading(pl.nav.today)
+
+    act(() => usePwa.setState({ showIosInstructions: true }))
+    expect(screen.getByText(pl.pwa.iosInstructions)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: pl.pwa.installAction })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: pl.pwa.dismiss }))
+    expect(screen.queryByText(pl.pwa.iosInstructions)).not.toBeInTheDocument()
+  })
+
+  it('offers installing, but a new version comes first', async () => {
+    renderAt('/')
+    await heading(pl.nav.today)
+
+    act(() => usePwa.setState({ installPrompt: new Event('x') as BeforeInstallPromptEvent }))
+    expect(screen.getByRole('button', { name: pl.pwa.installAction })).toBeInTheDocument()
+
+    act(() => usePwa.setState({ applyUpdate: vi.fn() }))
+    expect(screen.queryByRole('button', { name: pl.pwa.installAction })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: pl.pwa.updateAction })).toBeInTheDocument()
   })
 })
 

@@ -17,7 +17,7 @@ export default defineConfig({
       filename: 'sw.ts',
       // Registered explicitly in main.tsx; an injected inline script would break the CSP.
       injectRegister: false,
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,woff2,svg,png}'],
         // The build lands in Laravel's public/: skip uploads and unused font subsets.
@@ -28,6 +28,7 @@ export default defineConfig({
         short_name: 'BaseMind',
         description: 'Osobiste centrum dowodzenia',
         lang: 'pl',
+        id: '/',
         start_url: '/',
         scope: '/',
         display: 'standalone',
@@ -43,6 +44,13 @@ export default defineConfig({
             type: 'image/png',
             purpose: 'maskable',
           },
+        ],
+        // Open the module for now; each will open its add form once the module exists.
+        shortcuts: [
+          { name: 'Szybki wydatek', url: '/finance' },
+          { name: 'Nowe zadanie', url: '/tasks' },
+          { name: 'Szybka notatka', url: '/notes' },
+          { name: 'Dodaj link', url: '/bookmarks' },
         ],
       },
     }),

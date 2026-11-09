@@ -1,6 +1,7 @@
 import { Outlet } from '@tanstack/react-router'
 import { MotionConfig } from 'motion/react'
 import { BottomNav } from '@/components/BottomNav'
+import { PwaBanner } from '@/components/PwaBanner'
 import { SearchBar } from '@/components/SearchBar'
 import { Sidebar } from '@/components/Sidebar'
 import { SyncIndicator } from '@/components/SyncIndicator'
@@ -20,6 +21,7 @@ export function AppShell() {
           </div>
         </div>
         <main className="mx-auto w-full max-w-2xl px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+6rem)] lg:pb-8">
+          <PwaBanner />
           <Outlet />
         </main>
       </div>

@@ -16,9 +16,9 @@
 > Po rozstrzygnięciu: usunąć pytanie stąd, a decyzję wpisać do rejestru w `projekt.md`, pkt 13.
 
 **Najpierw**
-1. **Krok 1.5:** czy zaczynamy dopracowanie PWA (instalacja, aktualizacje, iOS)?
+1. **Krok 1.6:** czy zaczynamy tagi i powiązania między elementami?
 
-**Starsze, bez odpowiedzi (nie blokują 1.5)**
+**Starsze, bez odpowiedzi (nie blokują 1.6)**
 2. **Decyzje techniczne Claude „do oceny użytkownika”:** TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2 (podklucze, identyfikator klucza, dwie komendy rotacji, `basemind:key` bez wypisywania klucza). Szczegóły: `projekt.md`, pkt 13.
 3. **Testy API:** zostajemy przy PHPUnit czy przechodzimy na Pest, jak zakładał plan? Czy wdrażamy Larastan?
 4. **Testy e2e:** czy dodać Playwright i stałe scenariusze (lista w „Otwarte sprawy” → „Dług techniczny”)?
@@ -27,13 +27,13 @@
 
 ## Stan bieżący (ostatnia sesja: 2026-11-09)
 
-- **Faza:** Etap 0 zamknięty. **Etap 1 w toku: kroki 1.1 (konta, logowanie, przestrzenie), 1.2 (szyfrowanie), 1.3 (warstwa danych offline) i 1.4 (synchronizacja) zrobione. Następny jest krok 1.5 (PWA), jeszcze nie zaczęty.**
-- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca, łącznie z krokiem 1.4, jest wypchnięta.
+- **Faza:** Etap 0 zamknięty. **Etap 1 w toku: kroki 1.1 (konta, logowanie, przestrzenie), 1.2 (szyfrowanie), 1.3 (warstwa danych offline), 1.4 (synchronizacja) i 1.5 (PWA) zrobione. Następny jest krok 1.6 (tagi i powiązania), jeszcze nie zaczęty.**
+- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca, łącznie z krokiem 1.5, jest wypchnięta.
 - **Backend (`api/`):** Laravel 13.40, Sanctum + Fortify (`/api/auth`), utwardzenie PHP/Apache, kontrola luk PHP, nagłówki z CSP, powłoka PWA serwowana przez Laravela, przestrzenie i uprawnienia, ekran sesji, szyfrowanie libsodium (serwis `Crypto`, casty, komendy klucza), synchronizacja (`SyncService`, `config/sync.php`, trait `Syncable`, makro `$table->syncable()`). 162 testy OK.
-- **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia, lokalna baza Dexie z repozytorium encji (`web/src/db/`), silnik synchronizacji ze wskaźnikiem stanu (`web/src/sync/`). 131 testów OK.
+- **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia, lokalna baza Dexie z repozytorium encji (`web/src/db/`), silnik synchronizacji ze wskaźnikiem stanu (`web/src/sync/`), instalacja i aktualizacje PWA (`web/src/lib/pwa.ts`, `PwaBanner`). 148 testów OK.
 - **Dane lokalne:** w bazie `basemind` jest **prawdziwe konto użytkownika**, założone przez niego na telefonie. Nie usuwać go i nie czyścić tej bazy.
 - **Klucz szyfrowania:** lokalny `SODIUM_KEY` (identyfikator `2ca17bb1`) jest w `api/.env`, a użytkownik ma jego kopię w menedżerze haseł. Nic jeszcze nim nie zaszyfrowano. Produkcja dostanie własny klucz.
-- **Czeka na użytkownika:** zgoda na krok 1.5 i odpowiedzi na pozostałe „Pytania na start” (wyżej).
+- **Czeka na użytkownika:** zgoda na krok 1.6 i odpowiedzi na pozostałe „Pytania na start” (wyżej).
 - **Uwaga:** ta sama instalacja MariaDB trzyma bazy innego projektu użytkownika (np. `syslead_test`). Nie używać `migrate:fresh` na bazie `basemind` ani poleceń obejmujących cały serwer; testy działają na `basemind_test`.
 - **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. Przed uruchomieniem sprawdzić, czy już nie działają. W chwili zakończenia sesji są zatrzymane.
 
@@ -41,12 +41,12 @@
 1. Przeczytać `projekt.md` (szczególnie pkt 0, 3, 8, 13 „Rejestr decyzji”, 14 „Konfiguracja poza repozytorium”, 15 „Pułapki”) i ten plik.
 2. Sprawdzić stan: `git status`, `git log --oneline -5`, `composer audit` w `api/` (nowe poprawki bezpieczeństwa pojawiają się często; Symfony miało je już 2026-11-04) i `pnpm audit --prod` w `web/`.
 3. Uruchomić Apache i MariaDB (panel XAMPP lub poleceniami). Sprawdzić `http://localhost:8080/api/health`, testy `cd api && php artisan test` oraz `cd web && pnpm test`.
-4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zadać „Pytania na start”** (na górze pliku), w tym o zgodę na krok 1.5. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
-5. **Krok 1.5 (PWA):** szczegóły w sekcji 1.5 poniżej i w `projekt.md`, pkt 6. Część jest już zrobiona (manifest, ikony, Service Worker z precache): najpierw sprawdzić, czego brakuje.
+4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zadać „Pytania na start”** (na górze pliku), w tym o zgodę na krok 1.6. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
+5. **Krok 1.6 (tagi i powiązania):** szczegóły w sekcji 1.6 poniżej i w `projekt.md`, pkt 4.3. To pierwsze prawdziwe encje w synchronizacji, więc przy okazji sprawdzić na żywo przesyłanie rekordów między urządzeniami i Background Sync.
 6. **Test na telefonie przez USB** (instrukcja w `README.md`): do sprawdzania PWA używać builda, czyli port `8080 → localhost:8080` i na telefonie `http://localhost:8080`. Telefon użytkownika: Samsung S25 Ultra, debugowanie USB już włączone. Jeśli logowanie zgłasza brak połączenia, najpierw sprawdzić `http://localhost:8080/api/health` na telefonie (`projekt.md`, pkt 15). Do testu offline odłączyć kabel: tryb samolotowy nie przerywa przekierowania portu przez USB.
 7. Po sesji: zaktualizować ten plik („Stan bieżący”, checklisty, „Dziennik zmian”) i rejestr decyzji w `projekt.md`, a po zgodzie zrobić commit i `git push`.
 
-### Otwarte sprawy (nic z tego nie blokuje kroku 1.5)
+### Otwarte sprawy (nic z tego nie blokuje kroku 1.6)
 **Do wiadomości lub decyzji użytkownika**
 - Decyzje techniczne Claude z rejestru w `projekt.md` oznaczone „do oceny użytkownika”, jeszcze niepotwierdzone: TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2.
 - Kod rejestracji jest w `api/.env`. Przed wdrożeniem ustawić długi kod na produkcji, a po założeniu kont zostawić go pustym.
@@ -142,7 +142,7 @@
 - [x] Ekrany szkieletowe: „Dziś”, „Zadania”, „Kalendarz”, „Więcej” z siatką modułów, strona zastępcza modułu pod własnym adresem (`/notes`, `/finance`…), dolna nawigacja, arkusz [+] (na razie informacyjny; właściwy w 1.10).
 - [x] „Ustawienia” (`/settings`) z wyborem motywu: system / jasny / ciemny. Zapis w `localStorage`, `public/theme-init.js` ustawia motyw przed pierwszym renderem (CSP zabrania skryptów inline). Synchronizacja z `user_settings` — Etap 1.
 - [x] Proxy Vite → Apache (`/api`, `/sanctum`, `/s/`); build do `api/public/` (czyszczenie: `web/scripts/clean-build.mjs`, tylko jawna lista plików); fallback SPA w Laravelu.
-- [~] ESLint + Prettier + `tsc` + Vitest (web) — zrobione, 131 testów OK. Pint jest; Larastan i Pest (api) — do zrobienia (testy api na razie w PHPUnit, 162 OK).
+- [~] ESLint + Prettier + `tsc` + Vitest (web) — zrobione, 148 testów OK. Pint jest; Larastan i Pest (api) — do zrobienia (testy api na razie w PHPUnit, 162 OK).
 - [ ] Sprawdzić nowe reguły `.htaccess` w trybie awaryjnym (docroot = cały `api/`) — testowane tylko z docroot `public/`.
 - [x] `README.md` (główny) — uruchomienie backendu i frontendu, build, telefon po USB.
 - [x] `CLAUDE.md` (główny) — krótki wskaźnik dla Claude: zasady współpracy + „czytaj `projekt.md` i `plan.md`”.
@@ -208,12 +208,14 @@
 - [ ] Na żywo: rekord między dwoma urządzeniami i Background Sync — przy pierwszym module z danymi.
 
 ### 1.5 PWA
-- [ ] Manifest: ikony (192, 512, maskable), `shortcuts`, kolory, `standalone`.
-- [ ] Service Worker (`injectManifest`): precache, cache obrazów, fallback offline.
-- [ ] Baner instalacji (Android) + instrukcja iOS.
-- [ ] Meta tagi iOS, apple-touch-icon, splash.
-- [ ] Aktualizacja aplikacji („Nowa wersja — odśwież”).
-- [ ] Test instalacji na telefonie (USB).
+- [x] Manifest: ikony (192, 512, maskable), `shortcuts`, kolory, `standalone`. Skróty otwierają na razie ekrany modułów; przekierować na formularze dodawania, gdy powstaną.
+- [x] Service Worker (`injectManifest`): precache, fallback offline.
+- [-] Cache obrazów — przeniesione do 4.1 (decyzja użytkownika): jedyne obrazki to ikony, które są w precache.
+- [x] Baner instalacji (Android) + instrukcja iOS. Po zamknięciu wraca po 30 dniach.
+- [x] Meta tagi iOS, apple-touch-icon.
+- [-] Ekrany startowe iOS (splash) — pominięte (decyzja użytkownika): dziesiątki obrazków pobieranych też na Androidzie, brak iPhone'a do sprawdzenia. Dodać, gdy ktoś zacznie używać iPhone'a.
+- [x] Aktualizacja aplikacji („Dostępna nowa wersja” + „Odśwież”), także po powrocie do otwartej aplikacji (najwyżej co godzinę).
+- [x] Test użytkownika na telefonie: instalacja, skróty, komunikat o nowej wersji.
 
 ### 1.6 Tagi i powiązania
 - [ ] Migracje i sync: `tags`, `entity_tags`, `entity_links`.
@@ -310,6 +312,7 @@
 - [ ] Encja `bookmarks`.
 - [ ] `/api/link-preview`: OG/Twitter Card/oEmbed (YouTube), favicon, **ochrona SSRF**, timeouty, cache, zapis miniatury.
 - [ ] Offline: link zapisany od razu, podgląd pobierany po sync.
+- [ ] Cache miniatur w Service Workerze (przeniesione z 1.5).
 - [ ] **Android Share Target** → zapis do schowka (z tagiem/notatką).
 - [ ] Widoki: Inbox / Przeczytane / Archiwum / Ulubione; filtr artykuły/filmy; karty z miniaturami.
 - [ ] (iOS, później) instrukcja Skrótu.
@@ -438,3 +441,4 @@
 | 2026-11-05 | Koniec sesji na prośbę użytkownika: pytania bez odpowiedzi zapisane w „Pytania na start”, wnioski w `projekt.md`, pkt 15. Kod bez zmian. Serwery zatrzymane. Commit i push za zgodą użytkownika. | „Pytania na start”, potem 1.3 — po zgodzie użytkownika. |
 | 2026-11-09 | Krok 1.3: Dexie (`outbox`, `meta`), repozytorium encji, hooki, konto w Dexie, czyszczenie lokalnych danych. Rozstrzygnięte: kopia klucza w menedżerze haseł, ograniczenie `secretbox` zaakceptowane, zakończenie sesji przez serwer kasuje dane urządzenia. Testy: web 99 OK; audyty `pnpm --prod` i `composer` czyste; testów API nie uruchamiano, bo backend bez zmian. Użytkownik potwierdził działanie na telefonie. Serwery zatrzymane. Commit i push za zgodą użytkownika. | 1.4 (synchronizacja) — po zgodzie użytkownika. |
 | 2026-11-09 | Krok 1.4: push i pull z rejestrem encji, LWW per pole, `sync_ops`, silnik na kliencie, wskaźnik stanu, Background Sync, ostrzeżenie przy wylogowaniu, motyw w `user_settings`. Testy: api 162 OK, web 131 OK; audyt `composer` czysty; migracja `sync_ops` wykonana na `basemind`. Użytkownik potwierdził na telefonie i komputerze: start bez kabla, stan offline, przeniesienie motywu. Korekta: tryb samolotowy nie odcina serwera przy USB. Serwery zatrzymane. Commit i push za zgodą użytkownika. | 1.5 (PWA) — po zgodzie użytkownika. |
+| 2026-11-09 | Krok 1.5: skróty w manifeście, baner instalacji, instrukcja iOS, aktualizacje na żądanie zamiast automatycznych, sprawdzanie nowej wersji po powrocie do aplikacji. Testy: web 148 OK; backend bez zmian. Użytkownik potwierdził na telefonie instalację, skróty i komunikat o nowej wersji. Ekrany startowe iOS pominięte, cache obrazków przeniesiony do 4.1. Serwery zatrzymane. Commit i push za zgodą użytkownika. | 1.6 (tagi i powiązania) — po zgodzie użytkownika. |

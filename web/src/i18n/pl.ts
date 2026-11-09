@@ -5,6 +5,15 @@ export const pl = {
     close: 'Zamknij',
     cancel: 'Anuluj',
   },
+  pwa: {
+    updateTitle: 'Dostępna nowa wersja aplikacji',
+    updateAction: 'Odśwież',
+    installTitle: 'Zainstaluj BaseMind',
+    installDescription: 'Otwieraj aplikację z ekranu głównego, na pełnym ekranie.',
+    installAction: 'Zainstaluj',
+    iosInstructions: 'W Safari wybierz Udostępnij, a potem Do ekranu początkowego.',
+    dismiss: 'Ukryj',
+  },
   sync: {
     synced: 'Zsynchronizowano',
     pending: (count: number) => `Zmiany czekające na wysłanie: ${count}`,

@@ -11,7 +11,14 @@ import { BACKGROUND_SYNC_TAG, pushOutbox, type PostOperations } from './sync/pus
 declare const self: ServiceWorkerGlobalScope
 
 // Push notifications and share target arrive with their steps.
-void self.skipWaiting()
+
+// A new version waits until the user chooses to refresh, so nothing reloads mid-typing.
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    void self.skipWaiting()
+  }
+})
+
 clientsClaim()
 
 precacheAndRoute(self.__WB_MANIFEST)

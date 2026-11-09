@@ -5,11 +5,13 @@ import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import { createAppRouter } from '@/app/router'
 import { startAuth } from '@/lib/auth'
+import { offerUpdate, startInstallTracking, watchForUpdates } from '@/lib/pwa'
 import { applyTheme, getTheme } from '@/lib/theme'
 import { startSync } from '@/sync/engine'
 import './index.css'
 
 applyTheme(getTheme())
+startInstallTracking()
 startSync()
 void startAuth()
 
@@ -21,4 +23,12 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-registerSW({ immediate: true })
+const updateServiceWorker = registerSW({
+  immediate: true,
+  onNeedRefresh: () => offerUpdate(() => void updateServiceWorker(true)),
+  onRegisteredSW: (_url, registration) => {
+    if (registration) {
+      watchForUpdates(registration)
+    }
+  },
+})
