@@ -15,7 +15,7 @@ class SyncController
             'ops.*.op_id' => ['required', 'uuid'],
             'ops.*.entity' => ['required', 'string'],
             'ops.*.record_id' => ['required', 'uuid'],
-            'ops.*.op' => ['required', 'in:create,update,delete'],
+            'ops.*.op' => ['required', 'in:create,update,delete,restore'],
             'ops.*.payload' => ['present', 'array'],
             'ops.*.base_version' => ['required', 'integer', 'min:0'],
             'ops.*.client_ts' => ['required', 'date'],

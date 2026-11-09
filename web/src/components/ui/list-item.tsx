@@ -25,6 +25,8 @@ interface ListItemProps {
   description?: ReactNode
   leading?: ReactNode
   trailing?: ReactNode
+  /** Interactive element before the row's content, such as a checkbox. */
+  control?: ReactNode
   onPress?: () => void
   /** Revealed by swiping right. */
   startAction?: SwipeAction
@@ -67,6 +69,7 @@ export function ListItem({
   description,
   leading,
   trailing,
+  control,
   onPress,
   startAction,
   endAction,
@@ -119,6 +122,7 @@ export function ListItem({
         onDragEnd={handleDragEnd}
         className="relative flex touch-pan-y items-center bg-card text-card-foreground"
       >
+        {control && <span className="flex shrink-0 items-center pl-4">{control}</span>}
         {onPress ? (
           <button
             type="button"

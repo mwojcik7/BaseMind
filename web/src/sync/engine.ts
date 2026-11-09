@@ -9,6 +9,7 @@ import { getTheme, setTheme, THEMES, type Theme } from '@/lib/theme'
 import {
   BACKGROUND_SYNC_TAG,
   pushOutbox,
+  SYNC_NOW_MESSAGE,
   type PushResult,
   type OutgoingOperation,
 } from '@/sync/push'
@@ -68,7 +69,7 @@ function withUnsentChanges(record: SyncedRecord, unsent: OutboxEntry[]): SyncedR
     if (entry.op === 'update') {
       Object.assign(merged, entry.payload)
     } else {
-      merged.deleted_at = entry.client_ts
+      merged.deleted_at = entry.op === 'delete' ? entry.client_ts : null
     }
   }
 
@@ -277,8 +278,15 @@ export function startSync({ debounceMs = 2000, intervalMs = 60_000 } = {}) {
     }
   })
 
+  function syncOnWorkerRequest(event: MessageEvent<{ type?: string }>) {
+    if (event.data?.type === SYNC_NOW_MESSAGE) {
+      sync()
+    }
+  }
+
   window.addEventListener('online', sync)
   document.addEventListener('visibilitychange', syncIfVisible)
+  navigator.serviceWorker?.addEventListener('message', syncOnWorkerRequest)
   const interval = setInterval(syncIfVisible, intervalMs)
 
   sync()
@@ -290,5 +298,6 @@ export function startSync({ debounceMs = 2000, intervalMs = 60_000 } = {}) {
     stopWatchingAuth()
     window.removeEventListener('online', sync)
     document.removeEventListener('visibilitychange', syncIfVisible)
+    navigator.serviceWorker?.removeEventListener('message', syncOnWorkerRequest)
   }
 }

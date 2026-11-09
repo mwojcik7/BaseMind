@@ -170,6 +170,29 @@ export function createRepository<T extends SyncedRecord>(
         await enqueue('delete', id, {}, current.version, timestamp)
       })
     },
+
+    /** Brings back a deleted record. Restoring one that isn't deleted does nothing. */
+    restore(id: string): Promise<void> {
+      return database.transaction('rw', table, database.outbox, async () => {
+        const deleted = await table.get(id)
+        if (!deleted) {
+          throw new RecordNotFoundError(entity, id)
+        }
+        if (deleted.deleted_at === null) {
+          return
+        }
+
+        writableSpace(deleted.space_id)
+        const timestamp = new Date().toISOString()
+        await table.put({
+          ...deleted,
+          deleted_at: null,
+          updated_at: timestamp,
+          version: deleted.version + 1,
+        })
+        await enqueue('restore', id, {}, deleted.version, timestamp)
+      })
+    },
   }
 }
 

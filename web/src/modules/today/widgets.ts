@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import { pl } from '@/i18n/pl'
-import { EventsWidget, ExpensesWidget, TasksWidget } from '@/modules/today/PlaceholderWidgets'
+import { TasksWidget } from '@/modules/tasks/TasksWidget'
+import { EventsWidget, ExpensesWidget } from '@/modules/today/PlaceholderWidgets'
 
 export interface DashboardWidget {
   /** Saved in the user's layout, so it must not change once published. */

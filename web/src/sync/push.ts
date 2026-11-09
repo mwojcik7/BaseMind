@@ -4,6 +4,9 @@ import { db, type OutboxEntry } from '../db/db'
 
 export const BACKGROUND_SYNC_TAG = 'basemind-push'
 
+/** The worker's message to open windows: the server has news, fetch it now. */
+export const SYNC_NOW_MESSAGE = 'SYNC_NOW'
+
 const BATCH_SIZE = 100
 
 export type OutgoingOperation = Omit<OutboxEntry, 'seq' | 'rejected_reason'>

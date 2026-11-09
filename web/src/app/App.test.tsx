@@ -1,6 +1,7 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { addDays, format, subDays } from 'date-fns'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAppRouter } from '@/app/router'
 import { db } from '@/db/db'
@@ -8,6 +9,7 @@ import { pl } from '@/i18n/pl'
 import { startAuth, type Account } from '@/lib/auth'
 import { usePwa, type BeforeInstallPromptEvent } from '@/lib/pwa'
 import { getTheme } from '@/lib/theme'
+import { taskLists, tasks, type Task } from '@/modules/tasks/repo'
 import { search } from '@/search/client'
 import { getRecentSearches, rememberSearch } from '@/search/recent'
 import { useSyncStatus } from '@/sync/engine'
@@ -725,6 +727,212 @@ describe('app shell', () => {
     expect(document.documentElement.dataset.theme).toBe('dark')
     expect(getTheme()).toBe('dark')
     expect(screen.getByRole('radio', { name: pl.settings.themes.dark })).toBeChecked()
+  })
+
+  describe('tasks', () => {
+    const today = format(new Date(), 'yyyy-MM-dd')
+
+    function newTask(fields: Partial<Task> = {}) {
+      return tasks.create({
+        list_id: null,
+        title: 'Kupić mleko',
+        notes: null,
+        priority: 4,
+        status: 'todo',
+        due_date: today,
+        due_time: null,
+        completed_at: null,
+        ...fields,
+      })
+    }
+
+    async function openTasks() {
+      renderAt('/tasks')
+      return heading(pl.modules.tasks)
+    }
+
+    it('adds a task from the [+] sheet, reading the date and priority', async () => {
+      const user = userEvent.setup()
+      await openTasks()
+
+      await user.click(bottomNav().getByRole('button', { name: pl.nav.add }))
+      const sheet = within(await screen.findByRole('dialog', { name: pl.quickAdd.title }))
+      await user.type(
+        sheet.getByRole('textbox', { name: pl.tasks.quickAddPlaceholder }),
+        'Kupić chleb jutro !1',
+      )
+      expect(sheet.getByRole('combobox', { name: pl.tasks.priority })).toHaveTextContent('P1')
+      expect(sheet.getByLabelText(pl.tasks.dueTime)).toBeEnabled()
+      await user.click(sheet.getByRole('button', { name: pl.quickAdd.add }))
+
+      await waitFor(async () => expect(await tasks.list()).toHaveLength(1))
+      expect((await tasks.list())[0]).toMatchObject({
+        title: 'Kupić chleb',
+        priority: 1,
+        due_date: format(addDays(new Date(), 1), 'yyyy-MM-dd'),
+      })
+
+      await user.click(screen.getByRole('tab', { name: pl.tasks.tabs.upcoming }))
+      expect(await page().findByText('Kupić chleb')).toBeInTheDocument()
+    })
+
+    it('keeps the time and reminder off until there is a date', async () => {
+      const user = userEvent.setup()
+      await openTasks()
+
+      await user.click(bottomNav().getByRole('button', { name: pl.nav.add }))
+      const sheet = within(await screen.findByRole('dialog', { name: pl.quickAdd.title }))
+
+      expect(sheet.getByLabelText(pl.tasks.dueTime)).toBeDisabled()
+      expect(sheet.getByRole('combobox', { name: pl.tasks.reminder })).toBeDisabled()
+    })
+
+    it('saves the time picked by hand with the task', async () => {
+      const user = userEvent.setup()
+      await openTasks()
+
+      await user.click(bottomNav().getByRole('button', { name: pl.nav.add }))
+      const sheet = within(await screen.findByRole('dialog', { name: pl.quickAdd.title }))
+      await user.type(sheet.getByRole('textbox'), 'Spotkanie jutro')
+      fireEvent.change(sheet.getByLabelText(pl.tasks.dueTime), { target: { value: '14:30' } })
+      await user.click(sheet.getByRole('button', { name: pl.quickAdd.add }))
+
+      await waitFor(async () => expect(await tasks.list()).toHaveLength(1))
+      expect((await tasks.list())[0]).toMatchObject({ title: 'Spotkanie', due_time: '14:30' })
+    })
+
+    it('opens quick add with the Q key, but not while typing', async () => {
+      const user = userEvent.setup()
+      await openTasks()
+
+      await user.click(screen.getByRole('button', { name: new RegExp(pl.search.placeholder) }))
+      const searchField = await screen.findByRole('searchbox')
+      fireEvent.keyDown(searchField, { key: 'q' })
+      expect(screen.queryByRole('dialog', { name: pl.quickAdd.title })).not.toBeInTheDocument()
+      await user.keyboard('{Escape}')
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+      fireEvent.keyDown(document.body, { key: 'q', ctrlKey: true })
+      expect(screen.queryByRole('dialog', { name: pl.quickAdd.title })).not.toBeInTheDocument()
+
+      fireEvent.keyDown(document.body, { key: 'q' })
+      expect(await screen.findByRole('dialog', { name: pl.quickAdd.title })).toBeInTheDocument()
+    })
+
+    it('does not add a task with nothing but a date', async () => {
+      const user = userEvent.setup()
+      await openTasks()
+
+      await user.click(bottomNav().getByRole('button', { name: pl.nav.add }))
+      const sheet = within(await screen.findByRole('dialog', { name: pl.quickAdd.title }))
+      await user.type(sheet.getByRole('textbox'), 'jutro')
+
+      expect(sheet.getByRole('button', { name: pl.quickAdd.add })).toBeDisabled()
+    })
+
+    it('shows overdue tasks above today and moves a completed one to its tab', async () => {
+      const user = userEvent.setup()
+      await openTasks()
+      await newTask()
+      await newTask({ title: 'Zaległe', due_date: format(subDays(new Date(), 1), 'yyyy-MM-dd') })
+
+      expect(await page().findByRole('heading', { name: pl.tasks.overdue })).toBeInTheDocument()
+      await user.click(
+        await page().findByRole('checkbox', { name: pl.tasks.complete('Kupić mleko') }),
+      )
+      await waitFor(() => expect(page().queryByText('Kupić mleko')).not.toBeInTheDocument())
+
+      await user.click(screen.getByRole('tab', { name: pl.tasks.tabs.done }))
+      expect(await page().findByText('Kupić mleko')).toBeInTheDocument()
+
+      await user.click(page().getByRole('checkbox', { name: pl.tasks.reopen('Kupić mleko') }))
+      await waitFor(async () =>
+        expect((await tasks.list()).find((task) => task.title === 'Kupić mleko')?.status).toBe(
+          'todo',
+        ),
+      )
+    })
+
+    it('edits a task on its own address and returns to the list', async () => {
+      const user = userEvent.setup()
+      await openTasks()
+      await newTask()
+
+      await user.click(await page().findByRole('button', { name: /Kupić mleko/ }))
+      const sheet = within(await screen.findByRole('dialog', { name: pl.tasks.edit }))
+      const title = sheet.getByLabelText(pl.tasks.title)
+      await user.clear(title)
+      await user.type(title, 'Kupić śmietanę')
+      await user.click(sheet.getByRole('radio', { name: 'P2' }))
+      await user.click(sheet.getByRole('button', { name: pl.tasks.save }))
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      expect((await tasks.list())[0]).toMatchObject({ title: 'Kupić śmietanę', priority: 2 })
+    })
+
+    it('brings a deleted task back with the undo button', async () => {
+      const user = userEvent.setup()
+      await openTasks()
+      await newTask()
+
+      await page().findByText('Kupić mleko')
+      await user.click(page().getByRole('button', { name: pl.tasks.delete }))
+      await waitFor(() => expect(page().queryByText('Kupić mleko')).not.toBeInTheDocument())
+      expect(await tasks.list()).toHaveLength(0)
+
+      await user.click(await screen.findByRole('button', { name: pl.common.undo }))
+
+      expect(await page().findByText('Kupić mleko')).toBeInTheDocument()
+      expect(await tasks.list()).toHaveLength(1)
+    })
+
+    it('refuses an empty title', async () => {
+      const user = userEvent.setup()
+      await openTasks()
+      await newTask()
+
+      await user.click(await page().findByRole('button', { name: /Kupić mleko/ }))
+      const sheet = within(await screen.findByRole('dialog', { name: pl.tasks.edit }))
+      await user.clear(sheet.getByLabelText(pl.tasks.title))
+      await user.click(sheet.getByRole('button', { name: pl.tasks.save }))
+
+      expect(await sheet.findByText(pl.tasks.titleRequired)).toBeInTheDocument()
+      expect((await tasks.list())[0].title).toBe('Kupić mleko')
+    })
+
+    it('creates a list and sends its tasks to the inbox when it is deleted', async () => {
+      const user = userEvent.setup()
+      await openTasks()
+      await user.click(screen.getByRole('tab', { name: pl.tasks.tabs.lists }))
+
+      await user.click(await page().findByRole('button', { name: pl.tasks.newList }))
+      const sheet = within(await screen.findByRole('dialog', { name: pl.tasks.newList }))
+      await user.type(sheet.getByRole('textbox'), 'Dom')
+      await user.click(sheet.getByRole('button', { name: pl.tasks.save }))
+      await waitFor(async () => expect(await taskLists.list()).toHaveLength(1))
+      const [list] = await taskLists.list()
+      await newTask({ list_id: list.id })
+
+      await user.click(await page().findByRole('button', { name: /^Dom/ }))
+      await page().findByText('Kupić mleko')
+      await user.click(page().getByRole('button', { name: pl.tasks.deleteList }))
+      await user.click(
+        within(await screen.findByRole('dialog')).getByRole('button', {
+          name: pl.tasks.deleteList,
+        }),
+      )
+
+      await waitFor(async () => expect(await taskLists.list()).toHaveLength(0))
+      expect((await tasks.list())[0].list_id).toBeNull()
+    })
+
+    it('shows the tasks due today on the "Dziś" screen', async () => {
+      renderAt('/')
+      await heading(TODAY_HEADING)
+      await newTask()
+
+      expect(await page().findByRole('link', { name: 'Kupić mleko' })).toBeInTheDocument()
+    })
   })
 
   describe('the "Dziś" screen', () => {

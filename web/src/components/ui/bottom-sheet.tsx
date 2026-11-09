@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useDragControls, type PanInfo } from 'motion/r
 import { Dialog } from 'radix-ui'
 import { useState, type ReactNode } from 'react'
 import { pl } from '@/i18n/pl'
+import { useKeyboardInset } from '@/lib/use-keyboard-inset'
 
 const CLOSE_DISTANCE = 100
 const CLOSE_VELOCITY = 500
@@ -28,6 +29,7 @@ export function BottomSheet({
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
   const open = controlledOpen ?? uncontrolledOpen
   const dragControls = useDragControls()
+  const keyboardInset = useKeyboardInset()
 
   function setOpen(next: boolean) {
     setUncontrolledOpen(next)
@@ -63,6 +65,15 @@ export function BottomSheet({
             >
               <motion.div
                 className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85dvh] max-w-lg flex-col rounded-t-2xl bg-popover text-popover-foreground shadow-raised outline-none"
+                // Sits on top of the on-screen keyboard, using all the room left above it.
+                style={
+                  keyboardInset > 0
+                    ? {
+                        bottom: keyboardInset,
+                        maxHeight: `calc(100dvh - ${keyboardInset}px - 1rem)`,
+                      }
+                    : undefined
+                }
                 initial={{ y: '100%' }}
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}

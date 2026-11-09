@@ -261,8 +261,10 @@ Kluczowe cechy:
 - `subscriptions` — name, amount_minor, currency, rrule, next_charge_date, wallet_id, category_id, status (`active` | `trial` | `paused` | `cancelled`), trial_ends_on, url, cancel_url, notes, remind_days_before, auto_create_transaction, logo_url.
 
 **Zadania**
-- `task_lists` — name, icon, color, sort_order.
-- `tasks` — list_id, parent_id, title, notes, priority (1–4), status (`todo` | `done` | `cancelled`), due_date, due_time, rrule, repeat_from (`due` | `completion`), completed_at, sort_order.
+- `task_lists` — name (na razie tylko to; icon, color, sort_order w części 2).
+- `tasks` — list_id (puste = Skrzynka; lista usunięta traktowana tak samo), parent_id, title 🔐, notes 🔐, priority (1–4), status (`todo` | `done` | `cancelled`), due_date, due_time, rrule, repeat_from (`due` | `completion`), completed_at, sort_order.
+  - Przypomnienie o zadaniu z datą, ale bez godziny, jest liczone od **9:00** tego dnia.
+  - parent_id, rrule, repeat_from i sort_order powstaną w części 2 (nowa migracja); due_time to tekst `HH:MM` na zegarze użytkownika.
 
 **Grafik pracy**
 - `work_profiles` — employer, schedule_type (`fixed` | `shifts`), pay_type (`hourly` | `monthly`), hourly_rate_minor 🔐, monthly_salary_minor 🔐, daily_norm_minutes, weekly_norm_minutes, overtime_rules (JSON), default_start, default_end, default_break_minutes, active_from, active_to.
@@ -332,7 +334,8 @@ Kluczowe cechy:
 5. **Pliki:** załączniki zapisywane lokalnie jako Blob w IndexedDB, wysyłane osobną kolejką (w kawałkach, jeśli duże — limity hostingu); miniatury generowane na kliencie.
 6. **Wylogowanie** czyści lokalną bazę. Najpierw próba wysłania zmian z `outbox`, a gdy się nie uda, ostrzeżenie „Wyloguj mimo to / Anuluj” (od kroku 1.4). Zakończenie sesji przez serwer (401: odwołane urządzenie, wygaśnięcie) czyści bazę bez pytania, także z niewysłanymi zmianami, żeby odwołanie zgubionego telefonu usuwało z niego odszyfrowane dane. Zalogowanie na inne konto też czyści bazę.
 7. Wskaźnik w UI: „zsynchronizowano / X zmian czeka / offline / błąd”.
-8. Rejestr encji synchronizowanych po obu stronach (front: nowy wpis w `SCHEMA_VERSIONS` w `web/src/db/db.ts`; back: model z traitem `Syncable` i `syncRules()` + wpis w `config/sync.php`, uprawnienia z `SpaceItemPolicy`) — dodanie modułu = wpis w rejestrze. Nazwa encji musi być taka sama po obu stronach.
+8. Operacje push to `create`, `update`, `delete` i `restore` (przywrócenie usuniętego rekordu: „Cofnij”, a później kosz).
+9. Rejestr encji synchronizowanych po obu stronach (front: nowy wpis w `SCHEMA_VERSIONS` w `web/src/db/db.ts`; back: model z traitem `Syncable` i `syncRules()` + wpis w `config/sync.php`, uprawnienia z `SpaceItemPolicy`) — dodanie modułu = wpis w rejestrze. Nazwa encji musi być taka sama po obu stronach.
 
 ---
 
@@ -558,6 +561,15 @@ Hosting musi zapewniać:
 | 2026-11-09 | Kopia konfliktu notatek przeniesiona z 1.4 do 2.3 | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Zmiany odrzucone przez serwer zostają w `outbox`, nie są ponownie wysyłane i są pokazywane we wskaźniku | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Pakiet `uuid` do UUIDv7, `fake-indexeddb` w testach; repozytorium odrzuca lokalnie zapis do przestrzeni bez prawa edycji, zanim zmiana utknie w `outbox` | Claude (do oceny użytkownika) |
+| 2026-11-09 | Zadania w dwóch częściach; 1.10 połączone z 2.1; przypomnienia przeniesione do części 1, bo mają być w arkuszu [+] | Użytkownik |
+| 2026-11-09 | Tytuł i notatka zadania szyfrowane (nowe pola 🔐) | Użytkownik |
+| 2026-11-09 | Zaległe jako sekcja na górze zakładki Dziś zamiast osobnego widoku; zadania bez listy widoczne jako Skrzynka (`list_id` puste), bez tworzonej automatycznie listy | Użytkownik |
+| 2026-11-09 | Odhaczanie polem wyboru, swipe w prawo: na jutro, w lewo: usuń z „Cofnij” | Użytkownik |
+| 2026-11-09 | Kosz z przywracaniem przez 30 dni (w planie 1.12) | Użytkownik |
+| 2026-11-09 | Arkusz [+] rozpozna typ po treści: `-liczba` to wydatek, `+liczba` to wpływ (3.1; „wpływ” przyjęty przez Claude, do potwierdzenia) | Użytkownik / Claude |
+| 2026-11-09 | „Zrobione” na powiadomieniu odhacza zadanie; samo dotknięcie treści tylko otwiera aplikację | Użytkownik / Claude |
+| 2026-11-09 | Skrót szybkiego dodawania: klawisz Q (jak w Todoist), nie działa podczas pisania ani przy otwartym oknie; „Cofnij” przez operację `restore`, a nie kopię rekordu | Claude (zaakceptowane przez użytkownika po teście) |
+| 2026-11-09 | Przypomnienie o zadaniu z datą bez godziny liczone od 9:00 tego dnia | Użytkownik |
 | 2026-11-09 | Ręczna synchronizacja po dotknięciu ikony stanu, jako dodatek do pobierania co 60 s | Użytkownik |
 | 2026-11-09 | Bez imienin w całej aplikacji; urodziny zostają | Użytkownik |
 | 2026-11-09 | Szybka notatka na dashboardzie przeniesiona do 2.3 | Użytkownik |
@@ -668,6 +680,11 @@ php artisan schedule:work   # z katalogu api/
 - **Testy frontendu używają `fake-indexeddb`** (`src/test/setup.ts`): sprawdzają logikę, ale nie zastępują testu w prawdziwej przeglądarce.
 - **Po nowym buildzie PWA działa na starej wersji, dopóki nie klikniesz „Odśwież”** w banerze (Service Worker pobiera nową w tle). Baner pojawia się kilka sekund po otwarciu. Żeby sprawdzić go bez zmian w kodzie, wystarczy dopisać komentarz na końcu zbudowanego `api/public/sw.js`.
 - **Android pokazuje zwykle cztery pozycje po przytrzymaniu ikony, a jedną zajmuje „Ustawienia witryn” Chrome'a.** Z czterech skrótów w manifeście widać trzy pierwsze, więc najważniejsze muszą być na początku listy.
+- **Dotknięcie treści powiadomienia też wysyła `dismiss`.** Przycisk „Zrobione” odróżnia od tego pole `done` w treści żądania (`web/src/sw.ts`). Nie opierać skutków ubocznych na samym `dismiss`.
+- **Serwer może stracić rejestrację push, a przełącznik na telefonie dalej pokazuje „włączone”** (stan czytany z przeglądarki). Dlatego aplikacja zgłasza subskrypcję przy każdym połączeniu. Pusta tabela `push_subscriptions` to pierwsze, co sprawdzić, gdy powiadomień brak.
+- **`window.visualViewport` to jedyny sposób na pozycję klawiatury ekranowej:** Chrome na Androidzie nakłada ją na stronę, więc elementy `fixed bottom-0` lądują pod nią (`use-keyboard-inset.ts`).
+- **Pole z przypomnieniem zmieniać tylko przez funkcje z `modules/tasks/repo.ts`** (`completeTask`, `moveTask`, `removableTasks`…): zwykłe `tasks.update` nie zaktualizuje przypomnienia.
+- **jsdom nie ma `setPointerCapture`,** którego używają komunikaty `sonner` (uzupełnione w `src/test/setup.ts`). Dla Radix Select w testach brakuje więcej API, dlatego wybór z listy jest testowany przez funkcje, a nie kliknięcia.
 - **Apache z XAMPP startuje u nas około 30 sekund.** Przy sprawdzaniu `/api/health` zaraz po starcie dać mu tyle czasu, zanim uzna się start za nieudany.
 - **Nie czyścić `api/public/` przy buildzie w całości** (są tam `index.php`, `.htaccess`) — tylko `web/scripts/clean-build.mjs` z jawną listą.
 - **MariaDB nasłuchuje tylko na 127.0.0.1** — łączyć się przez `127.0.0.1`, nie `::1`/`localhost` z IPv6.

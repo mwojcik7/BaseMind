@@ -48,12 +48,31 @@ export async function enablePush(): Promise<PushState> {
       applicationServerKey: decodeBase64Url(key),
     }))
 
-  await api.post('/api/push/subscriptions', {
+  await reportToServer(subscription)
+
+  return 'on'
+}
+
+function reportToServer(subscription: PushSubscription) {
+  return api.post('/api/push/subscriptions', {
     ...subscription.toJSON(),
     device_name: describeDevice(navigator.userAgent),
   })
+}
 
-  return 'on'
+/**
+ * Reminds the server about this device each time the app connects. The server can drop a
+ * subscription on its own, and the switch in the settings would still show it as on.
+ */
+export async function refreshPushSubscription() {
+  try {
+    const subscription = await currentSubscription()
+    if (subscription && Notification.permission === 'granted') {
+      await reportToServer(subscription)
+    }
+  } catch {
+    // Not critical: the next start tries again.
+  }
 }
 
 export async function disablePush(): Promise<PushState> {

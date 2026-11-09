@@ -4,6 +4,8 @@ use App\Models\EntityLink;
 use App\Models\EntityTag;
 use App\Models\Reminder;
 use App\Models\Tag;
+use App\Models\Task;
+use App\Models\TaskList;
 
 return [
 
@@ -17,6 +19,8 @@ return [
         'entity_tags' => EntityTag::class,
         'entity_links' => EntityLink::class,
         'reminders' => Reminder::class,
+        'task_lists' => TaskList::class,
+        'tasks' => Task::class,
     ],
 
 ];

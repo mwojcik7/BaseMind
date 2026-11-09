@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { clearLocalData, db } from '@/db/db'
 import { api, ApiError, NetworkError, setUnauthorizedHandler } from '@/lib/api'
-import { forgetPushSubscription } from '@/lib/push'
+import { forgetPushSubscription, refreshPushSubscription } from '@/lib/push'
 
 export interface Account {
   user: {
@@ -92,6 +92,7 @@ async function setSignedOut() {
 async function refreshAccount() {
   try {
     await setSignedIn(await api.get<Account>('/api/me'))
+    void refreshPushSubscription()
   } catch (error) {
     const unreachable = error instanceof NetworkError
     const serverProblem = error instanceof ApiError && error.status >= 500

@@ -1,6 +1,7 @@
 // Loaded inside the search worker: type-only imports, and nothing from React.
 import type { SyncedRecord } from '@/db/repository'
 import type { Tag } from '@/db/tags'
+import type { Task } from '@/modules/tasks/repo'
 import type { SearchDocument } from '@/search/engine'
 
 export interface SearchSource<T extends SyncedRecord = SyncedRecord> {
@@ -23,6 +24,13 @@ function source<T extends SyncedRecord>(definition: SearchSource<T>) {
  * The order is the order of the result groups.
  */
 export const searchSources: readonly SearchSource[] = [
+  source<Task>({
+    entity: 'tasks',
+    title: (task) => task.title,
+    text: (task) => task.notes ?? '',
+    subtitle: (task) => task.due_date?.split('-').reverse().join('.') ?? null,
+    href: (task) => `/tasks/${task.id}`,
+  }),
   source<Tag>({ entity: 'tags', title: (tag) => tag.name }),
 ]
 

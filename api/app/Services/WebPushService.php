@@ -30,6 +30,7 @@ class WebPushService
 
         if ($expired !== []) {
             PushSubscription::whereIn('endpoint_hash', array_map(PushSubscription::hashEndpoint(...), $expired))->delete();
+            Log::info('Push subscriptions dropped: reported as gone by the push service', ['count' => count($expired)]);
         }
     }
 
@@ -43,9 +44,13 @@ class WebPushService
     {
         $liveSessions = DB::table('sessions')->where('user_id', $user->id)->pluck('id');
 
-        PushSubscription::where('user_id', $user->id)
+        $dropped = PushSubscription::where('user_id', $user->id)
             ->where(fn ($query) => $query->whereNull('session_id')->orWhereNotIn('session_id', $liveSessions))
             ->delete();
+
+        if ($dropped > 0) {
+            Log::info('Push subscriptions dropped: their session has ended', ['count' => $dropped]);
+        }
 
         return PushSubscription::where('user_id', $user->id)->get();
     }

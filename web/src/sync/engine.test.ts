@@ -258,6 +258,19 @@ describe('synchronisation', () => {
     expect(await items.get('server-item')).toBeUndefined()
   })
 
+  it('keeps a record restored during a sync, even when the server still has it deleted', async () => {
+    const deleted = serverItem({ deleted_at: '2026-11-09T10:00:00.000Z' })
+    await db.table('items').put(deleted)
+    answerPull = async () => {
+      await items.restore('server-item')
+      return json(pageWith(deleted, 5))
+    }
+
+    await runSync()
+
+    expect(await items.get('server-item')).toBeDefined()
+  })
+
   it('drops a page that arrives after signing out', async () => {
     answerPull = () => {
       useAuth.setState({ status: 'guest', account: null })
@@ -519,6 +532,37 @@ describe('synchronisation', () => {
       window.dispatchEvent(new Event('online'))
 
       await waitFor(() => expect(pullUrls).toHaveLength(2))
+    })
+
+    describe('when the Service Worker asks', () => {
+      const worker = new EventTarget()
+
+      beforeEach(() => {
+        Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: worker })
+      })
+
+      afterEach(() => {
+        delete (navigator as unknown as { serviceWorker?: unknown }).serviceWorker
+      })
+
+      it('syncs at once', async () => {
+        stop = startSync()
+        await waitFor(() => expect(pullUrls).toHaveLength(1))
+
+        worker.dispatchEvent(new MessageEvent('message', { data: { type: 'SYNC_NOW' } }))
+
+        await waitFor(() => expect(pullUrls).toHaveLength(2))
+      })
+
+      it('ignores other messages', async () => {
+        stop = startSync()
+        await waitFor(() => expect(pullUrls).toHaveLength(1))
+
+        worker.dispatchEvent(new MessageEvent('message', { data: { type: 'OTHER' } }))
+        await wait(30)
+
+        expect(pullUrls).toHaveLength(1)
+      })
     })
 
     it('syncs when an account signs in, but not when the same one refreshes', async () => {

@@ -5,6 +5,7 @@ import {
   enablePush,
   forgetPushSubscription,
   getPushState,
+  refreshPushSubscription,
 } from '@/lib/push'
 
 const ENDPOINT = 'https://fcm.googleapis.com/fcm/send/abc'
@@ -71,6 +72,49 @@ describe('push notifications', () => {
   it('reports browsers without support', async () => {
     expect(await getPushState()).toBe('unsupported')
     await expect(forgetPushSubscription()).resolves.toBeUndefined()
+  })
+
+  describe('reminding the server about this device', () => {
+    const report = () => sent('/api/push/subscriptions')
+
+    it('sends an existing subscription again', async () => {
+      installBrowserApis()
+      existing = fakeSubscription()
+      permission = 'granted'
+
+      await refreshPushSubscription()
+
+      expect(JSON.parse(String(report()?.[1]?.body))).toMatchObject({ endpoint: ENDPOINT })
+    })
+
+    it('never subscribes on its own, as the user may have turned it off', async () => {
+      installBrowserApis()
+      permission = 'granted'
+
+      await refreshPushSubscription()
+
+      expect(subscribe).not.toHaveBeenCalled()
+      expect(report()).toBeUndefined()
+    })
+
+    it('sends nothing once permission is gone', async () => {
+      installBrowserApis()
+      existing = fakeSubscription()
+      permission = 'denied'
+
+      await refreshPushSubscription()
+
+      expect(report()).toBeUndefined()
+    })
+
+    it('stays quiet when the server cannot be reached', async () => {
+      installBrowserApis()
+      existing = fakeSubscription()
+      permission = 'granted'
+      fetchMock.mockRejectedValue(new TypeError('offline'))
+
+      await expect(refreshPushSubscription()).resolves.toBeUndefined()
+    })
   })
 
   it('reports the state on this device', async () => {

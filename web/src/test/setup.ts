@@ -12,6 +12,9 @@ configure({ asyncUtilTimeout: 5000 })
 // Exit animations would otherwise keep closed sheets in the document for a while.
 MotionGlobalConfig.skipAnimations = true
 
+// jsdom doesn't have it, and toasts call it when pressed.
+Element.prototype.setPointerCapture = () => {}
+
 afterEach(async () => {
   cleanup()
   localStorage.clear()

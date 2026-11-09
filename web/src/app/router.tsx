@@ -76,6 +76,12 @@ const tasksRoute = createRoute({
   component: lazyRouteComponent(() => import('@/modules/tasks/TasksPage'), 'TasksPage'),
 })
 
+const taskDetailRoute = createRoute({
+  getParentRoute: () => tasksRoute,
+  path: '$taskId',
+  component: lazyRouteComponent(() => import('@/modules/tasks/TaskDetail'), 'TaskDetail'),
+})
+
 const calendarRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/calendar',
@@ -136,7 +142,7 @@ const routeTree = rootRoute.addChildren([
   authRoute.addChildren([loginRoute, registerRoute, forgotPasswordRoute, resetPasswordRoute]),
   appRoute.addChildren([
     todayRoute,
-    tasksRoute,
+    tasksRoute.addChildren([taskDetailRoute]),
     calendarRoute,
     moreRoute,
     settingsRoute,

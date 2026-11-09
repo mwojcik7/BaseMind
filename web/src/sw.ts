@@ -7,7 +7,7 @@ import {
 } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
 import { pl } from './i18n/pl'
-import { BACKGROUND_SYNC_TAG, pushOutbox, type PostOperations } from './sync/push'
+import { BACKGROUND_SYNC_TAG, pushOutbox, SYNC_NOW_MESSAGE, type PostOperations } from './sync/push'
 
 declare const self: ServiceWorkerGlobalScope
 
@@ -119,6 +119,12 @@ async function openApp(url: string) {
   await self.clients.openWindow(url)
 }
 
+/** Answering from the notification doesn't touch the app, which would wait for its next sync. */
+async function tellOpenAppsToSync() {
+  const open = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+  open.forEach((client) => client.postMessage({ type: SYNC_NOW_MESSAGE }))
+}
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
@@ -126,13 +132,14 @@ self.addEventListener('notificationclick', (event) => {
   const answer = reminderId
     ? event.action === 'snooze'
       ? post(`/api/reminders/${reminderId}/snooze`, { minutes: SNOOZE_MINUTES })
-      : post(`/api/reminders/${reminderId}/dismiss`, {})
+      : // Tapping the notification itself only answers it; just the button finishes the task.
+        post(`/api/reminders/${reminderId}/dismiss`, { done: event.action === 'done' })
     : Promise.resolve()
 
   event.waitUntil(
     Promise.all([
       // Offline, the answer is lost and the reminder simply stays unanswered in the app.
-      answer.catch(() => {}),
+      answer.then(tellOpenAppsToSync).catch(() => {}),
       event.action ? undefined : openApp(url ?? '/'),
     ]),
   )

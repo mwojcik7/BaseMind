@@ -16,9 +16,9 @@
 > Po rozstrzygnięciu: usunąć pytanie stąd, a decyzję wpisać do rejestru w `projekt.md`, pkt 13.
 
 **Najpierw**
-1. **Krok 1.10:** ustalić zakres szybkiego dodawania [+] (propozycja: arkusz z rejestrem typów i szkielet parsera, pierwsze prawdziwe pozycje w 2.1). Po 1.10 od razu zadania z 2.1 (decyzja użytkownika).
+1. **Co dalej:** część 2 zadań (podzadania, cykliczność, sortowanie przeciąganiem, reszta zwrotów parsera, kanały powiadomień dla typu) i kiedy robimy kosz z 1.12 (propozycja: zaraz po części 2).
 
-**Starsze, bez odpowiedzi (nie blokują 1.10)**
+**Starsze, bez odpowiedzi (nie blokują części 2)**
 2. **Decyzje techniczne Claude „do oceny użytkownika”:** TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2 (podklucze, identyfikator klucza, dwie komendy rotacji, `basemind:key` bez wypisywania klucza). Szczegóły: `projekt.md`, pkt 13.
 3. **Testy API:** zostajemy przy PHPUnit czy przechodzimy na Pest, jak zakładał plan? Czy wdrażamy Larastan?
 4. **Testy e2e:** czy dodać Playwright i stałe scenariusze (lista w „Otwarte sprawy” → „Dług techniczny”)?
@@ -27,15 +27,15 @@
 
 ## Stan bieżący (ostatnia sesja: 2026-11-09)
 
-- **Faza:** Etap 0 zamknięty. **Etap 1 w toku: kroki 1.1 (konta, logowanie, przestrzenie), 1.2 (szyfrowanie), 1.3 (warstwa danych offline), 1.4 (synchronizacja), 1.5 (PWA), 1.6 (tagi i powiązania: dane i synchronizacja), 1.7 (wyszukiwanie), 1.8 (przypomnienia i powiadomienia), 1.9 (dashboard „Dziś”) i poprawki 1.11 zrobione. Następny jest krok 1.10 (szybkie dodawanie [+]), jeszcze nie zaczęty, potem zadania z 2.1.**
-- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca, łącznie z krokami 1.9 i 1.11, jest wypchnięta.
-- **Backend (`api/`):** Laravel 13.40, Sanctum + Fortify (`/api/auth`), utwardzenie PHP/Apache, kontrola luk PHP, nagłówki z CSP, powłoka PWA serwowana przez Laravela, przestrzenie i uprawnienia, ekran sesji, szyfrowanie libsodium (serwis `Crypto`, casty, komendy klucza), synchronizacja (`SyncService`, `config/sync.php`, trait `Syncable`, makro `$table->syncable()`), tagi i powiązania, przypomnienia i powiadomienia (`ReminderDispatcher`, `WebPushService`, zadania `SendReminder` i `SendDigest`, komendy `basemind:send-reminders`, `basemind:send-digests`, `basemind:vapid`), układ dashboardu w `user_settings`. 227 testów OK.
-- **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia, lokalna baza Dexie z repozytorium encji (`web/src/db/`), silnik synchronizacji ze wskaźnikiem stanu (`web/src/sync/`), instalacja i aktualizacje PWA (`web/src/lib/pwa.ts`, `PwaBanner`), repozytoria tagów i powiązań (`web/src/db/tags.ts`), globalne wyszukiwanie (`web/src/search/`, `SearchDialog`), powiadomienia push i ich ustawienia (`web/src/lib/push.ts`, `NotificationsPage`), licznik na ikonie, dashboard z rejestrem widżetów (`web/src/modules/today/widgets.ts`, `web/src/lib/dashboard.ts`, `DashboardSettingsPage`). 223 testy OK.
-- **Dane lokalne:** w bazie `basemind` jest **prawdziwe konto użytkownika**, założone przez niego na telefonie. Nie usuwać go i nie czyścić tej bazy. Są tam też dane z testów: tagi, 3 „Testowe przypomnienia” (jedno odłożone: przyjdzie przy najbliższym uruchomieniu harmonogramu) i subskrypcja push telefonu.
+- **Faza:** Etap 0 zamknięty. **Etap 1 w toku: kroki 1.1 (konta, logowanie, przestrzenie), 1.2 (szyfrowanie), 1.3 (warstwa danych offline), 1.4 (synchronizacja), 1.5 (PWA), 1.6 (tagi i powiązania: dane i synchronizacja), 1.7 (wyszukiwanie), 1.8 (przypomnienia i powiadomienia), 1.9 (dashboard „Dziś”), 1.10 (szybkie dodawanie [+]) i poprawki 1.11 zrobione. Etap 2 w toku: część 1 zadań (2.1) zrobiona. Następna jest część 2 zadań, potem kosz (1.12) do ustalenia.**
+- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca, łącznie z częścią 1 zadań, jest wypchnięta.
+- **Backend (`api/`):** Laravel 13.40, Sanctum + Fortify (`/api/auth`), utwardzenie PHP/Apache, kontrola luk PHP, nagłówki z CSP, powłoka PWA serwowana przez Laravela, przestrzenie i uprawnienia, ekran sesji, szyfrowanie libsodium (serwis `Crypto`, casty, komendy klucza), synchronizacja (`SyncService`, `config/sync.php`, trait `Syncable`, makro `$table->syncable()`), tagi i powiązania, przypomnienia i powiadomienia (`ReminderDispatcher`, `WebPushService`, zadania `SendReminder` i `SendDigest`, komendy `basemind:send-reminders`, `basemind:send-digests`, `basemind:vapid`), układ dashboardu w `user_settings`, zadania i listy (`Task`, `TaskList`, sekcje podsumowania w `app/Digest/`), operacja `restore` w synchronizacji. 247 testów OK.
+- **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia, lokalna baza Dexie z repozytorium encji (`web/src/db/`), silnik synchronizacji ze wskaźnikiem stanu (`web/src/sync/`), instalacja i aktualizacje PWA (`web/src/lib/pwa.ts`, `PwaBanner`), repozytoria tagów i powiązań (`web/src/db/tags.ts`), globalne wyszukiwanie (`web/src/search/`, `SearchDialog`), powiadomienia push i ich ustawienia (`web/src/lib/push.ts`, `NotificationsPage`), licznik na ikonie, dashboard z rejestrem widżetów (`web/src/modules/today/widgets.ts`, `web/src/lib/dashboard.ts`, `DashboardSettingsPage`), moduł zadań (`web/src/modules/tasks/`), arkusz [+] z rejestrem (`web/src/modules/quickAddRegistry.ts`) i parser (`web/src/lib/quick-parser.ts`). 284 testy OK.
+- **Dane lokalne:** w bazie `basemind` jest **prawdziwe konto użytkownika**, założone przez niego na telefonie. Nie usuwać go i nie czyścić tej bazy. Są tam też dane z testów: tagi, „Testowe przypomnienia”, zadania i subskrypcja push telefonu.
 - **Telefon:** BaseMind jest zainstalowany jako aplikacja, powiadomienia są włączone.
 - **Klucz szyfrowania:** lokalny `SODIUM_KEY` (identyfikator `2ca17bb1`) jest w `api/.env`, a użytkownik ma jego kopię w menedżerze haseł. Są nim już zaszyfrowane tytuły przypomnień, więc utrata klucza oznacza ich utratę. Produkcja dostanie własny klucz.
 - **Klucze VAPID** są w `api/.env` (tylko lokalne). Nowe klucze odłączają wszystkie urządzenia od powiadomień; `basemind:vapid` nie nadpisuje istniejących.
-- **Czeka na użytkownika:** ustalenia do kroku 1.10 i odpowiedzi na pozostałe „Pytania na start” (wyżej).
+- **Czeka na użytkownika:** ustalenia do części 2 zadań i kosza oraz odpowiedzi na pozostałe „Pytania na start” (wyżej).
 - **Uwaga:** ta sama instalacja MariaDB trzyma bazy innego projektu użytkownika (np. `syslead_test`). Nie używać `migrate:fresh` na bazie `basemind` ani poleceń obejmujących cały serwer; testy działają na `basemind_test`.
 - **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. Przed uruchomieniem sprawdzić, czy już nie działają. W chwili zakończenia sesji są zatrzymane, harmonogram też.
 
@@ -43,12 +43,12 @@
 1. Przeczytać `projekt.md` (szczególnie pkt 0, 3, 8, 13 „Rejestr decyzji”, 14 „Konfiguracja poza repozytorium”, 15 „Pułapki”) i ten plik.
 2. Sprawdzić stan: `git status`, `git log --oneline -5`, `composer audit` w `api/` (nowe poprawki bezpieczeństwa pojawiają się często; Symfony miało je już 2026-11-04) i `pnpm audit --prod` w `web/`.
 3. Uruchomić Apache i MariaDB (panel XAMPP lub poleceniami; Apache startuje ok. 30 s). Sprawdzić `http://localhost:8080/api/health`, testy `cd api && php artisan test` oraz `cd web && pnpm test`. Do testów powiadomień na żywo uruchomić też harmonogram z ustawionym `OPENSSL_CONF` (`projekt.md`, pkt 14).
-4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zadać „Pytania na start”** (na górze pliku), w tym o zakres kroku 1.10. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
-5. **Krok 1.10 (szybkie dodawanie):** szczegóły w sekcji 1.10 poniżej. Na stronie `/design` są prawdziwe tagi i przycisk „Przypomnij za minutę” do testów na żywo.
+4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zadać „Pytania na start”** (na górze pliku), w tym o część 2 zadań i kosz. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
+5. **Część 2 zadań:** niezrobione punkty w sekcji 2.1 poniżej. Na stronie `/design` są prawdziwe tagi i przycisk „Przypomnij za minutę” do testów na żywo.
 6. **Test na telefonie przez USB** (instrukcja w `README.md`): do sprawdzania PWA używać builda, czyli port `8080 → localhost:8080` i na telefonie `http://localhost:8080`. Telefon użytkownika: Samsung S25 Ultra, debugowanie USB już włączone. Jeśli logowanie zgłasza brak połączenia, najpierw sprawdzić `http://localhost:8080/api/health` na telefonie (`projekt.md`, pkt 15). Do testu offline odłączyć kabel: tryb samolotowy nie przerywa przekierowania portu przez USB.
 7. Po sesji: zaktualizować ten plik („Stan bieżący”, checklisty, „Dziennik zmian”) i rejestr decyzji w `projekt.md`, a po zgodzie zrobić commit i `git push`.
 
-### Otwarte sprawy (nic z tego nie blokuje kroku 1.10)
+### Otwarte sprawy (nic z tego nie blokuje części 2 zadań)
 **Do wiadomości lub decyzji użytkownika**
 - Decyzje techniczne Claude z rejestru w `projekt.md` oznaczone „do oceny użytkownika”, jeszcze niepotwierdzone: TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2.
 - Kod rejestracji jest w `api/.env`. Przed wdrożeniem ustawić długi kod na produkcji, a po założeniu kont zostawić go pustym.
@@ -65,13 +65,14 @@
 
 **Czekają na swoje kroki**
 - Background Sync: nadal niesprawdzony na żywo (przesyłanie rekordów między urządzeniami już tak).
-- Poranne podsumowanie: mechanizm sprawdzony tylko testami, bo nie ma jeszcze treści. Sprawdzić na żywo przy pierwszym module, który doda sekcję w `config/digest.php`.
+- Poranne podsumowanie: sekcje zadań już są, ale nadal sprawdzone tylko testami. Sprawdzić na żywo (godzina w ustawieniach kilka minut do przodu, harmonogram uruchomiony, zadanie na dziś).
+- Część 1 zadań: użytkownik potwierdził gesty, powiadomienia i przycisk „Zrobione”. Nie potwierdzono wprost: wyszukiwanie zadań (Web Worker, testy go nie obejmują), list, pracy offline, panelu nad klawiaturą, skrótu Q.
+- Przyczyna zniknięcia rejestracji push telefonu 2026-11-09 nieustalona (sesja była aktywna). Telefon zgłasza się teraz przy każdym uruchomieniu, a serwer zapisuje powód usunięcia w logu: sprawdzić, jeśli się powtórzy.
 - Przy każdym module: wpis w `config/digest.php` (jeśli dotyczy) i kanały powiadomień osobno dla typu (decyzja użytkownika: razem z modułami).
 - Przyciski na powiadomieniu bez internetu nie działają: odpowiedź przepada, przypomnienie zostaje bez odpowiedzi.
 - Ekran z listą przypomnień nie istnieje: w aplikacji można je dziś tworzyć tylko z `/design`.
 - Prawdziwa wysyłka e-mail do sprawdzenia przy wdrożeniu (lokalnie trafia do logu).
-- Przycisk [+] jest na razie informacyjny: właściwa wersja w 1.10.
-- Widżety Zadania, Wydarzenia i Ostatnie wydatki to puste zaślepki (`PlaceholderWidgets.tsx`): moduły podmienią je w 2.1, 2.2 i 3.1. Identyfikatorów widżetów nie zmieniać, bo są zapisane w układzie użytkownika.
+- Widżety Wydarzenia i Ostatnie wydatki to puste zaślepki (`PlaceholderWidgets.tsx`): moduły podmienią je w 2.2 i 3.1. Identyfikatorów widżetów nie zmieniać, bo są zapisane w układzie użytkownika.
 - Maile lokalnie trafiają do `api/storage/logs/laravel.log`: prawdziwa wysyłka SMTP do sprawdzenia przy wdrożeniu.
 - Usunąć stronę `/design` przed wdrożeniem (Etap 7).
 - Śledzić CVE-2026-115560 w PHP (`projekt.md`, pkt 8.1) i `max_allowed_packet` przy synchronizacji (0.2).
@@ -259,28 +260,44 @@
 - [x] Test użytkownika na telefonie.
 
 ### 1.10 Szybkie dodawanie [+]
-- [ ] Bottom sheet z wyborem typu (rozszerzany w kolejnych etapach).
-- [ ] Szkielet parsera tekstu (reguły dodawane przez moduły).
+Zrobione razem z 2.1 (decyzja użytkownika).
+- [x] Bottom sheet z rejestrem typów (przy jednym typie bez wyboru); typ dostarcza własny formularz.
+- [x] Parser tekstu z regułami dodawanymi przez moduły.
+- [x] Osobny skrót na komputerze: klawisz Q (`Ctrl+K` to wyszukiwarka).
+- [x] Panele wysuwane unoszą się nad klawiaturą ekranową.
 
 ### 1.11 Poprawki zgłoszone przez użytkownika
 - [x] Ostatnie wyszukiwania: usuwanie pojedynczego wpisu (krzyżyk przy wpisie w `SearchDialog`).
 - [x] Synchronizacja po kliknięciu: wskaźnik stanu (`SyncIndicator`, ikona przy wyszukiwarce) uruchamia od razu pełny cykl (`syncNow()`), ikona kręci się co najmniej 0,6 s. Powód: automatyczne pobieranie zmian co 60 s trwa użytkownikowi za długo. Interwał 60 s zostaje bez zmian (decyzja z 2026-11-09), to dodatkowa, ręczna droga.
 - [x] Test użytkownika na telefonie.
 
+### 1.12 Kosz (zgłoszone przez użytkownika, moment wdrożenia do ustalenia)
+- [ ] Ekran „Kosz”: usunięte elementy ze wszystkich modułów, przez 30 dni można je przywrócić. Przywracanie korzysta z operacji `restore` synchronizacji (z 2.1).
+- [ ] Czyszczenie po 30 dniach w harmonogramie. Do ustalenia, co zostaje po usunięciu: „nagrobek” jest potrzebny urządzeniom offline, ale treść (także pola 🔐 i załączniki) powinna zniknąć.
+- [ ] Rejestr: moduł dopisuje się jednym wpisem (ikona, nazwa, tytuł elementu). Listy zadań i powiązane rekordy (tagi, przypomnienia) do przemyślenia przy wdrożeniu.
+
 ---
 
 ## Etap 2 — Codzienność
 
 ### 2.1 Zadania (Todo)
-- [ ] Encje `task_lists`, `tasks` (+ sync, wyszukiwanie, powiązania).
-- [ ] Widoki: Dziś, Nadchodzące, Zaległe, Listy, Ukończone.
-- [ ] Priorytety P1–P4, termin (data + opcjonalnie godzina), podzadania, notatka Markdown.
-- [ ] Sekcje porannego podsumowania i kanały powiadomień dla typu (przeniesione z 1.8; dotyczy też kolejnych modułów).
+**Część 1 (zrobiona)**
+- [x] Encje `task_lists`, `tasks` (+ sync, wyszukiwanie); tytuł i notatka 🔐.
+- [x] Widoki: Dziś (zaległe jako sekcja na górze, decyzja użytkownika), Nadchodzące (z „Bez terminu”), Listy (ze Skrzynką), Ukończone.
+- [x] Priorytety P1–P4, termin (data + opcjonalnie godzina), notatka tekstowa, edycja pod własnym adresem (`/tasks/$taskId`).
+- [x] Sekcje porannego podsumowania: zadania na dziś i zaległe.
+- [x] Przypomnienia (w chwili terminu, 30 min, 1 godz., 1 dzień przed; bez godziny liczone od 9:00), także w arkuszu [+]; podążają za odhaczeniem, usunięciem i zmianą terminu. „Zrobione” na powiadomieniu odhacza zadanie.
+- [x] Pole wyboru odhacza, swipe w prawo: na jutro, w lewo: usuń z „Cofnij” (zaakceptowane przez użytkownika).
+- [x] Parser: „dziś”, „jutro”, „w piątek”, „!1”.
+- [x] Widżet dashboardu: dziś + zaległe.
+
+**Część 2 (do zrobienia)**
+- [ ] Podzadania, notatka w Markdown.
+- [ ] Powiązania i tagi zadań (po komponentach z 2.3).
+- [ ] Kanały powiadomień dla typu (przeniesione z 1.8; dotyczy też kolejnych modułów).
 - [ ] Cykliczność (rrule; „od terminu” vs „od ukończenia”).
-- [ ] Przypomnienia.
-- [ ] Swipe: odhacz / na jutro / usuń; sortowanie przeciąganiem.
-- [ ] Parser języka naturalnego (pl): „jutro”, „w piątek”, „co tydzień”, „!1”.
-- [ ] Widżet dashboardu: dziś + zaległe.
+- [ ] Sortowanie przeciąganiem.
+- [ ] Reszta parsera: „co tydzień” i inne zwroty.
 
 ### 2.2 Kalendarz
 - [ ] Encja `events` (rrule, przypomnienia).
@@ -312,6 +329,7 @@
 - [ ] Domyślne kategorie PL (edytowalne).
 - [ ] Portfele z saldem, przelewy między portfelami.
 - [ ] **Szybkie dodawanie** (priorytet UX): duża klawiatura kwoty → kategoria (ostatnio używane) → zapisz; parser `-45 paliwo karta`.
+- [ ] Arkusz [+] sam rozpoznaje typ po treści: `-liczba` to wydatek, `+liczba` to wpływ (zgłoszone przez użytkownika).
 - [ ] Lista transakcji z filtrami, grupowanie po dniach.
 - [ ] Raporty: wydatki per kategoria (donut), wpływy/wydatki miesięcznie (słupki), trend salda, porównanie miesięcy.
 - [ ] Budżety miesięczne z ostrzeżeniami.
@@ -470,3 +488,4 @@
 | 2026-11-09 | Krok 1.8: przypomnienia (także cykliczne, odkładanie, godziny ciszy), Web Push z przyciskami, e-maile, ustawienia, licznik na ikonie, mechanizm porannego podsumowania. Tytuły przypomnień szyfrowane (decyzja użytkownika; 3 testowe zaszyfrowane jednorazowo w lokalnej bazie). Testy: api 219 OK, web 195 OK; oba audyty czyste; migracja na `basemind`, klucze VAPID w `.env`. Użytkownik potwierdził na telefonie. Koniec sesji na prośbę użytkownika, dokumentacja przygotowana do wznowienia. Serwery i harmonogram zatrzymane. Commit i push za zgodą użytkownika. | 1.9 (dashboard) — po zgodzie użytkownika. |
 | 2026-11-09 | Krok 1.9: rejestr widżetów, powitanie, ekran ustawień kolejności i widoczności, zapis offline z synchronizacją przez `user_settings` (bez migracji). Szybka notatka przeniesiona do 2.3, imieniny usunięte z całego projektu (decyzje użytkownika). Testy: api 227 OK, web 219 OK; oba audyty czyste. Użytkownik potwierdził działanie. Do planu dopisane poprawki 1.11: usuwanie pojedynczego wpisu z ostatnich wyszukiwań i synchronizacja po kliknięciu. | 1.10 (szybkie dodawanie) — po zgodzie użytkownika. |
 | 2026-11-09 | Poprawki 1.11: krzyżyk przy ostatnich wyszukiwaniach, synchronizacja po dotknięciu ikony stanu. Testy: web 223 OK; backend bez zmian. Użytkownik potwierdził działanie. Commit i push za zgodą użytkownika. Kolejność dalej: 1.10, potem zadania z 2.1 (decyzja użytkownika). | 1.10 (szybkie dodawanie) — po ustaleniu zakresu. |
+| 2026-11-09 | Część 1 zadań razem z krokiem 1.10: tabele i synchronizacja (tytuł i notatka szyfrowane), widoki, listy, edycja, gesty z „Cofnij” (nowa operacja `restore`), arkusz [+] z polami i parserem, skrót Q, panele nad klawiaturą, przypomnienia, „Zrobione” odhaczające zadanie, sekcje podsumowania, widżet, wyszukiwarka. Naprawione: serwer gubił rejestrację push telefonu, a aplikacja tego nie wykrywała. Do planu dopisany kosz (1.12) i rozpoznawanie `-liczba`/`+liczba` (3.1). Testy: api 247 OK, web 284 OK; migracja na `basemind`. Użytkownik potwierdził gesty i powiadomienia z „Zrobione”. Commit i push za zgodą użytkownika. | Część 2 zadań i termin kosza — po ustaleniu z użytkownikiem. |

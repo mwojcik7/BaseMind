@@ -7,7 +7,7 @@ export interface OutboxEntry {
   op_id: string
   entity: string
   record_id: string
-  op: 'create' | 'update' | 'delete'
+  op: 'create' | 'update' | 'delete' | 'restore'
   /** The whole record for `create`, only the changed fields for `update`. */
   payload: Record<string, unknown>
   /** The record's version before this change; the server compares it to detect conflicts. */
@@ -36,6 +36,7 @@ export const SCHEMA_VERSIONS: SchemaVersion[] = [
     entity_links: 'id, [source_type+source_id], [target_type+target_id]',
   },
   { reminders: 'id, status' },
+  { task_lists: 'id', tasks: 'id, status, due_date, list_id' },
 ]
 
 export class LocalDatabase extends Dexie {

@@ -14,6 +14,8 @@ interface DatePickerProps {
   value: string | null
   onChange: (value: string | null) => void
   placeholder?: string
+  /** Short date, for narrow fields. */
+  compact?: boolean
 }
 
 export function DatePicker({
@@ -21,6 +23,7 @@ export function DatePicker({
   value,
   onChange,
   placeholder = pl.datePicker.placeholder,
+  compact = false,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false)
   const selected = value ? parseISO(value) : undefined
@@ -43,7 +46,7 @@ export function DatePicker({
         >
           <CalendarIcon aria-hidden className="text-muted-foreground" />
           {selected ? (
-            format(selected, 'd MMMM yyyy', { locale: dateLocale })
+            format(selected, compact ? 'd MMM yyyy' : 'd MMMM yyyy', { locale: dateLocale })
           ) : (
             <span className="text-muted-foreground">{placeholder}</span>
           )}

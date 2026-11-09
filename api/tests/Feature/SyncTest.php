@@ -257,6 +257,45 @@ class SyncTest extends TestCase
         $this->assertSame(2, $this->item($id)->version);
     }
 
+    public function test_restores_a_deleted_record_for_every_device(): void
+    {
+        $id = (string) Str::uuid7();
+        $this->createItem($id);
+        $this->push([$this->op('delete', $id, [], 1)])->assertOk();
+        $cursor = $this->item($id)->rev;
+
+        $this->assertStatus($this->push([$this->op('restore', $id, [], 2)]), 'applied');
+
+        $this->assertNull($this->item($id)->deleted_at);
+        $this->assertSame(3, $this->item($id)->version);
+        $this->actingAs($this->user)->getJson("/api/sync/pull?cursor={$cursor}")
+            ->assertJsonPath('changes.0.record.id', $id)
+            ->assertJsonPath('changes.0.record.deleted_at', null);
+
+        $this->assertStatus($this->push([$this->op('update', $id, ['title' => 'Znowu'], 3)]), 'applied');
+    }
+
+    public function test_restoring_a_live_record_changes_nothing(): void
+    {
+        $id = (string) Str::uuid7();
+        $this->createItem($id);
+
+        $this->assertStatus($this->push([$this->op('restore', $id, [], 1)]), 'applied');
+
+        $this->assertSame(1, $this->item($id)->version);
+    }
+
+    public function test_cannot_restore_a_missing_or_foreign_record(): void
+    {
+        $id = (string) Str::uuid7();
+        $this->createItem($id);
+        $this->push([$this->op('delete', $id, [], 1)])->assertOk();
+
+        $this->assertSame('not_found', $this->assertStatus($this->push([$this->op('restore', (string) Str::uuid7(), [], 1)]), 'rejected')['reason']);
+        $this->assertSame('not_found', $this->assertStatus($this->push([$this->op('restore', $id, [], 2)], User::factory()->create()), 'rejected')['reason']);
+        $this->assertNotNull($this->item($id)->deleted_at);
+    }
+
     public function test_one_rejected_change_does_not_block_the_others(): void
     {
         $bad = (string) Str::uuid7();

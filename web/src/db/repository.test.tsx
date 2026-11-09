@@ -126,6 +126,29 @@ describe('repository', () => {
     expect(await outbox()).toHaveLength(2)
   })
 
+  it('restores a deleted record and queues the change', async () => {
+    const item = await items.create(NEW_ITEM)
+    await items.softDelete(item.id)
+
+    await items.restore(item.id)
+
+    expect(await items.get(item.id)).toMatchObject({ version: 3, deleted_at: null })
+    expect((await outbox()).at(-1)).toMatchObject({
+      op: 'restore',
+      record_id: item.id,
+      base_version: 2,
+    })
+  })
+
+  it('does nothing when restoring a live record, and refuses a missing one', async () => {
+    const item = await items.create(NEW_ITEM)
+
+    await items.restore(item.id)
+
+    expect(await outbox()).toHaveLength(1)
+    await expect(items.restore('missing')).rejects.toThrow(RecordNotFoundError)
+  })
+
   it('refuses to change missing or deleted records', async () => {
     const item = await items.create(NEW_ITEM)
     await items.softDelete(item.id)

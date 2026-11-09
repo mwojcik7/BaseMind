@@ -93,6 +93,7 @@ class SyncService
             'create' => $this->create($user, $model, $record, $op, $changedAt),
             'update' => $this->update($user, $record, $op, $changedAt),
             'delete' => $this->delete($user, $record, $changedAt),
+            'restore' => $this->restore($user, $record, $changedAt),
         };
     }
 
@@ -180,6 +181,21 @@ class SyncService
 
         if ($record->deleted_at === null) {
             $this->save($record, ['deleted_at' => $changedAt, 'version' => $record->version + 1], $changedAt);
+        }
+
+        return 'applied';
+    }
+
+    private function restore(User $user, ?Model $record, CarbonImmutable $changedAt): string
+    {
+        if ($record === null) {
+            throw new RejectedSyncOperation('not_found');
+        }
+
+        $this->authorizeEdit($user, $record);
+
+        if ($record->deleted_at !== null) {
+            $this->save($record, ['deleted_at' => null, 'version' => $record->version + 1], $changedAt);
         }
 
         return 'applied';
