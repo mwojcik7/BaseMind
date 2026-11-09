@@ -3,11 +3,19 @@ import { ChevronRight, MonitorSmartphone, Monitor, Moon, Sun, type LucideIcon } 
 import { useState } from 'react'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { toast } from '@/components/ui/toaster'
 import { pl } from '@/i18n/pl'
 import { logOut, useAuth } from '@/lib/auth'
 import { errorMessage } from '@/lib/form-errors'
-import { getTheme, setTheme, THEMES, type Theme } from '@/lib/theme'
+import { getTheme, THEMES, type Theme } from '@/lib/theme'
+import { saveTheme, sendChangesBeforeLogOut } from '@/sync/engine'
 
 const THEME_ICONS: Record<Theme, LucideIcon> = { system: Monitor, light: Sun, dark: Moon }
 
@@ -16,19 +24,38 @@ export function SettingsPage() {
   const [loggingOut, setLoggingOut] = useState(false)
   const account = useAuth((state) => state.account)
 
+  const [unsent, setUnsent] = useState(0)
+
   function select(theme: Theme) {
-    setTheme(theme)
+    void saveTheme(theme)
     setSelected(theme)
   }
 
-  async function handleLogOut() {
+  async function runLogOut(action: () => Promise<void>) {
     setLoggingOut(true)
     try {
-      await logOut()
+      await action()
     } catch (error) {
       toast.error(errorMessage(error))
       setLoggingOut(false)
     }
+  }
+
+  function handleLogOut() {
+    return runLogOut(async () => {
+      const lost = await sendChangesBeforeLogOut()
+      if (lost > 0) {
+        setUnsent(lost)
+        setLoggingOut(false)
+        return
+      }
+      await logOut()
+    })
+  }
+
+  function confirmLogOut() {
+    setUnsent(0)
+    return runLogOut(logOut)
   }
 
   return (
@@ -80,6 +107,23 @@ export function SettingsPage() {
           {pl.settings.logOut}
         </Button>
       </section>
+
+      <Dialog open={unsent > 0} onOpenChange={(open) => !open && setUnsent(0)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{pl.settings.unsentTitle}</DialogTitle>
+            <DialogDescription>{pl.settings.unsentDescription(unsent)}</DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 flex flex-col gap-2">
+            <Button variant="destructive" onClick={() => void confirmLogOut()}>
+              {pl.settings.logOutAnyway}
+            </Button>
+            <Button variant="secondary" onClick={() => setUnsent(0)}>
+              {pl.common.cancel}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

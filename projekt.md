@@ -218,6 +218,8 @@ Kluczowe cechy:
   - `deleted_at` (soft delete — „nagrobki” potrzebne do synchronizacji)
   - `rev` (`BIGINT UNSIGNED`) — numer zmiany nadawany przez serwer z globalnego licznika (tabela `sync_counter`, atomowy `UPDATE … SET value = LAST_INSERT_ID(value + 1)` w transakcji) — kursor synchronizacji
   - `version` (int) — inkrementowany przy każdej edycji — wykrywanie konfliktów
+  - `field_stamps` (JSON, tylko na serwerze) — czas ostatniej zmiany każdego pola, potrzebny do rozstrzygania konfliktów
+  - Kolumny tworzy makro `$table->syncable()`, zachowanie daje trait `Syncable`
 - **Kwoty** jako liczby całkowite w groszach (`amount_minor`, `BIGINT`) + `currency` (`CHAR(3)`, domyślnie `PLN`). Nigdy float.
 - **Daty bez czasu** jako `DATE`, momenty w czasie jako `DATETIME` w UTC. Strefa użytkownika domyślnie `Europe/Warsaw`.
 - **Cykliczność** jako reguła RRULE (RFC 5545), np. `FREQ=MONTHLY;BYMONTHDAY=10`.
@@ -320,7 +322,8 @@ Kluczowe cechy:
 2. **Push:** `POST /api/sync/push` — partia operacji (np. do 100). Serwer dla każdej:
    - waliduje (Laravel Validation — reguły per encja), sprawdza uprawnienia do `space_id` (Policy),
    - jeśli `base_version` == aktualna wersja → zapisuje, `version+1`, nowy `rev`,
-   - jeśli konflikt → **last-write-wins na poziomie pól**; dla **notatek** dodatkowo „kopia konfliktu”,
+   - jeśli konflikt → **last-write-wins na poziomie pól** według czasu zmiany na urządzeniu (nie późniejszego niż czas serwera); pola nietknięte przez urządzenie zostają bez zmian; dla **notatek** dodatkowo „kopia konfliktu” (krok 2.3),
+   - zmiana odrzucona na stałe (np. niepoprawne dane, brak uprawnień) zostaje na urządzeniu, nie jest ponownie wysyłana i jest pokazywana we wskaźniku,
    - idempotentność: `op_id` zapamiętywany (tabela `sync_ops`), ponowne wysłanie nie dubluje zmian,
    - zwraca wynik per operacja; klient usuwa z outboxa potwierdzone.
 3. **Pull:** `GET /api/sync/pull?cursor=<rev>&limit=500` — zmiany o `rev > cursor` w przestrzeniach użytkownika (z nagrobkami), stronicowane. Pola 🔐 są odszyfrowywane na serwerze przed wysłaniem (przez HTTPS).
@@ -328,7 +331,7 @@ Kluczowe cechy:
 5. **Pliki:** załączniki zapisywane lokalnie jako Blob w IndexedDB, wysyłane osobną kolejką (w kawałkach, jeśli duże — limity hostingu); miniatury generowane na kliencie.
 6. **Wylogowanie** czyści lokalną bazę. Najpierw próba wysłania zmian z `outbox`, a gdy się nie uda, ostrzeżenie „Wyloguj mimo to / Anuluj” (od kroku 1.4). Zakończenie sesji przez serwer (401: odwołane urządzenie, wygaśnięcie) czyści bazę bez pytania, także z niewysłanymi zmianami, żeby odwołanie zgubionego telefonu usuwało z niego odszyfrowane dane. Zalogowanie na inne konto też czyści bazę.
 7. Wskaźnik w UI: „zsynchronizowano / X zmian czeka / offline / błąd”.
-8. Rejestr encji synchronizowanych po obu stronach (front: definicja tabeli Dexie; back: model + reguły walidacji + policy) — dodanie modułu = wpis w rejestrze.
+8. Rejestr encji synchronizowanych po obu stronach (front: nowy wpis w `SCHEMA_VERSIONS` w `web/src/db/db.ts`; back: model z traitem `Syncable` i `syncRules()` + wpis w `config/sync.php`, uprawnienia z `SpaceItemPolicy`) — dodanie modułu = wpis w rejestrze. Nazwa encji musi być taka sama po obu stronach.
 
 ---
 
@@ -406,7 +409,7 @@ Kluczowe cechy:
 
 ## 9. Struktura repozytorium (plan docelowy)
 
-> **Stan na 2026-11-09 — co już istnieje poza poniższym planem:** `api/app/Actions/Fortify/`, `api/app/Enums/`, `api/app/Models/Concerns/BelongsToSpace.php`, `api/app/Http/Responses/`, `api/lang/pl/`, `web/src/lib/` (`api`, `auth`, `money`, `theme`, `device`, `form-errors`), `web/src/i18n/pl.ts`, `web/src/modules/` (`auth`, `today`, `tasks`, `calendar`, `more`, `settings`, `design`, `registry.ts`), `web/public/app-icons/`, `web/public/theme-init.js`, `api/app/Casts/`, `api/app/Services/` (`Crypto`, `EncryptedFieldRotator`), `api/app/Exceptions/`. Jeszcze nie ma: `Sync/`, `web/src/sync/`, `web/src/search/`. Build zapisuje do `api/public/`: `assets/`, `app-icons/`, `index.html`, `sw.js`, `theme-init.js`, `manifest.webmanifest` (pliki w `.gitignore`).
+> **Stan na 2026-11-09 — co już istnieje poza poniższym planem:** `api/app/Actions/Fortify/`, `api/app/Enums/`, `api/app/Models/Concerns/BelongsToSpace.php`, `api/app/Http/Responses/`, `api/lang/pl/`, `web/src/lib/` (`api`, `auth`, `money`, `theme`, `device`, `form-errors`), `web/src/i18n/pl.ts`, `web/src/modules/` (`auth`, `today`, `tasks`, `calendar`, `more`, `settings`, `design`, `registry.ts`), `web/public/app-icons/`, `web/public/theme-init.js`, `api/app/Casts/`, `api/app/Services/` (`Crypto`, `EncryptedFieldRotator`), `api/app/Exceptions/`. Rejestr synchronizacji jest w `api/config/sync.php`, logika w `api/app/Services/SyncService.php` (zamiast planowanego `app/Sync/`). Jeszcze nie ma: `web/src/search/`. Build zapisuje do `api/public/`: `assets/`, `app-icons/`, `index.html`, `sw.js`, `theme-init.js`, `manifest.webmanifest` (pliki w `.gitignore`).
 
 ```
 BaseMind/
@@ -538,6 +541,9 @@ Hosting musi zapewniać:
 | 2026-11-09 | Szyfrowanie pól zostaje przy `secretbox` bez wiązania szyfrogramu z wierszem i kolumną (na razie jeden użytkownik) | Użytkownik |
 | 2026-11-09 | Wylogowanie z niewysłanymi zmianami: próba wysłania, potem ostrzeżenie „Wyloguj mimo to / Anuluj” (krok 1.4) | Użytkownik |
 | 2026-11-09 | Zakończenie sesji przez serwer kasuje lokalne dane bez pytania, także niewysłane zmiany (ochrona zgubionego telefonu) | Użytkownik |
+| 2026-11-09 | Konflikty synchronizacji: wygrywa późniejsza zmiana każdego pola (`field_stamps`), czas urządzenia ograniczony czasem serwera | Claude (zaakceptowane przez użytkownika) |
+| 2026-11-09 | Kopia konfliktu notatek przeniesiona z 1.4 do 2.3 | Claude (zaakceptowane przez użytkownika) |
+| 2026-11-09 | Zmiany odrzucone przez serwer zostają w `outbox`, nie są ponownie wysyłane i są pokazywane we wskaźniku | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Pakiet `uuid` do UUIDv7, `fake-indexeddb` w testach; repozytorium odrzuca lokalnie zapis do przestrzeni bez prawa edycji, zanim zmiana utknie w `outbox` | Claude (do oceny użytkownika) |
 
 ---
@@ -592,7 +598,7 @@ Po świeżym `git clone`: `cd api && composer install && copy .env.example .env 
 
 `api/.env` zawiera też `BASEMIND_REGISTRATION_CODE` (losowy kod do zakładania kont, tylko lokalny) i `SESSION_LIFETIME=43200`. Bez kodu rejestracja jest wyłączona; aby założyć kolejne konto, wystarczy odczytać lub ustawić kod w tym pliku.
 
-**7a. Dane tylko lokalne:** baza `basemind` trzyma prawdziwe konto użytkownika (nie ma go w git). Przy reinstalacji XAMPP lub nowym komputerze trzeba zrobić kopię bazy lub założyć konto od nowa kodem zaproszenia. Do czasu Etapu 1.4 konto nie ma jeszcze żadnych innych danych.
+**7a. Dane tylko lokalne:** baza `basemind` trzyma prawdziwe konto użytkownika (nie ma go w git). Przy reinstalacji XAMPP lub nowym komputerze trzeba zrobić kopię bazy lub założyć konto od nowa kodem zaproszenia. Na razie konto nie ma żadnych danych modułów, tylko ustawienie motywu.
 
 **7b. Inne projekty na tym serwerze:** MariaDB z XAMPP trzyma też bazy innego projektu użytkownika (np. `syslead_test`). Nie wolno ich ruszać ani używać poleceń obejmujących cały serwer.
 
@@ -611,6 +617,10 @@ Po świeżym `git clone`: `cd api && composer install && copy .env.example .env 
 - **Pobieranie programów z internetu (np. Mailpit) może zostać zablokowane** przez zabezpieczenia sesji Claude — wtedy poprosić użytkownika o ręczne pobranie lub zgodę.
 - **Sanctum uruchamia sesję tylko dla żądań z nagłówkiem `Referer`/`Origin` z `SANCTUM_STATEFUL_DOMAINS`.** Bez tego kontroler dostaje `Session store not set` (także w testach: `withHeader('Referer', …)`). Na produkcji trzeba tam wpisać domenę.
 - **Na serwerze MariaDB są też bazy innego projektu** (np. `syslead_test`) — nie używać `migrate:fresh` na `basemind` i sprawdzać `DB::getDatabaseName()` przed operacjami na danych.
+- **Tryb samolotowy nie odcina serwera przy teście przez USB** — przekierowanie portu idzie po kablu. Do testu offline odłączyć kabel. Po ponownym podłączeniu zdarzenie `online` nie występuje: synchronizacja rusza po powrocie do aplikacji albo w ciągu minuty.
+- **Laravel domyślnie przycina tekst i zamienia puste napisy na `null`.** Dla `api/sync/*` jest to wyłączone w `bootstrap/app.php`, żeby dane zapisywały się dokładnie tak, jak je wpisano.
+- **Kod importowany przez Service Workera (`web/src/sync/push.ts`, `web/src/db/db.ts`) nie może używać aliasu `@/` ani DOM.** Worker nie ma też `document.cookie`, token CSRF czyta z `cookieStore`.
+- **Tabela testowa z `Schema::create` wymaga `DatabaseMigrations`, nie `RefreshDatabase`** (DDL kończy transakcję); wzór w `tests/Feature/SyncTest.php`.
 - **Test na telefonie: działający ekran nie znaczy, że jest połączenie.** Service Worker pokazuje aplikację także przy przerwanym przekierowaniu portu (zamknięty Chrome lub `chrome://inspect`, kabel). Sprawdzenie: `http://localhost:8080/api/health` na telefonie omija Service Workera; nowe wpisy w `basemind-access.log` pokazują, czy żądanie dotarło.
 - **Nie używać ścieżki `/icons/`:** domyślna konfiguracja Apache (XAMPP i wiele hostingów) ma `Alias /icons/` na własny katalog, więc pliki z `public/icons` zwracają 404. Ikony PWA są w `/app-icons/`.
 - **`shadcn add` czyta alias `@/*` z głównego `web/tsconfig.json`** — bez wpisu `paths` tworzy dosłowny katalog `web/@/`.

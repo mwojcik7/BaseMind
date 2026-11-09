@@ -24,6 +24,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // /login is a screen of the PWA, so no Laravel route has that name.
         // Without this, an API request not asking for JSON ends in a 500 instead of a 401.
         $middleware->redirectGuestsTo('/login');
+
+        // Synchronised data must reach the database exactly as the user wrote it.
+        $isSync = fn (Request $request) => $request->is('api/sync/*');
+        $middleware->trimStrings(except: [$isSync]);
+        $middleware->convertEmptyStringsToNull(except: [$isSync]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

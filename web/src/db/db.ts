@@ -13,6 +13,8 @@ export interface OutboxEntry {
   /** The record's version before this change; the server compares it to detect conflicts. */
   base_version: number
   client_ts: string
+  /** Set when the server refused this change for good; it is then no longer sent. */
+  rejected_reason?: string
 }
 
 export interface MetaEntry {

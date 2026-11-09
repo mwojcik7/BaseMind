@@ -6,9 +6,11 @@ import { registerSW } from 'virtual:pwa-register'
 import { createAppRouter } from '@/app/router'
 import { startAuth } from '@/lib/auth'
 import { applyTheme, getTheme } from '@/lib/theme'
+import { startSync } from '@/sync/engine'
 import './index.css'
 
 applyTheme(getTheme())
+startSync()
 void startAuth()
 
 const router = createAppRouter()

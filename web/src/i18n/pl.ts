@@ -3,6 +3,15 @@ export const pl = {
   appName: 'BaseMind',
   common: {
     close: 'Zamknij',
+    cancel: 'Anuluj',
+  },
+  sync: {
+    synced: 'Zsynchronizowano',
+    pending: (count: number) => `Zmiany czekające na wysłanie: ${count}`,
+    offline: 'Brak połączenia',
+    offlinePending: (count: number) => `Brak połączenia. Zmiany czekające na wysłanie: ${count}`,
+    error: 'Błąd synchronizacji',
+    rejected: (count: number) => `Zmiany odrzucone przez serwer: ${count}`,
   },
   errors: {
     offline: 'Brak połączenia z serwerem. Sprawdź połączenie i spróbuj ponownie.',
@@ -110,6 +119,10 @@ export const pl = {
     account: 'Konto',
     sessions: 'Sesje i urządzenia',
     logOut: 'Wyloguj się',
+    unsentTitle: 'Niewysłane zmiany',
+    unsentDescription: (count: number) =>
+      `Liczba zmian, których nie udało się wysłać na serwer: ${count}. Po wylogowaniu przepadną.`,
+    logOutAnyway: 'Wyloguj mimo to',
   },
   sessions: {
     title: 'Sesje i urządzenia',

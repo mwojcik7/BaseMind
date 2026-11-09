@@ -3,6 +3,8 @@
 use App\Http\Controllers\DeviceSessionController;
 use App\Http\Controllers\MeController;
 use App\Http\Controllers\SpaceController;
+use App\Http\Controllers\SyncController;
+use App\Http\Controllers\UserSettingsController;
 use App\Support\PhpSecurity;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -46,4 +48,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/sessions', [DeviceSessionController::class, 'index']);
     Route::delete('/sessions', [DeviceSessionController::class, 'destroyOthers']);
     Route::delete('/sessions/{id}', [DeviceSessionController::class, 'destroy']);
+
+    Route::post('/sync/push', [SyncController::class, 'push']);
+    Route::get('/sync/pull', [SyncController::class, 'pull']);
+
+    Route::post('/settings', [UserSettingsController::class, 'update']);
 });

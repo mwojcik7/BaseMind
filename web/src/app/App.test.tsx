@@ -1,5 +1,5 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAppRouter } from '@/app/router'
@@ -7,6 +7,7 @@ import { db } from '@/db/db'
 import { pl } from '@/i18n/pl'
 import { startAuth, type Account } from '@/lib/auth'
 import { getTheme } from '@/lib/theme'
+import { useSyncStatus } from '@/sync/engine'
 
 const ACCOUNT: Account = {
   user: { id: 1, display_name: 'Marcin', email: 'm@example.com', timezone: 'UTC', locale: 'pl' },
@@ -198,6 +199,98 @@ describe('signing in', () => {
       token: 'abc',
       email: 'm@example.com',
     })
+  })
+})
+
+describe('synchronisation in the app', () => {
+  const PULL_PAGE = { changes: [], cursor: 0, has_more: false, settings: { theme: null } }
+
+  function queueUnsentChange() {
+    return db.outbox.add({
+      op_id: 'op-1',
+      entity: 'notes',
+      record_id: 'note',
+      op: 'create',
+      payload: {},
+      base_version: 0,
+      client_ts: '2026-11-09T10:00:00.000Z',
+    })
+  }
+
+  function serverAnswersPush(status: 'applied' | 'rejected') {
+    serverAnswers((path) => {
+      if (path === '/api/me') {
+        return json(200, ACCOUNT)
+      }
+      if (path === '/api/sync/push') {
+        return json(200, { results: [{ op_id: 'op-1', status, reason: 'invalid' }] })
+      }
+      if (path.startsWith('/api/sync/pull')) {
+        return json(200, PULL_PAGE)
+      }
+      return new Response(null, { status: 204 })
+    })
+  }
+
+  const logOutCalls = () => fetchMock.mock.calls.filter(([input]) => input === '/api/auth/logout')
+
+  beforeEach(() => fetchMock.mockClear())
+
+  afterEach(() => useSyncStatus.setState({ connection: 'ok', pending: 0, rejected: 0 }))
+
+  it('shows the state of synchronisation', async () => {
+    renderAt('/')
+    await heading(pl.nav.today)
+
+    expect(screen.getByRole('status', { name: pl.sync.synced })).toBeInTheDocument()
+
+    act(() => useSyncStatus.setState({ pending: 2 }))
+    expect(screen.getByRole('status', { name: pl.sync.pending(2) })).toBeInTheDocument()
+
+    act(() => useSyncStatus.setState({ connection: 'offline' }))
+    expect(screen.getByRole('status', { name: pl.sync.offlinePending(2) })).toBeInTheDocument()
+
+    act(() => useSyncStatus.setState({ rejected: 1 }))
+    expect(screen.getByRole('status', { name: pl.sync.rejected(1) })).toBeInTheDocument()
+  })
+
+  it('sends waiting changes and signs out without asking when that works', async () => {
+    const user = userEvent.setup()
+    await queueUnsentChange()
+    serverAnswersPush('applied')
+    renderAt('/settings')
+    await heading(pl.settings.title)
+
+    await user.click(screen.getByRole('button', { name: pl.settings.logOut }))
+
+    expect(await heading(pl.auth.loginTitle)).toBeInTheDocument()
+    expect(logOutCalls()).toHaveLength(1)
+  })
+
+  it('warns before losing changes and lets the user back out or continue', async () => {
+    const user = userEvent.setup()
+    await queueUnsentChange()
+    serverAnswersPush('rejected')
+    renderAt('/settings')
+    await heading(pl.settings.title)
+
+    await user.click(screen.getByRole('button', { name: pl.settings.logOut }))
+    expect(
+      await screen.findByRole('dialog', { name: pl.settings.unsentTitle }),
+    ).toHaveAccessibleDescription(pl.settings.unsentDescription(1))
+    expect(logOutCalls()).toHaveLength(0)
+
+    await user.click(screen.getByRole('button', { name: pl.common.cancel }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(logOutCalls()).toHaveLength(0)
+    expect(await db.outbox.count()).toBe(1)
+
+    await user.click(screen.getByRole('button', { name: pl.settings.logOut }))
+    await user.click(await screen.findByRole('button', { name: pl.settings.logOutAnyway }))
+
+    expect(await heading(pl.auth.loginTitle)).toBeInTheDocument()
+    expect(logOutCalls()).toHaveLength(1)
+    await waitFor(async () => expect(await db.outbox.count()).toBe(0))
   })
 })
 
