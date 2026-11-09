@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { normalize, SearchIndex, type SearchDocument } from '@/search/engine'
-import { clearRecentSearches, getRecentSearches, rememberSearch } from '@/search/recent'
+import {
+  clearRecentSearches,
+  getRecentSearches,
+  rememberSearch,
+  removeRecentSearch,
+} from '@/search/recent'
 import { searchSources, toDocument } from '@/search/sources'
 import type { SyncedRecord } from '@/db/repository'
 
@@ -151,6 +156,15 @@ describe('recent searches', () => {
     const recent = await getRecentSearches()
     expect(recent).toHaveLength(8)
     expect(recent[0]).toBe('szukane 9')
+  })
+
+  it('can be removed one at a time', async () => {
+    await rememberSearch('auto')
+    await rememberSearch('dom')
+
+    await removeRecentSearch('auto')
+
+    expect(await getRecentSearches()).toEqual(['dom'])
   })
 
   it('can be cleared', async () => {

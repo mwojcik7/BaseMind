@@ -193,6 +193,14 @@ export function runSync(): Promise<void> {
   return running
 }
 
+/** Finishes after a full cycle begun after this call: one under way may miss the newest changes. */
+export async function syncNow() {
+  if (running) {
+    await running
+  }
+  await runSync()
+}
+
 /** Applies the theme at once; the server hears about it whenever it can be reached. */
 export async function saveTheme(theme: Theme) {
   setTheme(theme)

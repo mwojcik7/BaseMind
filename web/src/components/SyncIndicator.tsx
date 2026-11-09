@@ -1,6 +1,11 @@
 import { CloudCheck, CloudOff, RefreshCw, TriangleAlert, type LucideIcon } from 'lucide-react'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { pl } from '@/i18n/pl'
-import { useSyncStatus } from '@/sync/engine'
+import { syncNow, useSyncStatus } from '@/sync/engine'
+
+// A sync can take a fraction of a second; without this a tap would seem to do nothing.
+const MIN_SPIN_MS = 600
 
 function describe(
   connection: 'ok' | 'offline' | 'error',
@@ -27,16 +32,37 @@ function describe(
 
 export function SyncIndicator() {
   const { connection, pending, rejected } = useSyncStatus()
-  const { Icon, label, alert } = describe(connection, pending, rejected)
+  const [syncing, setSyncing] = useState(false)
+  const { Icon, label, alert } = syncing
+    ? { Icon: RefreshCw, label: pl.sync.syncing, alert: false }
+    : describe(connection, pending, rejected)
+
+  async function handleClick() {
+    if (syncing) {
+      return
+    }
+
+    setSyncing(true)
+    await Promise.all([syncNow(), new Promise((done) => setTimeout(done, MIN_SPIN_MS))])
+    setSyncing(false)
+  }
 
   return (
-    <span
-      role="status"
-      aria-label={label}
-      title={label}
-      className={`flex size-11 shrink-0 items-center justify-center ${alert ? 'text-destructive' : 'text-muted-foreground'}`}
-    >
-      <Icon aria-hidden className="size-5" />
-    </span>
+    <>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={pl.sync.syncNow}
+        aria-busy={syncing}
+        title={label}
+        className={alert ? 'text-destructive' : 'text-muted-foreground'}
+        onClick={() => void handleClick()}
+      >
+        <Icon aria-hidden className={`size-5 ${syncing ? 'animate-spin' : ''}`} />
+      </Button>
+      <span role="status" aria-label={label} className="sr-only">
+        {label}
+      </span>
+    </>
   )
 }

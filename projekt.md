@@ -558,6 +558,7 @@ Hosting musi zapewniać:
 | 2026-11-09 | Kopia konfliktu notatek przeniesiona z 1.4 do 2.3 | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Zmiany odrzucone przez serwer zostają w `outbox`, nie są ponownie wysyłane i są pokazywane we wskaźniku | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Pakiet `uuid` do UUIDv7, `fake-indexeddb` w testach; repozytorium odrzuca lokalnie zapis do przestrzeni bez prawa edycji, zanim zmiana utknie w `outbox` | Claude (do oceny użytkownika) |
+| 2026-11-09 | Ręczna synchronizacja po dotknięciu ikony stanu, jako dodatek do pobierania co 60 s | Użytkownik |
 | 2026-11-09 | Bez imienin w całej aplikacji; urodziny zostają | Użytkownik |
 | 2026-11-09 | Szybka notatka na dashboardzie przeniesiona do 2.3 | Użytkownik |
 | 2026-11-09 | Dashboard: zaślepki Zadania, Wydarzenia i Ostatnie wydatki jako widżety do czasu powstania modułów; powitanie z `display_name`, przy pustym samo pozdrowienie | Użytkownik |

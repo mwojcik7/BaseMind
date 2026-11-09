@@ -16,7 +16,7 @@
 > Po rozstrzygnięciu: usunąć pytanie stąd, a decyzję wpisać do rejestru w `projekt.md`, pkt 13.
 
 **Najpierw**
-1. **Krok 1.10:** ustalić zakres szybkiego dodawania [+] i kolejność względem poprawek z 1.11. Po 1.10 przechodzimy do Etapu 2 (decyzja użytkownika).
+1. **Krok 1.10:** ustalić zakres szybkiego dodawania [+] (propozycja: arkusz z rejestrem typów i szkielet parsera, pierwsze prawdziwe pozycje w 2.1). Po 1.10 od razu zadania z 2.1 (decyzja użytkownika).
 
 **Starsze, bez odpowiedzi (nie blokują 1.10)**
 2. **Decyzje techniczne Claude „do oceny użytkownika”:** TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2 (podklucze, identyfikator klucza, dwie komendy rotacji, `basemind:key` bez wypisywania klucza). Szczegóły: `projekt.md`, pkt 13.
@@ -27,15 +27,15 @@
 
 ## Stan bieżący (ostatnia sesja: 2026-11-09)
 
-- **Faza:** Etap 0 zamknięty. **Etap 1 w toku: kroki 1.1 (konta, logowanie, przestrzenie), 1.2 (szyfrowanie), 1.3 (warstwa danych offline), 1.4 (synchronizacja), 1.5 (PWA), 1.6 (tagi i powiązania: dane i synchronizacja), 1.7 (wyszukiwanie), 1.8 (przypomnienia i powiadomienia) i 1.9 (dashboard „Dziś”) zrobione. Następny jest krok 1.10 (szybkie dodawanie [+]), jeszcze nie zaczęty, potem poprawki 1.11 i Etap 2.**
-- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca do kroku 1.8 jest wypchnięta; krok 1.9 wypychany po zgodzie użytkownika (sprawdzić `git status`).
+- **Faza:** Etap 0 zamknięty. **Etap 1 w toku: kroki 1.1 (konta, logowanie, przestrzenie), 1.2 (szyfrowanie), 1.3 (warstwa danych offline), 1.4 (synchronizacja), 1.5 (PWA), 1.6 (tagi i powiązania: dane i synchronizacja), 1.7 (wyszukiwanie), 1.8 (przypomnienia i powiadomienia), 1.9 (dashboard „Dziś”) i poprawki 1.11 zrobione. Następny jest krok 1.10 (szybkie dodawanie [+]), jeszcze nie zaczęty, potem zadania z 2.1.**
+- **Repozytorium:** lokalnie `C:\Users\Praca\Documents\Kodowanie\BaseMind`, gałąź `main`, zdalne `origin` = https://github.com/mwojcik7/BaseMind.git. Autor commitów: Marcin Wójcik <mgrnewsl@gmail.com>. Cała praca, łącznie z krokami 1.9 i 1.11, jest wypchnięta.
 - **Backend (`api/`):** Laravel 13.40, Sanctum + Fortify (`/api/auth`), utwardzenie PHP/Apache, kontrola luk PHP, nagłówki z CSP, powłoka PWA serwowana przez Laravela, przestrzenie i uprawnienia, ekran sesji, szyfrowanie libsodium (serwis `Crypto`, casty, komendy klucza), synchronizacja (`SyncService`, `config/sync.php`, trait `Syncable`, makro `$table->syncable()`), tagi i powiązania, przypomnienia i powiadomienia (`ReminderDispatcher`, `WebPushService`, zadania `SendReminder` i `SendDigest`, komendy `basemind:send-reminders`, `basemind:send-digests`, `basemind:vapid`), układ dashboardu w `user_settings`. 227 testów OK.
-- **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia, lokalna baza Dexie z repozytorium encji (`web/src/db/`), silnik synchronizacji ze wskaźnikiem stanu (`web/src/sync/`), instalacja i aktualizacje PWA (`web/src/lib/pwa.ts`, `PwaBanner`), repozytoria tagów i powiązań (`web/src/db/tags.ts`), globalne wyszukiwanie (`web/src/search/`, `SearchDialog`), powiadomienia push i ich ustawienia (`web/src/lib/push.ts`, `NotificationsPage`), licznik na ikonie, dashboard z rejestrem widżetów (`web/src/modules/today/widgets.ts`, `web/src/lib/dashboard.ts`, `DashboardSettingsPage`). 219 testów OK.
+- **Frontend (`web/`):** React 19, Vite 8, TS 6, Tailwind v4, shadcn/ui, TanStack Router, PWA działająca offline, design system (podgląd: `/design`), wybór motywu, logowanie i rejestracja, sesje i urządzenia, lokalna baza Dexie z repozytorium encji (`web/src/db/`), silnik synchronizacji ze wskaźnikiem stanu (`web/src/sync/`), instalacja i aktualizacje PWA (`web/src/lib/pwa.ts`, `PwaBanner`), repozytoria tagów i powiązań (`web/src/db/tags.ts`), globalne wyszukiwanie (`web/src/search/`, `SearchDialog`), powiadomienia push i ich ustawienia (`web/src/lib/push.ts`, `NotificationsPage`), licznik na ikonie, dashboard z rejestrem widżetów (`web/src/modules/today/widgets.ts`, `web/src/lib/dashboard.ts`, `DashboardSettingsPage`). 223 testy OK.
 - **Dane lokalne:** w bazie `basemind` jest **prawdziwe konto użytkownika**, założone przez niego na telefonie. Nie usuwać go i nie czyścić tej bazy. Są tam też dane z testów: tagi, 3 „Testowe przypomnienia” (jedno odłożone: przyjdzie przy najbliższym uruchomieniu harmonogramu) i subskrypcja push telefonu.
 - **Telefon:** BaseMind jest zainstalowany jako aplikacja, powiadomienia są włączone.
 - **Klucz szyfrowania:** lokalny `SODIUM_KEY` (identyfikator `2ca17bb1`) jest w `api/.env`, a użytkownik ma jego kopię w menedżerze haseł. Są nim już zaszyfrowane tytuły przypomnień, więc utrata klucza oznacza ich utratę. Produkcja dostanie własny klucz.
 - **Klucze VAPID** są w `api/.env` (tylko lokalne). Nowe klucze odłączają wszystkie urządzenia od powiadomień; `basemind:vapid` nie nadpisuje istniejących.
-- **Czeka na użytkownika:** zgoda na commit i push kroku 1.9, ustalenia do kroku 1.10 i odpowiedzi na pozostałe „Pytania na start” (wyżej).
+- **Czeka na użytkownika:** ustalenia do kroku 1.10 i odpowiedzi na pozostałe „Pytania na start” (wyżej).
 - **Uwaga:** ta sama instalacja MariaDB trzyma bazy innego projektu użytkownika (np. `syslead_test`). Nie używać `migrate:fresh` na bazie `basemind` ani poleceń obejmujących cały serwer; testy działają na `basemind_test`.
 - **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. Przed uruchomieniem sprawdzić, czy już nie działają. W chwili zakończenia sesji są zatrzymane, harmonogram też.
 
@@ -44,7 +44,7 @@
 2. Sprawdzić stan: `git status`, `git log --oneline -5`, `composer audit` w `api/` (nowe poprawki bezpieczeństwa pojawiają się często; Symfony miało je już 2026-11-04) i `pnpm audit --prod` w `web/`.
 3. Uruchomić Apache i MariaDB (panel XAMPP lub poleceniami; Apache startuje ok. 30 s). Sprawdzić `http://localhost:8080/api/health`, testy `cd api && php artisan test` oraz `cd web && pnpm test`. Do testów powiadomień na żywo uruchomić też harmonogram z ustawionym `OPENSSL_CONF` (`projekt.md`, pkt 14).
 4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zadać „Pytania na start”** (na górze pliku), w tym o zakres kroku 1.10. Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
-5. **Krok 1.10 (szybkie dodawanie):** szczegóły w sekcji 1.10 poniżej, potem poprawki z 1.11. Na stronie `/design` są prawdziwe tagi i przycisk „Przypomnij za minutę” do testów na żywo.
+5. **Krok 1.10 (szybkie dodawanie):** szczegóły w sekcji 1.10 poniżej. Na stronie `/design` są prawdziwe tagi i przycisk „Przypomnij za minutę” do testów na żywo.
 6. **Test na telefonie przez USB** (instrukcja w `README.md`): do sprawdzania PWA używać builda, czyli port `8080 → localhost:8080` i na telefonie `http://localhost:8080`. Telefon użytkownika: Samsung S25 Ultra, debugowanie USB już włączone. Jeśli logowanie zgłasza brak połączenia, najpierw sprawdzić `http://localhost:8080/api/health` na telefonie (`projekt.md`, pkt 15). Do testu offline odłączyć kabel: tryb samolotowy nie przerywa przekierowania portu przez USB.
 7. Po sesji: zaktualizować ten plik („Stan bieżący”, checklisty, „Dziennik zmian”) i rejestr decyzji w `projekt.md`, a po zgodzie zrobić commit i `git push`.
 
@@ -263,8 +263,9 @@
 - [ ] Szkielet parsera tekstu (reguły dodawane przez moduły).
 
 ### 1.11 Poprawki zgłoszone przez użytkownika
-- [ ] Ostatnie wyszukiwania: usuwanie pojedynczego wpisu (dziś można tylko wyczyścić całą listę przyciskiem w `SearchDialog`; pamiętać o celu dotykowym 44 px).
-- [ ] Synchronizacja po kliknięciu: wskaźnik stanu (`SyncIndicator`, ikona przy wyszukiwarce) uruchamia `runSync()` od razu, z widocznym stanem „trwa”. Powód: automatyczne pobieranie zmian co 60 s trwa użytkownikowi za długo. Interwał 60 s zostaje bez zmian (decyzja z 2026-11-09), to dodatkowa, ręczna droga.
+- [x] Ostatnie wyszukiwania: usuwanie pojedynczego wpisu (krzyżyk przy wpisie w `SearchDialog`).
+- [x] Synchronizacja po kliknięciu: wskaźnik stanu (`SyncIndicator`, ikona przy wyszukiwarce) uruchamia od razu pełny cykl (`syncNow()`), ikona kręci się co najmniej 0,6 s. Powód: automatyczne pobieranie zmian co 60 s trwa użytkownikowi za długo. Interwał 60 s zostaje bez zmian (decyzja z 2026-11-09), to dodatkowa, ręczna droga.
+- [x] Test użytkownika na telefonie.
 
 ---
 
@@ -468,3 +469,4 @@
 | 2026-11-09 | Interwał pobierania zmian zostaje 60 s (decyzja użytkownika). Krok 1.7: indeks MiniSearch w Web Workerze, polskie znaki, literówki i przestawione litery, ekran wyników, ostatnie wyszukiwania, rejestr źródeł (na razie tagi). Testy: web 177 OK; backend bez zmian. Użytkownik potwierdził na telefonie; test wykrył brak tolerancji przestawionych liter, poprawione. Serwery zatrzymane. Commit i push za zgodą użytkownika. | 1.8 (przypomnienia) — po zgodzie użytkownika. |
 | 2026-11-09 | Krok 1.8: przypomnienia (także cykliczne, odkładanie, godziny ciszy), Web Push z przyciskami, e-maile, ustawienia, licznik na ikonie, mechanizm porannego podsumowania. Tytuły przypomnień szyfrowane (decyzja użytkownika; 3 testowe zaszyfrowane jednorazowo w lokalnej bazie). Testy: api 219 OK, web 195 OK; oba audyty czyste; migracja na `basemind`, klucze VAPID w `.env`. Użytkownik potwierdził na telefonie. Koniec sesji na prośbę użytkownika, dokumentacja przygotowana do wznowienia. Serwery i harmonogram zatrzymane. Commit i push za zgodą użytkownika. | 1.9 (dashboard) — po zgodzie użytkownika. |
 | 2026-11-09 | Krok 1.9: rejestr widżetów, powitanie, ekran ustawień kolejności i widoczności, zapis offline z synchronizacją przez `user_settings` (bez migracji). Szybka notatka przeniesiona do 2.3, imieniny usunięte z całego projektu (decyzje użytkownika). Testy: api 227 OK, web 219 OK; oba audyty czyste. Użytkownik potwierdził działanie. Do planu dopisane poprawki 1.11: usuwanie pojedynczego wpisu z ostatnich wyszukiwań i synchronizacja po kliknięciu. | 1.10 (szybkie dodawanie) — po zgodzie użytkownika. |
+| 2026-11-09 | Poprawki 1.11: krzyżyk przy ostatnich wyszukiwaniach, synchronizacja po dotknięciu ikony stanu. Testy: web 223 OK; backend bez zmian. Użytkownik potwierdził działanie. Commit i push za zgodą użytkownika. Kolejność dalej: 1.10, potem zadania z 2.1 (decyzja użytkownika). | 1.10 (szybkie dodawanie) — po ustaleniu zakresu. |

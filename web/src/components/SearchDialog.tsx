@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { History } from 'lucide-react'
+import { History, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
@@ -9,7 +9,12 @@ import { pl } from '@/i18n/pl'
 import { search } from '@/search/client'
 import type { SearchHit } from '@/search/engine'
 import { searchGroups } from '@/search/presentation'
-import { clearRecentSearches, getRecentSearches, rememberSearch } from '@/search/recent'
+import {
+  clearRecentSearches,
+  getRecentSearches,
+  rememberSearch,
+  removeRecentSearch,
+} from '@/search/recent'
 import { searchSources } from '@/search/sources'
 
 const ROW_CLASS = 'flex min-h-11 w-full items-center gap-3 rounded-md px-2 text-left text-sm'
@@ -83,15 +88,24 @@ function RecentSearches({ onPick }: { onPick: (query: string) => void }) {
       </div>
       <ul>
         {recent.map((query) => (
-          <li key={query}>
+          <li key={query} className="flex items-center">
             <button
               type="button"
-              className={`${ROW_CLASS} hover:bg-muted`}
+              className={`${ROW_CLASS} min-w-0 flex-1 hover:bg-muted`}
               onClick={() => onPick(query)}
             >
               <History aria-hidden className="size-4 shrink-0 text-muted-foreground" />
               <span className="truncate">{query}</span>
             </button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground"
+              aria-label={pl.search.removeRecent(query)}
+              onClick={() => void removeRecentSearch(query)}
+            >
+              <X aria-hidden />
+            </Button>
           </li>
         ))}
       </ul>

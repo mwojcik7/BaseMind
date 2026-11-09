@@ -263,6 +263,21 @@ describe('synchronisation in the app', () => {
     expect(screen.getByRole('status', { name: pl.sync.rejected(1) })).toBeInTheDocument()
   })
 
+  it('synchronises at once when the indicator is tapped', async () => {
+    const user = userEvent.setup()
+    serverAnswersPush('applied')
+    renderAt('/')
+    await heading(TODAY_HEADING)
+    const pulls = () =>
+      fetchMock.mock.calls.filter(([input]) => String(input).startsWith('/api/sync/pull'))
+
+    await user.click(screen.getByRole('button', { name: pl.sync.syncNow }))
+
+    expect(screen.getByRole('status', { name: pl.sync.syncing })).toBeInTheDocument()
+    await waitFor(() => expect(pulls()).toHaveLength(1))
+    expect(await screen.findByRole('status', { name: pl.sync.synced })).toBeInTheDocument()
+  })
+
   it('sends waiting changes and signs out without asking when that works', async () => {
     const user = userEvent.setup()
     await queueUnsentChange()
@@ -396,6 +411,19 @@ describe('search', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 
     expect(await getRecentSearches()).toEqual([])
+  })
+
+  it('removes a single recent search and keeps the others', async () => {
+    const user = userEvent.setup()
+    await rememberSearch('auto')
+    await rememberSearch('dom')
+    const dialog = await openSearch(user)
+
+    await user.click(await dialog.findByRole('button', { name: pl.search.removeRecent('auto') }))
+
+    await waitFor(() => expect(dialog.queryByText('auto')).not.toBeInTheDocument())
+    expect(dialog.getByText('dom')).toBeInTheDocument()
+    expect(searchBox(dialog)).toHaveValue('')
   })
 
   it('clears the recent searches', async () => {

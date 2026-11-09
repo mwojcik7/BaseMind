@@ -33,6 +33,8 @@ export const pl = {
   },
   sync: {
     synced: 'Zsynchronizowano',
+    syncing: 'Trwa synchronizacja',
+    syncNow: 'Synchronizuj teraz',
     pending: (count: number) => `Zmiany czekające na wysłanie: ${count}`,
     offline: 'Brak połączenia',
     offlinePending: (count: number) => `Brak połączenia. Zmiany czekające na wysłanie: ${count}`,
@@ -105,6 +107,7 @@ export const pl = {
     noResults: (query: string) => `Brak wyników dla „${query}”`,
     recent: 'Ostatnie wyszukiwania',
     clearRecent: 'Wyczyść',
+    removeRecent: (query: string) => `Usuń z ostatnich: ${query}`,
     groups: {
       tags: 'Tagi',
     },

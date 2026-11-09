@@ -18,6 +18,13 @@ export function rememberSearch(query: string) {
   })
 }
 
+export function removeRecentSearch(query: string) {
+  return db.transaction('rw', db.meta, async () => {
+    const others = (await getRecentSearches()).filter((recent) => recent !== query)
+    await db.meta.put({ key: RECENT_KEY, value: others })
+  })
+}
+
 export function clearRecentSearches() {
   return db.meta.delete(RECENT_KEY)
 }

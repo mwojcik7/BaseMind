@@ -11,6 +11,7 @@ import {
   saveTheme,
   sendChangesBeforeLogOut,
   startSync,
+  syncNow,
   useSyncStatus,
 } from '@/sync/engine'
 import type { OutgoingOperation } from '@/sync/push'
@@ -359,6 +360,20 @@ describe('synchronisation', () => {
 
       expect(getTheme()).toBe('dark')
     })
+  })
+
+  it('syncNow finishes only after a cycle begun after the call', async () => {
+    let finishPull: (response: Response) => void = () => {}
+    answerPull = () => new Promise((resolve) => (finishPull = resolve))
+
+    void runSync()
+    await waitFor(() => expect(pullUrls).toHaveLength(1))
+    const manual = syncNow()
+    answerPull = () => json(EMPTY_PAGE)
+    finishPull(json(EMPTY_PAGE))
+    await manual
+
+    expect(pullUrls).toHaveLength(2)
   })
 
   describe('dashboard layout', () => {
