@@ -3,7 +3,8 @@
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.sw.json" },
-    { "path": "./tsconfig.node.json" }
+    { "path": "./tsconfig.node.json" },
+    { "path": "./tsconfig.e2e.json" }
   ],
   // Not used by tsc here: the shadcn CLI reads the alias from this file.
   "compilerOptions": {
