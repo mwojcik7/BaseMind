@@ -272,6 +272,15 @@ Kluczowe cechy:
 - `work_entries` — work_profile_id, date, type (`work` | `vacation` | `sick` | `holiday` | `day_off`), start_at, end_at, break_minutes, shift_template_id, note.
 - Polskie święta ustawowe liczone lokalnie (w tym ruchome).
 
+**Trener: godziny i wynagrodzenie** (propozycja, szczegóły przy kroku 5.2)
+- `coaching_contracts` — club_name, contract_type (`mandate` (zlecenie) | `specific_work` (dzieło) | `employment` | `other`), valid_from, valid_to, default_rates 🔐 (JSON: kwota domyślna dla każdego rodzaju wydarzenia, stawka za trening), tax_settings (JSON: zbieg tytułów ZUS, PIT-2, koszty uzyskania przychodu), notes.
+- `coaching_schedule_slots` — contract_id, weekday, start, end, valid_from, valid_to (stały grafik tygodniowy).
+- `coaching_events` — contract_id, kind (`training` | `match` | `tournament` | `tournament_organization` | `trip`), date, start, end, minutes, amount_minor 🔐 (puste = kwota domyślna), status (`planned` | `done` | `cancelled` | `moved`), substitution (`none` | `i_cover` | `covered_by_other`), schedule_slot_id, moved_to_event_id, note.
+  - Trening ze stałego grafiku zapisywany dopiero przy wyjątku lub potwierdzeniu; zastępstwo, w którym ktoś zastępuje użytkownika, nie jest płatne.
+- `coaching_reimbursements` — contract_id, date, kind (`fuel` | `other`), amount_minor 🔐, distance_km, event_id, note. Poza wynagrodzeniem i podatkiem (do potwierdzenia przy wdrożeniu).
+- `coaching_payouts` — contract_id, month, gross_minor 🔐, net_calculated_minor 🔐, net_received_minor 🔐, transaction_id (wpływ w finansach).
+- Stawki podatku i ZUS na każdy rok w konfiguracji serwera i klienta (obliczenia działają offline).
+
 **Kalendarz**
 - `events` — title, description, location, start_at, end_at, all_day, rrule, color.
 - Widok łączy `events` + wirtualne zdarzenia z innych modułów (rejestr „dostawców dat”).
@@ -496,6 +505,7 @@ Hosting musi zapewniać:
 8. (rozstrzygnięte: ograniczenie zaakceptowane, pkt 8.4)
 9. Czy `+liczba` w arkuszu [+] to wpływ (przyjęte przez Claude, do potwierdzenia przy 3.1).
 10. Kosz (`plan.md`, 1.12): co zostaje po 30 dniach, żeby urządzenia offline dowiedziały się o usunięciu, a treść zniknęła.
+11. Trener (`plan.md`, 5.2): zwrot paliwa jako kwota z rachunku czy stawka za kilometr, opodatkowany czy nie (użytkownik jeszcze nie korzystał).
 
 ---
 
@@ -579,6 +589,8 @@ Hosting musi zapewniać:
 | 2026-11-09 | Szybka notatka na dashboardzie przeniesiona do 2.3 | Użytkownik |
 | 2026-11-09 | Dashboard: zaślepki Zadania, Wydarzenia i Ostatnie wydatki jako widżety do czasu powstania modułów; powitanie z `display_name`, przy pustym samo pozdrowienie | Użytkownik |
 | 2026-11-09 | Układ dashboardu w `user_settings` (`dashboard`: `order`, `hidden`), lokalnie w `meta`, synchronizowany jak motyw; kolejność przyciskami góra/dół zamiast przeciągania; identyfikatory widżetów niesprawdzane listą na serwerze, bo urządzenia mogą mieć różne wersje aplikacji | Claude (zaakceptowane przez użytkownika) |
+| 2026-11-14 | Nowy moduł „Trener: godziny i wynagrodzenie” (`plan.md`, 5.2), robiony zaraz po grafiku pracy (5.1): treningi ze stałego grafiku z wyjątkami (przeniesienie, odwołanie, zastępstwo w obie strony), mecze, turnieje, organizacja turnieju, wyjazdy, zwrot paliwa osobno; stawka na godzinę dla każdej pozycji oraz podsumowania miesięczne i roczne; wypłata jako wpływ w finansach, wydarzenia w kalendarzu z przypomnieniami, widżet | Użytkownik |
+| 2026-11-14 | Kalkulator brutto → netto z wyborem rodzaju umowy, na start umowa zlecenia (umowa użytkownika), z przełącznikami zbiegu tytułów ZUS, PIT-2 i kosztów uzyskania oraz polem „faktycznie otrzymane netto”; kwoty od klubu wpisywane brutto, rozliczenie miesięczne | Użytkownik / Claude |
 
 ---
 

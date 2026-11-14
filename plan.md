@@ -93,7 +93,7 @@
 | 2 | Codzienność | Zadania, kalendarz, notatki Markdown z backlinkami, szybka notatka | 🟡 w trakcie (część 1 zadań gotowa) |
 | 3 | Pieniądze | Finanse (portfele, kategorie, transakcje, raporty, wykresy, budżety), subskrypcje | ⬜ |
 | 4 | Schowek | Zakładki z podglądem (rich links) + Share Target, listy mediów, baza kodów | ⬜ |
-| 5 | Życie | Grafik pracy, nawyki, CRM bliskich, bank prezentów | ⬜ |
+| 5 | Życie | Grafik pracy, trener (godziny i wynagrodzenie), nawyki, CRM bliskich, bank prezentów | ⬜ |
 | 6 | Rzeczy | Paszport pojazdu, gwarancje, daty ważności, lokalizator, publiczne linki do plików | ⬜ |
 | 7 | Dopracowanie i wdrożenie | 2FA, PIN, eksport/backup, audyty, wybór hostingu i wdrożenie | ⬜ |
 
@@ -386,19 +386,31 @@ Zrobione razem z 2.1 (decyzja użytkownika).
 - [ ] Podsumowania tydzień/miesiąc, szacowana wypłata.
 - [ ] Warstwa w kalendarzu; widżet dashboardu.
 
-### 5.2 Strażnik nawyków
+### 5.2 Trener: godziny i wynagrodzenie (zgłoszone przez użytkownika, zaraz po 5.1)
+Kontekst: użytkownik po etacie jest trenerem piłki nożnej w klubie, na umowie zlecenia, rozliczenie raz w miesiącu za cały miesiąc. Kwoty od klubu są podawane brutto.
+- [ ] Encje: umowa z klubem (rodzaj umowy, stawki domyślne dla każdego rodzaju wydarzenia), stały grafik tygodniowy treningów, wydarzenia z godzinami i kwotą, zwroty kosztów paliwa (osobno, poza wynagrodzeniem).
+- [ ] Rodzaje wydarzeń: trening, mecz, turniej, organizacja turnieju, wyjazd. Mecze i turnieje dodawane ręcznie (także z [+]); kwota domyślna z możliwością zmiany przy wydarzeniu.
+- [ ] Treningi generowane ze stałego grafiku; wyjątki: przeniesiony, odwołany, zastępstwo w obie strony (zastępuję kogoś: dodatkowo płatne; ktoś zastępuje mnie: bez wynagrodzenia).
+- [ ] Stawka na godzinę dla każdej pozycji osobno + podsumowanie miesięczne i roczne (z podziałem na rodzaje wydarzeń).
+- [ ] Kalkulator brutto → netto z wyborem rodzaju umowy (zaczynamy od zlecenia; inne do wyboru); przełączniki: zbieg tytułów ZUS (etat ≥ płaca minimalna → ze zlecenia tylko składka zdrowotna), PIT-2 (domyślnie wyłączony, bo zwykle jest na etacie), koszty uzyskania przychodu. Pole „faktycznie otrzymane netto” do porównania z wyliczeniem. Stawki podatkowe i ZUS w konfiguracji na każdy rok, testy na przykładach.
+- [ ] 🔒 Zwrot paliwa: kwota z rachunku czy stawka za kilometr, opodatkowany czy nie (użytkownik jeszcze nie korzystał; ustalić przy wdrożeniu).
+- [ ] Wypłata za miesiąc jako wpływ w finansach (Etap 3), bez dublowania.
+- [ ] Treningi i mecze w kalendarzu z przypomnieniami; widżet dashboardu „ten miesiąc: X h, Y zł”.
+- [ ] Kwoty, stawki i wynagrodzenie 🔐.
+
+### 5.3 Strażnik nawyków
 - [ ] Encje `habits`, `habit_logs`.
 - [ ] Odhaczanie dnia (także wartości liczbowe), harmonogramy, seria, heatmapa, statystyki.
 - [ ] Przypomnienia; widżet dashboardu.
 
-### 5.3 CRM bliskich
+### 5.4 CRM bliskich
 - [ ] Encja `contacts` (pola 🔐 wg `projekt.md`), zawsze w przestrzeni prywatnej.
 - [ ] Profil: zdjęcie, relacja, urodziny, rozmiary, lubi/nie lubi, jedzenie, alkohole, alergie, rodzina i zwierzęta, ważne daty, notatki.
 - [ ] Urodziny w kalendarzu + przypomnienia.
 - [ ] Wzmianki `@osoba` → backlinki na profilu.
 - [ ] Widżet: nadchodzące urodziny.
 
-### 5.4 Bank pomysłów na prezenty
+### 5.5 Bank pomysłów na prezenty
 - [ ] Encja `gift_ideas` (pola 🔐) powiązana z `contacts`.
 - [ ] Szybkie dodanie z profilu osoby i z [+].
 - [ ] Statusy pomysł → kupione → wręczone; okazja, cena, link.
@@ -496,3 +508,4 @@ Zrobione razem z 2.1 (decyzja użytkownika).
 | 2026-11-09 | Część 1 zadań razem z krokiem 1.10: tabele i synchronizacja (tytuł i notatka szyfrowane), widoki, listy, edycja, gesty z „Cofnij” (nowa operacja `restore`), arkusz [+] z polami i parserem, skrót Q, panele nad klawiaturą, przypomnienia, „Zrobione” odhaczające zadanie, sekcje podsumowania, widżet, wyszukiwarka. Naprawione: serwer gubił rejestrację push telefonu, a aplikacja tego nie wykrywała. Do planu dopisany kosz (1.12) i rozpoznawanie `-liczba`/`+liczba` (3.1). Testy: api 247 OK, web 284 OK; migracja na `basemind`. Użytkownik potwierdził gesty i powiadomienia z „Zrobione”. Commit i push za zgodą użytkownika. | Część 2 zadań i termin kosza — po ustaleniu z użytkownikiem. |
 | 2026-11-10 | Test w Chrome wykrył fałszywe wylogowania: równoległe żądania gubiły konfigurację z `.env` (Apache na Windows działa wątkami), a pojedynczy 401 kasował dane urządzenia. Naprawione: 401 liczy się dopiero po powtórzeniu, tylko 401 może wylogować przy sprawdzaniu konta, karta nie zapisuje danych po wylogowaniu w innej karcie, lokalnie `ThreadsPerChild 1` i `KeepAlive Off` (przed: 3 z 25 równoległych żądań z błędem 500, po: 0 z 25). Ikony akcji wiersza na komputerze powiększone. W Chrome odtworzone dane lokalne (usunięty kursor); potwierdzone: wyszukiwanie, listy, skrót Q, „Cofnij”. Testy: web 292 OK, api 247 OK (backend bez zmian od ostatniego uruchomienia). | Część 2 zadań i termin kosza — po ustaleniu z użytkownikiem. |
 | 2026-11-10 | Koniec sesji na prośbę użytkownika: kod wypchnięty (`ec5393b`), dokumentacja przygotowana do wznowienia (nieaktualne zapisy poprawione, polecenia startu serwerów, procedura naprawy danych lokalnych). Serwery i harmonogram zatrzymane. | „Pytania na start”, potem część 2 zadań — po zgodzie użytkownika. |
+| 2026-11-14 | Do planu dopisany moduł 5.2 „Trener: godziny i wynagrodzenie” (zgłoszenie użytkownika): treningi ze stałego grafiku z wyjątkami, mecze, turnieje, organizacja turnieju, wyjazdy, zwrot paliwa, stawka na godzinę, podsumowania miesięczne i roczne, kalkulator brutto → netto dla zlecenia. Kolejność: zaraz po grafiku pracy (5.1); dalsze kroki Etapu 5 przesunięte na 5.3–5.5. Model danych w `projekt.md`, pkt 4.4. | „Pytania na start”, potem część 2 zadań — po zgodzie użytkownika. |
