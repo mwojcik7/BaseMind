@@ -46,6 +46,23 @@ test('a daily task moves to tomorrow when done and keeps a copy in history', asy
   await expect(page.getByText('Wziąć witaminy')).toBeVisible()
 })
 
+test('quick add reads a repeat and a time from the text', async ({ page }) => {
+  await navigation(page).getByRole('button', { name: 'Dodaj' }).click()
+  const input = page.getByRole('textbox', { name: 'Np. kupić mleko jutro !1' })
+  await input.fill('Basen co tydzień w piątek o 18')
+  await expect(page.getByTestId('quick-add-summary')).toHaveText('Co tydzień: pt.')
+  await expect(page.getByLabel('Godzina')).toHaveValue('18:00')
+  await input.press('Enter')
+  await expect(toast(page, 'Dodano zadanie')).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  await page.goto('/tasks')
+  await page.getByRole('tab', { name: 'Nadchodzące' }).click()
+  await expect(page.getByLabel('Co tydzień: pt.', { exact: true })).toBeVisible()
+  await page.getByText('Basen').click()
+  await expect(page.getByLabel('Powtarzaj')).toContainText('Co tydzień w piątek')
+})
+
 test('a custom rule is edited in the task and an occurrence can be skipped', async ({ page }) => {
   await addTaskForToday(page, 'Wynieść śmieci')
   await page.goto('/tasks')

@@ -38,7 +38,8 @@ export function parseQuickText<Fields>(
     }
 
     const found = rule.apply(match, context)
-    if (Object.keys(found).some((field) => field in fields)) {
+    // Nothing recognised after all (e.g. "co 45."): the text stays as it is.
+    if (Object.keys(found).length === 0 || Object.keys(found).some((field) => field in fields)) {
       continue
     }
 

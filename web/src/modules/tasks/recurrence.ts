@@ -233,6 +233,30 @@ function sameDays(a: readonly Weekday[], b: readonly Weekday[]) {
   return a.length === b.length && b.every((day) => a.includes(day))
 }
 
+/**
+ * Fills in the day a bare rule falls on from the task's date: "co tydzień" on a Friday
+ * becomes "every week on Friday". The series would do that anyway, but this way the
+ * editor shows it and moving one occurrence can't change it.
+ */
+export function pinToDate(rrule: string, date: string): string {
+  const spec = fromRrule(rrule)
+  if (!spec) {
+    return rrule
+  }
+
+  const day = utcDate(date)
+  if (spec.freq === 'WEEKLY' && spec.weekdays.length === 0) {
+    spec.weekdays = [weekdayOf(date)]
+  } else if (spec.freq === 'MONTHLY' && !spec.monthly) {
+    spec.monthly = { kind: 'day', day: day.getUTCDate() }
+  } else if (spec.freq === 'YEARLY' && !spec.yearly) {
+    spec.yearly = { month: day.getUTCMonth() + 1, day: day.getUTCDate() }
+  } else {
+    return rrule
+  }
+  return toRrule(spec)
+}
+
 /** The weekday of a 'yyyy-MM-dd' date. */
 export function weekdayOf(date: string): Weekday {
   return WEEKDAYS[(utcDate(date).getUTCDay() + 6) % 7]
