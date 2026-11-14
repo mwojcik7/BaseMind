@@ -30,6 +30,7 @@ W `.env` uzupełnij `BASEMIND_OWNER_EMAIL` oraz `BASEMIND_REGISTRATION_CODE` (ko
 
 - API: <http://localhost:8080/api/health> → `{"status":"ok", ...}`
 - Testy: `php artisan test` (wymaga działającej MariaDB, baza `basemind_test`)
+- Analiza statyczna (Larastan): `composer analyse`
 - Kontrola bezpieczeństwa PHP: `php artisan basemind:security-check`
 - Harmonogram (przypomnienia itp.): `php artisan schedule:work`, z ustawionym `OPENSSL_CONF` (`projekt.md`, pkt 14, 7c)
 - Apache na Windows musi działać z `ThreadsPerChild 1` (`projekt.md`, pkt 14, 4a), inaczej równoległe żądania gubią konfigurację z `.env`
@@ -62,6 +63,7 @@ pnpm dev            # http://localhost:5173, proxy /api, /sanctum, /s do Apache 
 ```
 
 - Kontrola jakości: `pnpm typecheck`, `pnpm lint`, `pnpm format:check`, `pnpm test`
+- Testy e2e (Playwright): `pnpm e2e` buduje aplikację i uruchamia ją na własnym serwerze (port 8091, baza `basemind_e2e`, czyszczona przy każdym uruchomieniu); wymaga działającej MariaDB, Apache niepotrzebny. Raz po instalacji: `pnpm exec playwright install chromium`. `pnpm e2e:only` pomija build.
 - Build: `pnpm build` zapisuje PWA do `api/public/`; aplikacja działa wtedy pod <http://localhost:8080>. Bez builda Laravel zwraca 503 na `/`.
 - Service Worker działa tylko w buildzie, nie w `pnpm dev`.
 - Pierwsze konto: na ekranie logowania wybierz **Mam kod zaproszenia** i wpisz kod z `api/.env`.

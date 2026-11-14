@@ -174,7 +174,7 @@ Kluczowe cechy:
 | E-mail | Laravel Mail (SMTP); lokalnie **Mailpit** (lub driver `log` jako zapas) | |
 | HTTP (podgląd linków) | Laravel HTTP Client (Guzzle) + własny parser OG + ochrona SSRF | |
 | Szyfrowanie | ext-sodium: `sodium_crypto_secretbox` (pola), `secretstream` (pliki) | Osobny klucz `SODIUM_KEY` w `.env` |
-| Testy | Pest (PHP), Vitest (front), Playwright (e2e, emulacja mobile) | |
+| Testy | PHPUnit (PHP), Vitest (front), Playwright (e2e, emulacja mobile) | Pest porzucony 2026-11-14 (pkt 13) |
 | Jakość | Laravel Pint, Larastan (PHPStan); ESLint + Prettier + `tsc` | |
 
 ### 3.3 Środowisko lokalne (Windows 11) — stan na 2026-11-05
@@ -444,8 +444,9 @@ BaseMind/
 │  ├─ routes/ (api.php, web.php, console.php ← harmonogram)
 │  ├─ public/              ← index.php Laravela + zbudowana PWA + .htaccess + .user.ini
 │  ├─ storage/             ← pliki prywatne (szyfrowane), logi
-│  └─ tests/               ← Pest
+│  └─ tests/               ← PHPUnit
 └─ web/                    ← PWA (React + Vite)
+   ├─ e2e/                 ← Playwright (własny serwer na porcie 8091, baza basemind_e2e)
    ├─ public/              ← ikony
    └─ src/
       ├─ app/              ← router, layout, providers
@@ -580,7 +581,7 @@ Hosting musi zapewniać:
 | 2026-11-09 | Zaległe jako sekcja na górze zakładki Dziś zamiast osobnego widoku; zadania bez listy widoczne jako Skrzynka (`list_id` puste), bez tworzonej automatycznie listy | Użytkownik |
 | 2026-11-09 | Odhaczanie polem wyboru, swipe w prawo: na jutro, w lewo: usuń z „Cofnij” | Użytkownik |
 | 2026-11-09 | Kosz z przywracaniem przez 30 dni (w planie 1.12) | Użytkownik |
-| 2026-11-09 | Arkusz [+] rozpozna typ po treści: `-liczba` to wydatek, `+liczba` to wpływ (3.1; „wpływ” przyjęty przez Claude, do potwierdzenia) | Użytkownik / Claude |
+| 2026-11-09 | Arkusz [+] rozpozna typ po treści: `-liczba` to wydatek, `+liczba` to wpływ (3.1; „wpływ” potwierdzony przez użytkownika 2026-11-14) | Użytkownik |
 | 2026-11-09 | „Zrobione” na powiadomieniu odhacza zadanie; samo dotknięcie treści tylko otwiera aplikację | Użytkownik / Claude |
 | 2026-11-09 | Skrót szybkiego dodawania: klawisz Q (jak w Todoist), nie działa podczas pisania ani przy otwartym oknie; „Cofnij” przez operację `restore`, a nie kopię rekordu | Claude (zaakceptowane przez użytkownika po teście) |
 | 2026-11-09 | Przypomnienie o zadaniu z datą bez godziny liczone od 9:00 tego dnia | Użytkownik |
@@ -591,6 +592,11 @@ Hosting musi zapewniać:
 | 2026-11-09 | Układ dashboardu w `user_settings` (`dashboard`: `order`, `hidden`), lokalnie w `meta`, synchronizowany jak motyw; kolejność przyciskami góra/dół zamiast przeciągania; identyfikatory widżetów niesprawdzane listą na serwerze, bo urządzenia mogą mieć różne wersje aplikacji | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-14 | Nowy moduł „Trener: godziny i wynagrodzenie” (`plan.md`, 5.2), robiony zaraz po grafiku pracy (5.1): treningi ze stałego grafiku z wyjątkami (przeniesienie, odwołanie, zastępstwo w obie strony), mecze, turnieje, organizacja turnieju, wyjazdy, zwrot paliwa osobno; stawka na godzinę dla każdej pozycji oraz podsumowania miesięczne i roczne; wypłata jako wpływ w finansach, wydarzenia w kalendarzu z przypomnieniami, widżet | Użytkownik |
 | 2026-11-14 | Kalkulator brutto → netto z wyborem rodzaju umowy, na start umowa zlecenia (umowa użytkownika), z przełącznikami zbiegu tytułów ZUS, PIT-2 i kosztów uzyskania oraz polem „faktycznie otrzymane netto”; kwoty od klubu wpisywane brutto, rozliczenie miesięczne | Użytkownik / Claude |
+| 2026-11-14 | Dalej: część 2 zadań, zaraz po niej kosz (1.12); sortowanie przeciąganiem odłożone | Użytkownik |
+| 2026-11-14 | Testy API zostają w PHPUnit (Pest porzucony: inna składnia, bez dodatkowej korzyści, przepisywanie 247 testów nic nie daje) | Użytkownik |
+| 2026-11-14 | Larastan 3 w `api/` (poziom 5, `parseModelCastsMethod: true`, `composer analyse`); uwagi poprawiane u źródła, bez wyciszeń i bez pliku baseline | Użytkownik / Claude |
+| 2026-11-14 | Interfejsy `SpaceScoped` i `SyncableModel` (`app/Models/Contracts/`) opisują kolumny z makra `syncable()`; `SyncService` i `SpaceItemPolicy` przyjmują tylko takie modele (typy PHP), test pilnuje, że każdy model z `config/sync.php` je implementuje; tabela `space_members` przez klasę `SpaceMember` | Claude (w ramach zgody na Larastan) |
+| 2026-11-14 | Playwright w `web/` (`pnpm e2e`): zbudowana aplikacja na serwerze PHP (`php -S`, port 8091) z bazą `basemind_e2e`, ustawienia przez zmienne środowiskowe zamiast `api/.env`, testowy klucz szyfrowania; przed czyszczeniem bazy skrypt sprawdza jej nazwę; emulacja Pixel 7, własny Chromium Playwrighta, nowe konto w każdym teście | Użytkownik / Claude |
 
 ---
 
@@ -656,6 +662,8 @@ php artisan schedule:work   # z katalogu api/
 
 **7a. Dane tylko lokalne:** baza `basemind` trzyma prawdziwe konto użytkownika (nie ma go w git). Przy reinstalacji XAMPP lub nowym komputerze trzeba zrobić kopię bazy lub założyć konto od nowa kodem zaproszenia. Na razie konto ma tylko dane z testów (tagi, przypomnienia, subskrypcję push telefonu) i ustawienia.
 
+**7d. Testy e2e:** baza `basemind_e2e` (utf8mb4_unicode_ci) na lokalnym MariaDB, czyszczona przy każdym uruchomieniu `pnpm e2e`. Przeglądarka Playwrighta (Chromium) w `%LOCALAPPDATA%\ms-playwright` — po świeżym `git clone` lub aktualizacji `@playwright/test`: `cd web && pnpm exec playwright install chromium`.
+
 **7b. Inne projekty na tym serwerze:** MariaDB z XAMPP trzyma też bazy innego projektu użytkownika (np. `syslead_test`). Nie wolno ich ruszać ani używać poleceń obejmujących cały serwer.
 
 **8. Git (lokalnie w repo):** `user.name = Marcin Wójcik`, `user.email = mgrnewsl@gmail.com`; `origin` = https://github.com/mwojcik7/BaseMind.git.
@@ -706,6 +714,12 @@ php artisan schedule:work   # z katalogu api/
 - **Apache na Windows obsługuje żądania wątkami, a odczyt `.env` nie jest bezpieczny wątkowo.** Przy równoległych żądaniach Laravel gubił konfigurację: błąd 500 z bazą SQLite (dowód w logu) i fałszywe 401. Lokalnie: `ThreadsPerChild 1` (pkt 14, 4a). Nie używać lokalnie `config:cache`: testy mogłyby wtedy trafić w prawdziwą bazę `basemind`. Objaw nawrotu: `seq 1 25 | xargs -P 12 -I{} curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8080/api/health` zwraca 500.
 - **Na produkcji `php artisan config:cache` przy każdym wdrożeniu** i sprawdzić ten sam test równoległych żądań, zwłaszcza gdyby PHP na hostingu działał wątkowo.
 - **Baza IndexedDB jest wspólna dla kart:** wylogowanie w jednej kasuje dane wszystkim, więc `applyPage` sprawdza zapamiętane konto w tej samej transakcji. Gdyby strona z synchronizacji zapisała się po wyczyszczeniu, kursor stanąłby za skasowanymi rekordami i dane nie wróciłyby same. Naprawa niekompletnych danych na urządzeniu (dane na serwerze są całe): przy pustym `outbox` usunąć klucz `sync_cursor` z tabeli `meta` w IndexedDB `basemind` i przeładować aplikację; pobierze wszystko od nowa. Wylogowanie i zalogowanie daje ten sam efekt.
+- **Nowy model synchronizowany musi implementować `App\Models\Contracts\SyncableModel`** (oprócz traitu `Syncable` i wpisu w `config/sync.php`). Bez tego `SyncService` rzuci `TypeError` przy pierwszej zmianie; pilnuje tego `SyncRegistryTest`. Model z `space_id` sprawdzany przez `SpaceItemPolicy` implementuje `SpaceScoped`.
+- **Larastan domyślnie nie czyta metody `casts()`** (od Laravela 11 casty są w metodzie, a Larastan tworzy model bez konstruktora). Bez `parseModelCastsMethod: true` w `phpstan.neon` wszystkie pola z castami widzi jako tekst i zgłasza dziesiątki fałszywych błędów.
+- **`pluck()` na zaszyfrowanym polu musi iść przez model**, nie w SQL: zapytanie zwróciłoby szyfrogram. Larastan sugeruje `pluck` w zapytaniu (`noUnnecessaryCollectionCall`), dlatego takie miejsca używają `->get()->map(fn ($m) => $m->pole)` z komentarzem.
+- **Testy e2e nigdy na Apache z portu 8080** (ten używa `api/.env` i bazy `basemind` z prawdziwym kontem). `web/e2e/server.ts` startuje `php -S` z katalogu `api/public` (router Laravela szuka `index.php` względem katalogu roboczego) i ustawia bazę przez zmienne środowiskowe, które mają pierwszeństwo przed `.env`. Działa to tylko bez `config:cache` — dlatego skrypt pyta Laravela o nazwę bazy przed `migrate:fresh`.
+- **`pnpm e2e` robi build do `api/public/`**, czyli ten sam, który serwuje Apache: po testach telefon pokaże baner „Odśwież”, jeśli kod się zmienił.
+- **Git Bash i `sed` gubią ukośniki odwrotne w przestrzeniach nazw PHP** (`App\Models\...` zamienia się w `AppModels...`). Do takich zamian używać narzędzia Edit albo PowerShell `[IO.File]::ReadAllText/WriteAllText` i sprawdzić wynik.
 - **Apache z XAMPP startuje u nas około 30 sekund.** Przy sprawdzaniu `/api/health` zaraz po starcie dać mu tyle czasu, zanim uzna się start za nieudany.
 - **Nie czyścić `api/public/` przy buildzie w całości** (są tam `index.php`, `.htaccess`) — tylko `web/scripts/clean-build.mjs` z jawną listą.
 - **MariaDB nasłuchuje tylko na 127.0.0.1** — łączyć się przez `127.0.0.1`, nie `::1`/`localhost` z IPv6.
