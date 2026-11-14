@@ -735,6 +735,7 @@ describe('app shell', () => {
     function newTask(fields: Partial<Task> = {}) {
       return tasks.create({
         list_id: null,
+        parent_id: null,
         title: 'Kupić mleko',
         notes: null,
         priority: 4,

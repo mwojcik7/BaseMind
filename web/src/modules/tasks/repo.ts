@@ -14,6 +14,8 @@ export interface TaskList extends SyncedRecord {
 export interface Task extends SyncedRecord {
   /** Null, or a list that no longer exists, means the inbox. */
   list_id: string | null
+  /** Set on a subtask. Subtasks are one level deep; a deleted parent makes it top-level again. */
+  parent_id: string | null
   title: string
   notes: string | null
   /** 1 is the most important. */
@@ -64,20 +66,67 @@ export function moveTask(id: string, dueDate: string) {
   return changeTask(id, { due_date: dueDate })
 }
 
-/** Deleting and undoing it, with the reminder following the task. */
+/** The task's live subtasks, oldest first (UUIDv7 ids sort by creation time). */
+export async function subtasksOf(id: string) {
+  return (await tasks.list())
+    .filter((task) => task.parent_id === id)
+    .sort((a, b) => a.id.localeCompare(b.id))
+}
+
+export async function openSubtasksOf(id: string) {
+  return (await subtasksOf(id)).filter((task) => task.status === 'todo')
+}
+
+/**
+ * Completes the task and its open subtasks together.
+ * Returns the ids it completed, so the change can be undone with `reopenTasks`.
+ */
+export function completeTaskWithSubtasks(id: string) {
+  return withReminder(async () => {
+    const ids = [id, ...(await openSubtasksOf(id)).map((task) => task.id)]
+    const completedAt = new Date().toISOString()
+    for (const taskId of ids) {
+      await refreshTaskReminder(
+        await tasks.update(taskId, { status: 'done', completed_at: completedAt }),
+      )
+    }
+    return ids
+  })
+}
+
+export function reopenTasks(ids: readonly string[]) {
+  return withReminder(async () => {
+    for (const id of ids) {
+      await refreshTaskReminder(await tasks.update(id, { status: 'todo', completed_at: null }))
+    }
+  })
+}
+
+// The subtasks deleted together with each task, so undoing brings back just those and not
+// ones deleted on their own earlier. Kept in memory: undo is only offered for a few seconds.
+const deletedWithParent = new Map<string, string[]>()
+
+/** Deleting and undoing it, with the reminder following the task and its subtasks. */
 export const removableTasks = {
   softDelete: (id: string) =>
     withReminder(async () => {
-      await tasks.softDelete(id)
-      await dismissTaskReminder(id)
+      const subtaskIds = (await subtasksOf(id)).map((task) => task.id)
+      for (const taskId of [id, ...subtaskIds]) {
+        await tasks.softDelete(taskId)
+        await dismissTaskReminder(taskId)
+      }
+      deletedWithParent.set(id, subtaskIds)
     }),
   restore: (id: string) =>
     withReminder(async () => {
-      await tasks.restore(id)
-      const task = await tasks.get(id)
-      if (task) {
-        await refreshTaskReminder(task)
+      for (const taskId of [id, ...(deletedWithParent.get(id) ?? [])]) {
+        await tasks.restore(taskId)
+        const task = await tasks.get(taskId)
+        if (task) {
+          await refreshTaskReminder(task)
+        }
       }
+      deletedWithParent.delete(id)
     }),
 }
 

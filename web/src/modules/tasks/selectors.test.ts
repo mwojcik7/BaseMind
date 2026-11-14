@@ -5,6 +5,8 @@ import {
   completedTasks,
   dayLabel,
   dueLabel,
+  subtasksIn,
+  taskContexts,
   tasksInList,
   todayTasks,
   upcomingTasks,
@@ -25,6 +27,7 @@ function task(fields: Partial<Task>): Task {
     rev: null,
     version: 1,
     list_id: null,
+    parent_id: null,
     title: 'Zadanie',
     notes: null,
     priority: 4,
@@ -130,5 +133,44 @@ describe('labels', () => {
       `${pl.tasks.today}, 14:30`,
     )
     expect(dueLabel(task({}), TODAY)).toBeNull()
+  })
+})
+
+describe('subtasks', () => {
+  const parent = task({ id: 'parent', title: 'Remont łazienki' })
+  const dated = task({ id: 's1', title: 'Kupić farbę', parent_id: 'parent', due_date: TODAY })
+  const undated = task({ id: 's2', title: 'Wybrać kafelki', parent_id: 'parent' })
+  const finished = task({ id: 's3', title: 'Zmierzyć', parent_id: 'parent', status: 'done' })
+  // Its parent was deleted, e.g. on another device: it must not go missing.
+  const orphan = task({ id: 'o', title: 'Sierota', parent_id: 'deleted-parent' })
+  // Stored before subtasks existed: no parent_id at all.
+  const legacy = { ...task({ id: 'l', title: 'Stare' }), parent_id: undefined } as unknown as Task
+  const all = [parent, dated, undated, finished, orphan, legacy]
+
+  it('lists only top-level tasks, keeping orphans and old records', () => {
+    expect(titles(tasksInList(all, null, new Set()))).toEqual(
+      expect.arrayContaining(['Remont łazienki', 'Sierota', 'Stare']),
+    )
+    expect(titles(tasksInList(all, null, new Set()))).toHaveLength(3)
+  })
+
+  it('shows a subtask in Today and Upcoming only with its own date', () => {
+    expect(titles(todayTasks(all, TODAY).today)).toContain('Kupić farbę')
+    const undatedTitles = upcomingTasks(all, TODAY).flatMap(({ tasks }) => titles(tasks))
+    expect(undatedTitles).not.toContain('Wybrać kafelki')
+    expect(undatedTitles).toEqual(expect.arrayContaining(['Remont łazienki', 'Sierota', 'Stare']))
+  })
+
+  it('gives a subtask its parent title and a parent its progress', () => {
+    const contextOf = taskContexts(all)
+
+    expect(contextOf(dated)).toEqual({ parentTitle: 'Remont łazienki', progress: undefined })
+    expect(contextOf(parent)).toEqual({ parentTitle: undefined, progress: { done: 1, total: 3 } })
+    expect(contextOf(orphan)).toEqual({ parentTitle: undefined, progress: undefined })
+    expect(contextOf(legacy)).toEqual({ parentTitle: undefined, progress: undefined })
+  })
+
+  it('keeps subtasks in the order they were added', () => {
+    expect(titles(subtasksIn(all, 'parent'))).toEqual(['Kupić farbę', 'Wybrać kafelki', 'Zmierzyć'])
   })
 })

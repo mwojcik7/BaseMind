@@ -6,6 +6,7 @@ import { SearchBar } from '@/components/SearchBar'
 import { Sidebar } from '@/components/Sidebar'
 import { SyncIndicator } from '@/components/SyncIndicator'
 import { Toaster } from '@/components/ui/toaster'
+import { CompleteTaskPrompt } from '@/modules/tasks/CompleteTaskPrompt'
 
 export function AppShell() {
   return (
@@ -26,6 +27,8 @@ export function AppShell() {
         </main>
       </div>
       <BottomNav />
+      {/* Here rather than in a page: tasks are completed from the dashboard too. */}
+      <CompleteTaskPrompt />
       <Toaster />
     </MotionConfig>
   )

@@ -23,6 +23,7 @@ const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd')
 function fields(overrides: Partial<Task> = {}) {
   return {
     list_id: null,
+    parent_id: null,
     title: 'Zadzwonić',
     notes: null,
     priority: 4,

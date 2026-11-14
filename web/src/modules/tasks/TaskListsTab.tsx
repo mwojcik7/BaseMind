@@ -15,7 +15,7 @@ import { toast } from '@/components/ui/toaster'
 import { pl } from '@/i18n/pl'
 import { errorMessage } from '@/lib/form-errors'
 import { deleteTaskList, taskLists, type Task, type TaskList } from '@/modules/tasks/repo'
-import { tasksInList } from '@/modules/tasks/selectors'
+import { taskContexts, tasksInList } from '@/modules/tasks/selectors'
 import { TaskRow } from '@/modules/tasks/TaskRow'
 
 const MAX_NAME_LENGTH = 120
@@ -105,6 +105,7 @@ export function TaskListsTab({
   // A list deleted on another device leaves this screen by itself.
   const viewing = selected === null || list !== undefined
   const items = viewing ? tasksInList(all, list?.id ?? null, liveIds) : []
+  const contextOf = taskContexts(all)
 
   async function handleDelete() {
     setConfirmingDelete(false)
@@ -161,7 +162,7 @@ export function TaskListsTab({
           {items.length > 0 ? (
             <ul className="mt-2 flex flex-col gap-2">
               {items.map((task) => (
-                <TaskRow key={task.id} task={task} today={today} />
+                <TaskRow key={task.id} task={task} today={today} context={contextOf(task)} />
               ))}
             </ul>
           ) : (

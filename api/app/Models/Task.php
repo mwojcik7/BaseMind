@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Casts\SodiumEncrypted;
 use App\Models\Concerns\Syncable;
 use App\Models\Contracts\SyncableModel;
+use App\Rules\ParentTask;
 use App\Rules\SyncedRecordInSpace;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,12 @@ class Task extends Model implements SyncableModel
     {
         return [
             'list_id' => ['nullable', 'uuid', new SyncedRecordInSpace($this->space_id, entity: 'task_lists')],
+            'parent_id' => [
+                'nullable',
+                'uuid',
+                new SyncedRecordInSpace($this->space_id, entity: 'tasks'),
+                new ParentTask($this->space_id, $this->id),
+            ],
             'title' => ['required', 'string', 'max:500'],
             'notes' => ['nullable', 'string', 'max:10000'],
             'priority' => ['required', 'integer', 'between:1,4'],

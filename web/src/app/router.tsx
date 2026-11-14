@@ -79,6 +79,9 @@ const tasksRoute = createRoute({
 const taskDetailRoute = createRoute({
   getParentRoute: () => tasksRoute,
   path: '$taskId',
+  // ?complete=1: opened from the notification's Done button, which can't ask about subtasks.
+  validateSearch: (search: Record<string, unknown>): { complete?: true } =>
+    search.complete === 1 || search.complete === '1' ? { complete: true } : {},
   component: lazyRouteComponent(() => import('@/modules/tasks/TaskDetail'), 'TaskDetail'),
 })
 

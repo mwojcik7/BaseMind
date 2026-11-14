@@ -6,6 +6,7 @@ use App\Models\Reminder;
 use App\Models\Task;
 use App\Policies\SpaceItemPolicy;
 use App\Services\SyncService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
@@ -18,8 +19,16 @@ class ReminderActionController
 {
     public function __construct(private readonly SyncService $sync) {}
 
-    public function dismiss(Request $request, Reminder $reminder): Response
+    public function dismiss(Request $request, Reminder $reminder): Response|JsonResponse
     {
+        app(SpaceItemPolicy::class)->update($request->user(), $reminder)->authorize();
+
+        // The user decides about open subtasks in the app: the notification can't ask.
+        // Nothing changes here; the Service Worker opens the task instead.
+        if ($request->boolean('done') && $this->hasOpenSubtasks($reminder)) {
+            return response()->json(['task_id' => $reminder->entity_id], 409);
+        }
+
         return $this->change($request, $reminder, [
             // A repeating reminder keeps going; only this occurrence is dealt with.
             'status' => $reminder->rrule === null ? 'dismissed' : 'scheduled',
@@ -54,6 +63,15 @@ class ReminderActionController
         });
 
         return response()->noContent();
+    }
+
+    private function hasOpenSubtasks(Reminder $reminder): bool
+    {
+        return $reminder->entity_type === 'tasks'
+            && Task::where('space_id', $reminder->space_id)
+                ->where('parent_id', $reminder->entity_id)
+                ->where('status', 'todo')
+                ->exists();
     }
 
     /** Looked up within the reminder's space, the one access was just checked for. */

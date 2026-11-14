@@ -148,6 +148,22 @@ export const pl = {
     deleteListDescription: 'Zadania z tej listy trafią do Skrzynki.',
     listDeleted: 'Usunięto listę',
     backToLists: 'Wróć do list',
+    subtasks: 'Podzadania',
+    subtaskOf: 'Podzadanie zadania',
+    addSubtask: 'Dodaj podzadanie',
+    addSubtaskPlaceholder: 'Nazwa podzadania, Enter dodaje',
+    subtaskProgress: (done: number, total: number) => `Ukończone podzadania: ${done} z ${total}`,
+    completeTitle: 'Zadanie ma nieukończone podzadania',
+    completeDescription: (title: string, open: number) =>
+      `„${title}” ma podzadania do zrobienia: ${open}. Odhaczyć je razem z zadaniem?`,
+    completeAll: 'Odhacz wszystkie',
+    completeOnlyTask: 'Tylko to zadanie',
+    completedWithSubtasks: (count: number) => `Odhaczono zadanie i podzadania (${count})`,
+    notesEdit: 'Edytuj',
+    notesPreview: 'Podgląd',
+    notesMarkdownHint:
+      'Możesz używać Markdown: **pogrubienie**, - lista, - [ ] do zrobienia, [link](adres).',
+    notesEmpty: 'Brak notatki.',
   },
   search: {
     placeholder: 'Szukaj we wszystkim',

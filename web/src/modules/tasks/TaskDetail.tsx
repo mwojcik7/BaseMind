@@ -1,11 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useNavigate, useParams, useRouter } from '@tanstack/react-router'
+import { Link, useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Controller, useForm, useWatch } from 'react-hook-form'
+import { lazy, Suspense, useEffect, useState, type KeyboardEvent } from 'react'
+import { Controller, useForm, useWatch, type UseFormRegisterReturn } from 'react-hook-form'
 import { z } from 'zod'
 import { FormField } from '@/components/FormField'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,9 +23,23 @@ import { useRecord, useRecords } from '@/db/hooks'
 import { pl } from '@/i18n/pl'
 import { deleteWithUndo } from '@/lib/delete-with-undo'
 import { errorMessage } from '@/lib/form-errors'
+import { requestCompleteTask } from '@/modules/tasks/completion'
 import { findTaskReminder, type ReminderOffset } from '@/modules/tasks/reminder'
-import { removableTasks, taskLists, tasks, updateTask, type Task } from '@/modules/tasks/repo'
+import {
+  createTask,
+  DEFAULT_PRIORITY,
+  removableTasks,
+  reopenTask,
+  taskLists,
+  tasks,
+  updateTask,
+  type Task,
+} from '@/modules/tasks/repo'
+import { subtasksIn } from '@/modules/tasks/selectors'
 import { ReminderSelect } from '@/modules/tasks/TaskFields'
+
+// Loaded only when the preview is opened: the Markdown parser is the biggest part.
+const MarkdownPreview = lazy(() => import('@/components/MarkdownPreview'))
 
 // Radix's Select can't have an empty value.
 const INBOX = 'inbox'
@@ -41,12 +57,167 @@ const taskFormSchema = z.object({
 
 type TaskFormValues = z.infer<typeof taskFormSchema>
 
+function report(error: unknown) {
+  toast.error(errorMessage(error))
+}
+
+const FIELD_CLASS =
+  'w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30'
+
+function NotesField({
+  registration,
+  value,
+  error,
+}: {
+  registration: UseFormRegisterReturn<'notes'>
+  value: string
+  error?: string
+}) {
+  const [preview, setPreview] = useState(false)
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor="task-notes">{pl.tasks.notes}</Label>
+        <div className="flex rounded-md bg-secondary p-0.5 text-sm" role="group">
+          {[false, true].map((mode) => (
+            <button
+              key={String(mode)}
+              type="button"
+              aria-pressed={preview === mode}
+              onClick={() => setPreview(mode)}
+              className="min-h-9 rounded px-3 font-medium text-muted-foreground aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-xs"
+            >
+              {mode ? pl.tasks.notesPreview : pl.tasks.notesEdit}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Kept mounted while previewing, so the form keeps the value and the field. */}
+      <textarea
+        id="task-notes"
+        rows={4}
+        hidden={preview}
+        aria-describedby="task-notes-hint"
+        className={FIELD_CLASS}
+        {...registration}
+      />
+      {preview ? (
+        <div className="min-h-24 rounded-md border border-input px-3 py-2">
+          {value.trim() ? (
+            <Suspense fallback={null}>
+              <MarkdownPreview text={value} />
+            </Suspense>
+          ) : (
+            <p className="text-sm text-muted-foreground">{pl.tasks.notesEmpty}</p>
+          )}
+        </div>
+      ) : (
+        <p id="task-notes-hint" className="text-xs text-muted-foreground">
+          {pl.tasks.notesMarkdownHint}
+        </p>
+      )}
+      {error && <p className="text-sm text-danger">{error}</p>}
+    </div>
+  )
+}
+
+/** Each subtask opens like any task; completing one never asks, as it has no subtasks. */
+function Subtasks({ task }: { task: Task }) {
+  const all = useRecords(tasks)
+  const [title, setTitle] = useState('')
+  const items = all ? subtasksIn(all, task.id) : []
+
+  async function add() {
+    const trimmed = title.trim()
+    if (!trimmed) {
+      return
+    }
+
+    try {
+      await createTask({
+        list_id: task.list_id,
+        parent_id: task.id,
+        title: trimmed.slice(0, 500),
+        notes: null,
+        priority: DEFAULT_PRIORITY,
+        status: 'todo',
+        due_date: null,
+        due_time: null,
+        completed_at: null,
+      })
+      // The field stays open for the next one.
+      setTitle('')
+    } catch (error) {
+      report(error)
+    }
+  }
+
+  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    // Inside the task's form: Enter adds a subtask instead of saving the task.
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      void add()
+    }
+  }
+
+  return (
+    <section aria-labelledby="task-subtasks" className="flex flex-col gap-2">
+      <h3 id="task-subtasks" className="text-sm font-medium">
+        {pl.tasks.subtasks}
+      </h3>
+      {items.length > 0 && (
+        <ul className="flex flex-col">
+          {items.map((subtask) => {
+            const done = subtask.status === 'done'
+            return (
+              <li key={subtask.id} className="flex min-h-11 items-center gap-3">
+                <Checkbox
+                  aria-label={
+                    done ? pl.tasks.reopen(subtask.title) : pl.tasks.complete(subtask.title)
+                  }
+                  checked={done}
+                  onCheckedChange={() =>
+                    done
+                      ? void reopenTask(subtask.id).catch(report)
+                      : void requestCompleteTask(subtask)
+                  }
+                />
+                <Link
+                  to="/tasks/$taskId"
+                  params={{ taskId: subtask.id }}
+                  // Moving between a task and its subtasks keeps one entry: closing returns to the list.
+                  replace
+                  className={`min-w-0 flex-1 truncate py-2 text-sm ${done ? 'text-muted-foreground line-through' : ''}`}
+                >
+                  {subtask.title}
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      <Input
+        aria-label={pl.tasks.addSubtask}
+        placeholder={pl.tasks.addSubtaskPlaceholder}
+        value={title}
+        enterKeyHint="enter"
+        onChange={(event) => setTitle(event.target.value)}
+        onKeyDown={onKeyDown}
+      />
+    </section>
+  )
+}
+
 function TaskForm({
   task,
+  parent,
   reminder,
   onDone,
 }: {
   task: Task
+  parent: Task | undefined
   reminder: ReminderOffset
   onDone: () => void
 }) {
@@ -69,6 +240,7 @@ function TaskForm({
     },
   })
   const dueDate = useWatch({ control, name: 'due_date' })
+  const notes = useWatch({ control, name: 'notes' })
 
   const onSubmit = handleSubmit(async (values) => {
     try {
@@ -87,7 +259,7 @@ function TaskForm({
       )
       onDone()
     } catch (error) {
-      toast.error(errorMessage(error))
+      report(error)
     }
   })
 
@@ -96,12 +268,26 @@ function TaskForm({
       await deleteWithUndo(removableTasks, task.id, pl.tasks.deleted)
       onDone()
     } catch (error) {
-      toast.error(errorMessage(error))
+      report(error)
     }
   }
 
   return (
     <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
+      {parent && (
+        <p className="text-sm text-muted-foreground">
+          {pl.tasks.subtaskOf}{' '}
+          <Link
+            to="/tasks/$taskId"
+            params={{ taskId: parent.id }}
+            replace
+            className="font-medium text-brand-text"
+          >
+            {parent.title}
+          </Link>
+        </p>
+      )}
+
       <FormField
         id="task-title"
         label={pl.tasks.title}
@@ -109,16 +295,11 @@ function TaskForm({
         {...register('title')}
       />
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="task-notes">{pl.tasks.notes}</Label>
-        <textarea
-          id="task-notes"
-          rows={3}
-          className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
-          {...register('notes')}
-        />
-        {errors.notes && <p className="text-sm text-danger">{errors.notes.message}</p>}
-      </div>
+      <NotesField registration={register('notes')} value={notes} error={errors.notes?.message} />
+
+      {/* Subtasks are one level deep. Checked on parent_id, not on a live parent: the server
+          still sees a subtask whose parent was deleted as one, and would refuse its subtasks. */}
+      {!task.parent_id && <Subtasks task={task} />}
 
       <Controller
         control={control}
@@ -178,32 +359,35 @@ function TaskForm({
         </div>
       )}
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="task-list">{pl.tasks.list}</Label>
-        <Controller
-          control={control}
-          name="list"
-          render={({ field }) => (
-            <Select
-              // A task can still point at a list deleted on another device.
-              value={lists?.some((list) => list.id === field.value) ? field.value : INBOX}
-              onValueChange={field.onChange}
-            >
-              <SelectTrigger id="task-list" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={INBOX}>{pl.tasks.inbox}</SelectItem>
-                {lists?.map((list) => (
-                  <SelectItem key={list.id} value={list.id}>
-                    {list.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </div>
+      {/* A subtask lives with its parent, so only a top-level task picks a list. */}
+      {!parent && (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="task-list">{pl.tasks.list}</Label>
+          <Controller
+            control={control}
+            name="list"
+            render={({ field }) => (
+              <Select
+                // A task can still point at a list deleted on another device.
+                value={lists?.some((list) => list.id === field.value) ? field.value : INBOX}
+                onValueChange={field.onChange}
+              >
+                <SelectTrigger id="task-list" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={INBOX}>{pl.tasks.inbox}</SelectItem>
+                  {lists?.map((list) => (
+                    <SelectItem key={list.id} value={list.id}>
+                      {list.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </div>
+      )}
 
       <Button type="submit" disabled={isSubmitting}>
         {pl.tasks.save}
@@ -218,13 +402,26 @@ function TaskForm({
 /** Has its own address, so the Android back button closes it and search can link to it. */
 export function TaskDetail() {
   const { taskId } = useParams({ strict: false }) as { taskId: string }
+  const { complete } = useSearch({ strict: false }) as { complete?: true }
   const task = useRecord(tasks, taskId)
+  // A deleted parent makes the subtask top-level again (see selectors).
+  const parent = useRecord(tasks, task?.parent_id ?? '')
   const reminder = useLiveQuery(
     async () => (await findTaskReminder(taskId))?.offset_minutes ?? null,
     [taskId],
   )
   const navigate = useNavigate()
   const router = useRouter()
+
+  // From the notification's Done button: ask about the open subtasks here.
+  useEffect(() => {
+    if (complete && task) {
+      if (task.status === 'todo') {
+        void requestCompleteTask(task)
+      }
+      void navigate({ to: '/tasks/$taskId', params: { taskId }, search: {}, replace: true })
+    }
+  }, [complete, task, taskId, navigate])
 
   function close() {
     if (router.history.canGoBack()) {
@@ -241,7 +438,7 @@ export function TaskDetail() {
       onOpenChange={(open) => !open && close()}
     >
       {task && reminder !== undefined && (
-        <TaskForm key={task.id} task={task} reminder={reminder} onDone={close} />
+        <TaskForm key={task.id} task={task} parent={parent} reminder={reminder} onDone={close} />
       )}
     </BottomSheet>
   )

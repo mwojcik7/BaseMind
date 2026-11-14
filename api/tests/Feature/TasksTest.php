@@ -212,6 +212,100 @@ class TasksTest extends TestCase
         $this->assertSame('todo', Task::findOrFail($foreign['id'])->status);
     }
 
+    public function test_a_subtask_keeps_its_parent(): void
+    {
+        $parent = $this->pushTask(['title' => 'Remont łazienki']);
+        $subtask = $this->pushTask(['title' => 'Kupić farbę', 'parent_id' => $parent['id']]);
+
+        $this->assertSame('applied', $subtask['status']);
+        $pulled = collect($this->actingAs($this->user)->getJson('/api/sync/pull')->json('changes'))
+            ->firstWhere('record.id', $subtask['id']);
+        $this->assertSame($parent['id'], $pulled['record']['parent_id']);
+    }
+
+    public function test_a_subtask_cannot_have_subtasks(): void
+    {
+        $parent = $this->pushTask();
+        $subtask = $this->pushTask(['parent_id' => $parent['id']]);
+
+        $this->assertSame('rejected', $this->pushTask(['parent_id' => $subtask['id']])['status']);
+    }
+
+    public function test_a_subtask_needs_a_parent_from_its_own_space(): void
+    {
+        $foreign = $this->pushTask([], User::factory()->create());
+
+        $this->assertSame('rejected', $this->pushTask(['parent_id' => $foreign['id']])['status']);
+        $this->assertSame('rejected', $this->pushTask(['parent_id' => '019a0000-0000-7000-8000-000000000000'])['status']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function update(string $taskId, array $payload): string
+    {
+        $task = Task::findOrFail($taskId);
+
+        return $this->actingAs($this->user)->postJson('/api/sync/push', ['ops' => [[
+            'op_id' => (string) Str::uuid7(),
+            'entity' => 'tasks',
+            'record_id' => $taskId,
+            'op' => 'update',
+            'payload' => $payload,
+            'base_version' => $task->version,
+            'client_ts' => '2026-11-09T10:00:00.000Z',
+        ]]])->assertOk()->json('results.0.status');
+    }
+
+    public function test_a_task_with_subtasks_cannot_become_a_subtask_or_its_own_parent(): void
+    {
+        $parent = $this->pushTask();
+        $this->pushTask(['parent_id' => $parent['id']]);
+        $other = $this->pushTask();
+
+        $this->assertSame('rejected', $this->update($parent['id'], ['parent_id' => $other['id']]));
+        $this->assertSame('rejected', $this->update($other['id'], ['parent_id' => $other['id']]));
+        $this->assertSame('applied', $this->update($other['id'], ['parent_id' => $parent['id']]));
+    }
+
+    public function test_the_done_button_leaves_a_task_with_open_subtasks_for_the_app(): void
+    {
+        $task = $this->pushTask();
+        $this->pushTask(['parent_id' => $task['id']]);
+        $reminder = $this->reminderFor($task['id']);
+
+        $this->actingAs($this->user)->postJson("/api/reminders/{$reminder}/dismiss", ['done' => true])
+            ->assertStatus(409)
+            ->assertExactJson(['task_id' => $task['id']]);
+
+        $this->assertSame('todo', Task::findOrFail($task['id'])->status);
+        $this->assertSame('sent', DB::table('reminders')->where('id', $reminder)->value('status'));
+    }
+
+    public function test_the_done_button_completes_a_task_whose_subtasks_are_finished(): void
+    {
+        $task = $this->pushTask();
+        $this->pushTask(['parent_id' => $task['id'], 'status' => 'done', 'completed_at' => '2026-11-09T09:00:00.000Z']);
+        $deleted = $this->pushTask(['parent_id' => $task['id']]);
+        Task::findOrFail($deleted['id'])->delete();
+
+        $this->dismiss($this->reminderFor($task['id']), ['done' => true]);
+
+        $this->assertSame('done', Task::findOrFail($task['id'])->status);
+    }
+
+    public function test_the_open_subtasks_check_does_not_reveal_another_space(): void
+    {
+        $owner = User::factory()->create();
+        $foreign = $this->pushTask([], $owner);
+        $this->pushTask(['parent_id' => $foreign['id']], $owner);
+        $reminder = $this->reminderFor($foreign['id'], $owner);
+
+        // Without access the answer is 404, never the 409 that would confirm open subtasks.
+        $this->actingAs($this->user)->postJson("/api/reminders/{$reminder}/dismiss", ['done' => true])
+            ->assertNotFound();
+    }
+
     public function test_the_digest_leaves_out_deleted_tasks(): void
     {
         $task = $this->pushTask(['due_date' => '2026-11-09']);

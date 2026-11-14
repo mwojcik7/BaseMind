@@ -116,3 +116,67 @@
     }
   }
 }
+
+/* Formatted Markdown (MarkdownPreview): no typography plugin, just what notes need. */
+@layer components {
+  .markdown {
+    @apply text-base leading-relaxed break-words;
+
+    & > * + * {
+      @apply mt-3;
+    }
+    & h1 {
+      @apply text-xl font-semibold;
+    }
+    & h2 {
+      @apply text-lg font-semibold;
+    }
+    & h3,
+    & h4,
+    & h5,
+    & h6 {
+      @apply font-semibold;
+    }
+    & ul {
+      @apply list-disc pl-6;
+    }
+    & ol {
+      @apply list-decimal pl-6;
+    }
+    & li + li {
+      @apply mt-1;
+    }
+    /* GitHub task lists: the checkbox replaces the bullet. */
+    & ul.contains-task-list {
+      @apply list-none pl-1;
+    }
+    & .task-list-item input {
+      @apply mr-2 size-4 align-middle accent-primary;
+    }
+    & a {
+      @apply font-medium text-brand-text underline underline-offset-2;
+    }
+    & blockquote {
+      @apply border-l-4 border-border pl-3 text-muted-foreground;
+    }
+    & code {
+      @apply rounded bg-muted px-1 py-0.5 font-mono text-sm;
+    }
+    & pre {
+      @apply overflow-x-auto rounded-md bg-muted p-3;
+    }
+    & pre code {
+      @apply bg-transparent p-0;
+    }
+    & hr {
+      @apply border-border;
+    }
+    & table {
+      @apply block overflow-x-auto text-sm;
+    }
+    & th,
+    & td {
+      @apply border border-border px-2 py-1 text-left;
+    }
+  }
+}

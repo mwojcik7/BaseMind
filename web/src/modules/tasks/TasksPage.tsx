@@ -7,7 +7,14 @@ import { useRecords } from '@/db/hooks'
 import { pl } from '@/i18n/pl'
 import { useToday } from '@/lib/use-today'
 import { taskLists, tasks, type Task } from '@/modules/tasks/repo'
-import { completedTasks, dayLabel, todayTasks, upcomingTasks } from '@/modules/tasks/selectors'
+import {
+  completedTasks,
+  dayLabel,
+  taskContexts,
+  todayTasks,
+  upcomingTasks,
+  type TaskContext,
+} from '@/modules/tasks/selectors'
 import { TaskListsTab } from '@/modules/tasks/TaskListsTab'
 import { TaskRow } from '@/modules/tasks/TaskRow'
 
@@ -16,11 +23,13 @@ function Section({
   items,
   today,
   listNames,
+  contextOf,
 }: {
   title?: string
   items: Task[]
   today: string
   listNames: ReadonlyMap<string, string>
+  contextOf: (task: Task) => TaskContext
 }) {
   if (items.length === 0) {
     return null
@@ -36,6 +45,7 @@ function Section({
             task={task}
             today={today}
             listName={task.list_id ? listNames.get(task.list_id) : undefined}
+            context={contextOf(task)}
           />
         ))}
       </ul>
@@ -53,6 +63,7 @@ export function TasksPage() {
   const due = todayTasks(records, today)
   const upcoming = upcomingTasks(records, today)
   const completed = completedTasks(records)
+  const contextOf = taskContexts(records)
   // Nothing until the first read, so empty states don't flash on start.
   const loaded = all !== undefined && lists !== undefined
 
@@ -74,8 +85,15 @@ export function TasksPage() {
             items={due.overdue}
             today={today}
             listNames={listNames}
+            contextOf={contextOf}
           />
-          <Section title={pl.tasks.today} items={due.today} today={today} listNames={listNames} />
+          <Section
+            title={pl.tasks.today}
+            items={due.today}
+            today={today}
+            listNames={listNames}
+            contextOf={contextOf}
+          />
           {loaded && due.overdue.length + due.today.length === 0 && (
             <EmptyState icon={PartyPopper} description={pl.tasks.emptyToday} />
           )}
@@ -89,6 +107,7 @@ export function TasksPage() {
               items={items}
               today={today}
               listNames={listNames}
+              contextOf={contextOf}
             />
           ))}
           {loaded && upcoming.length === 0 && (
@@ -101,7 +120,7 @@ export function TasksPage() {
         </TabsContent>
 
         <TabsContent value="done">
-          <Section items={completed} today={today} listNames={listNames} />
+          <Section items={completed} today={today} listNames={listNames} contextOf={contextOf} />
           {loaded && completed.length === 0 && (
             <EmptyState icon={CheckSquare} description={pl.tasks.emptyDone} />
           )}

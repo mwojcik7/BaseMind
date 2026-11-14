@@ -37,6 +37,7 @@ export function TaskQuickAddForm({ onDone }: { onDone: () => void }) {
       await createTask(
         {
           list_id: null,
+          parent_id: null,
           title,
           notes: null,
           priority,

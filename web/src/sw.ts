@@ -47,6 +47,15 @@ async function csrfToken(): Promise<string | undefined> {
   return cookie ? decodeURIComponent(cookie.value) : undefined
 }
 
+class RequestError extends Error {
+  readonly response: Response
+
+  constructor(response: Response) {
+    super(`Request failed with status ${response.status}`)
+    this.response = response
+  }
+}
+
 async function post(path: string, body: unknown) {
   const token = await csrfToken()
   const response = await fetch(path, {
@@ -61,7 +70,7 @@ async function post(path: string, body: unknown) {
   })
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`)
+    throw new RequestError(response)
   }
   return response
 }
@@ -119,6 +128,36 @@ async function openApp(url: string) {
   await self.clients.openWindow(url)
 }
 
+/** Like openApp, but an open window is also taken to `url`. */
+async function openAppAt(url: string) {
+  const [open] = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+  if (open) {
+    await open.focus()
+    // Fails for a window this worker doesn't control yet; a new one is opened instead.
+    if (await open.navigate(url).catch(() => null)) {
+      return
+    }
+  }
+  await self.clients.openWindow(url)
+}
+
+/**
+ * The Done button. A task with open subtasks is left as it is (409): the app opens on it
+ * and asks what to do with them, which a notification can't.
+ */
+async function answerDone(reminderId: string) {
+  try {
+    await post(`/api/reminders/${reminderId}/dismiss`, { done: true })
+  } catch (error) {
+    if (error instanceof RequestError && error.response.status === 409) {
+      const { task_id: taskId } = (await error.response.json()) as { task_id: string }
+      await openAppAt(`/tasks/${encodeURIComponent(taskId)}?complete=1`)
+      return
+    }
+    throw error
+  }
+}
+
 /** Answering from the notification doesn't touch the app, which would wait for its next sync. */
 async function tellOpenAppsToSync() {
   const open = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
@@ -129,12 +168,14 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
   const { reminder_id: reminderId, url } = (event.notification.data ?? {}) as PushPayload
-  const answer = reminderId
-    ? event.action === 'snooze'
+  const answer = !reminderId
+    ? Promise.resolve()
+    : event.action === 'snooze'
       ? post(`/api/reminders/${reminderId}/snooze`, { minutes: SNOOZE_MINUTES })
-      : // Tapping the notification itself only answers it; just the button finishes the task.
-        post(`/api/reminders/${reminderId}/dismiss`, { done: event.action === 'done' })
-    : Promise.resolve()
+      : event.action === 'done'
+        ? answerDone(reminderId)
+        : // Tapping the notification itself only answers it; just the button finishes the task.
+          post(`/api/reminders/${reminderId}/dismiss`, { done: false })
 
   event.waitUntil(
     Promise.all([
