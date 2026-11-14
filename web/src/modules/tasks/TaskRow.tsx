@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { addDays, format, parseISO } from 'date-fns'
-import { CalendarClock, ListChecks, Trash2 } from 'lucide-react'
+import { CalendarClock, ListChecks, Repeat, Trash2 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ListItem } from '@/components/ui/list-item'
 import { toast } from '@/components/ui/toaster'
@@ -8,6 +8,7 @@ import { pl } from '@/i18n/pl'
 import { deleteWithUndo } from '@/lib/delete-with-undo'
 import { errorMessage } from '@/lib/form-errors'
 import { requestCompleteTask } from '@/modules/tasks/completion'
+import { describeRecurrence } from '@/modules/tasks/recurrence'
 import { moveTask, removableTasks, reopenTask, type Task } from '@/modules/tasks/repo'
 import { dueLabel, type TaskContext } from '@/modules/tasks/selectors'
 
@@ -53,13 +54,21 @@ export function TaskRow({
   context?: TaskContext
 }) {
   const navigate = useNavigate()
-  const done = task.status === 'done'
+  // A skipped occurrence of a repeating task is finished too, just not done.
+  const done = task.status !== 'todo'
   const tomorrow = format(addDays(parseISO(today), 1), 'yyyy-MM-dd')
   const due = dueLabel(task, today)
   const overdue = !done && task.due_date !== null && task.due_date < today
   // A subtask is named by its parent: that says more than the list.
-  const details = [due, context?.parentTitle ?? listName].filter(Boolean).join(' · ')
+  const details = [
+    due,
+    task.status === 'cancelled' ? pl.tasks.repeat.skippedLabel : null,
+    context?.parentTitle ?? listName,
+  ]
+    .filter(Boolean)
+    .join(' · ')
   const progress = context?.progress
+  const repeat = done ? null : describeRecurrence(task)
 
   return (
     <ListItem
@@ -72,9 +81,14 @@ export function TaskRow({
       }
       title={task.title}
       description={
-        details || progress ? (
+        details || progress || repeat ? (
           <span className="flex flex-wrap items-center gap-x-2">
             {details && <span className={overdue ? 'text-destructive' : ''}>{details}</span>}
+            {repeat && (
+              <span title={repeat} aria-label={repeat} className="inline-flex items-center">
+                <Repeat aria-hidden className="size-3.5" />
+              </span>
+            )}
             {progress && <Progress {...progress} />}
           </span>
         ) : undefined

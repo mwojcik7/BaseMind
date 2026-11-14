@@ -415,8 +415,12 @@ class TasksTest extends TestCase
         $dated = $this->pushTask(['parent_id' => $taskId, 'status' => 'done', 'due_date' => '2026-11-13', 'completed_at' => '2026-11-13T10:00:00.000Z']);
         $undated = $this->pushTask(['parent_id' => $taskId, 'status' => 'done', 'completed_at' => '2026-11-13T10:00:00.000Z']);
 
+        $open = $this->pushTask(['parent_id' => $taskId]);
+
+        // No question about the open one: it comes back open anyway.
         $this->dismiss($reminderId, ['done' => true]);
 
+        $this->assertSame('todo', Task::findOrFail($open['id'])->status);
         $this->assertSame('todo', Task::findOrFail($dated['id'])->status);
         $this->assertNull(Task::findOrFail($dated['id'])->completed_at);
         // Moved by the same week as its parent.

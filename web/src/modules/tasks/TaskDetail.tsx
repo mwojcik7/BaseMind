@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { format } from 'date-fns'
 import { Link, useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lazy, Suspense, useEffect, useState, type KeyboardEvent } from 'react'
@@ -23,7 +24,8 @@ import { useRecord, useRecords } from '@/db/hooks'
 import { pl } from '@/i18n/pl'
 import { deleteWithUndo } from '@/lib/delete-with-undo'
 import { errorMessage } from '@/lib/form-errors'
-import { requestCompleteTask } from '@/modules/tasks/completion'
+import { finishWithUndo, requestCompleteTask } from '@/modules/tasks/completion'
+import { firstDueDate } from '@/modules/tasks/recurrence'
 import { findTaskReminder, type ReminderOffset } from '@/modules/tasks/reminder'
 import {
   createTask,
@@ -36,6 +38,7 @@ import {
   type Task,
 } from '@/modules/tasks/repo'
 import { subtasksIn } from '@/modules/tasks/selectors'
+import { RepeatField } from '@/modules/tasks/RepeatField'
 import { ReminderSelect } from '@/modules/tasks/TaskFields'
 
 // Loaded only when the preview is opened: the Markdown parser is the biggest part.
@@ -53,6 +56,11 @@ const taskFormSchema = z.object({
   due_date: z.string().nullable(),
   due_time: z.string(),
   reminder: z.number().int().min(0).nullable(),
+  repeat: z.object({
+    rrule: z.string().nullable(),
+    repeat_from: z.enum(['due', 'completion']),
+    repeat_remaining: z.number().int().min(1).max(999).nullable(),
+  }),
 })
 
 type TaskFormValues = z.infer<typeof taskFormSchema>
@@ -135,6 +143,8 @@ function Subtasks({ task }: { task: Task }) {
       return
     }
 
+    // Cleared at once, not after saving: the next subtask may be typed in the meantime.
+    setTitle('')
     try {
       await createTask({
         list_id: task.list_id,
@@ -147,9 +157,8 @@ function Subtasks({ task }: { task: Task }) {
         due_time: null,
         completed_at: null,
       })
-      // The field stays open for the next one.
-      setTitle('')
     } catch (error) {
+      setTitle(trimmed)
       report(error)
     }
   }
@@ -237,12 +246,28 @@ function TaskForm({
       due_date: task.due_date,
       due_time: task.due_time ?? '',
       reminder,
+      repeat: {
+        rrule: task.rrule ?? null,
+        repeat_from: task.repeat_from ?? 'due',
+        repeat_remaining: task.repeat_remaining ?? null,
+      },
     },
   })
   const dueDate = useWatch({ control, name: 'due_date' })
   const notes = useWatch({ control, name: 'notes' })
 
+  const today = format(new Date(), 'yyyy-MM-dd')
+
   const onSubmit = handleSubmit(async (values) => {
+    // Subtasks don't repeat: the parent's series reopens them instead.
+    const { rrule, repeat_from, repeat_remaining } = task.parent_id
+      ? { rrule: null, repeat_from: 'due' as const, repeat_remaining: null }
+      : values.repeat
+    // A series starts somewhere: without a date, at its first occurrence from today.
+    const dueDate = values.due_date ?? (rrule ? (firstDueDate(rrule, today) ?? today) : null)
+    // The pattern's date stays unless the date or the rule was changed here.
+    const keepAnchor = rrule === task.rrule && dueDate === task.due_date && task.repeat_anchor
+
     try {
       await updateTask(
         task.id,
@@ -251,9 +276,13 @@ function TaskForm({
           notes: values.notes === '' ? null : values.notes,
           priority: values.priority,
           list_id: values.list === INBOX ? null : values.list,
-          due_date: values.due_date,
+          due_date: dueDate,
           // A time means nothing without a day.
-          due_time: values.due_date && values.due_time ? values.due_time : null,
+          due_time: dueDate && values.due_time ? values.due_time : null,
+          rrule,
+          repeat_from,
+          repeat_anchor: rrule ? (keepAnchor ? task.repeat_anchor : dueDate) : null,
+          repeat_remaining: rrule ? repeat_remaining : null,
         },
         values.reminder,
       )
@@ -262,6 +291,11 @@ function TaskForm({
       report(error)
     }
   })
+
+  async function handleSkip() {
+    await finishWithUndo(task.id, 'cancelled')
+    onDone()
+  }
 
   async function handleDelete() {
     try {
@@ -359,6 +393,16 @@ function TaskForm({
         </div>
       )}
 
+      {!task.parent_id && (
+        <Controller
+          control={control}
+          name="repeat"
+          render={({ field }) => (
+            <RepeatField value={field.value} date={dueDate ?? today} onChange={field.onChange} />
+          )}
+        />
+      )}
+
       {/* A subtask lives with its parent, so only a top-level task picks a list. */}
       {!parent && (
         <div className="flex flex-col gap-2">
@@ -392,6 +436,11 @@ function TaskForm({
       <Button type="submit" disabled={isSubmitting}>
         {pl.tasks.save}
       </Button>
+      {task.rrule && task.status === 'todo' && (
+        <Button type="button" variant="secondary" onClick={() => void handleSkip()}>
+          {pl.tasks.repeat.skip}
+        </Button>
+      )}
       <Button type="button" variant="ghost" onClick={() => void handleDelete()}>
         {pl.tasks.delete}
       </Button>

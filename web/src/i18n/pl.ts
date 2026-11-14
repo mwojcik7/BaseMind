@@ -1,4 +1,47 @@
 // All UI copy lives here, so another language can be added later without touching components.
+
+/** Polish plural forms: 1 tydzień, 2 tygodnie, 5 tygodni, 22 tygodnie. */
+export function plural(count: number, one: string, few: string, many: string) {
+  if (count === 1) {
+    return one
+  }
+  const units = count % 10
+  const tens = count % 100
+  return units >= 2 && units <= 4 && (tens < 12 || tens > 14) ? few : many
+}
+
+// Monday first, as the week starts in Poland; the rule's codes are MO … SU.
+const WEEKDAY_SHORT = ['pon.', 'wt.', 'śr.', 'czw.', 'pt.', 'sob.', 'niedz.']
+const WEEKDAY_ACCUSATIVE = [
+  'poniedziałek',
+  'wtorek',
+  'środę',
+  'czwartek',
+  'piątek',
+  'sobotę',
+  'niedzielę',
+]
+// Środa, sobota and niedziela take feminine ordinals: "w ostatnią sobotę".
+const FEMININE_WEEKDAY = [false, false, true, false, false, true, true]
+const ORDINAL = {
+  masculine: { 1: 'pierwszy', 2: 'drugi', 3: 'trzeci', 4: 'czwarty', [-1]: 'ostatni' },
+  feminine: { 1: 'pierwszą', 2: 'drugą', 3: 'trzecią', 4: 'czwartą', [-1]: 'ostatnią' },
+} as const
+const MONTH_GENITIVE = [
+  'stycznia',
+  'lutego',
+  'marca',
+  'kwietnia',
+  'maja',
+  'czerwca',
+  'lipca',
+  'sierpnia',
+  'września',
+  'października',
+  'listopada',
+  'grudnia',
+]
+
 export const pl = {
   appName: 'BaseMind',
   common: {
@@ -164,6 +207,67 @@ export const pl = {
     notesMarkdownHint:
       'Możesz używać Markdown: **pogrubienie**, - lista, - [ ] do zrobienia, [link](adres).',
     notesEmpty: 'Brak notatki.',
+    repeat: {
+      label: 'Powtarzaj',
+      none: 'Nie powtarzaj',
+      custom: 'Własne…',
+      customTitle: 'Powtarzanie',
+      every: 'Co',
+      daily: 'Codziennie',
+      workdays: 'W dni robocze',
+      unit: {
+        DAILY: (n: number) => plural(n, 'dzień', 'dni', 'dni'),
+        WEEKLY: (n: number) => plural(n, 'tydzień', 'tygodnie', 'tygodni'),
+        MONTHLY: (n: number) => plural(n, 'miesiąc', 'miesiące', 'miesięcy'),
+        YEARLY: (n: number) => plural(n, 'rok', 'lata', 'lat'),
+      },
+      everyN: {
+        DAILY: (n: number) => (n === 1 ? 'Codziennie' : `Co ${n} dni`),
+        WEEKLY: (n: number) =>
+          n === 1 ? 'Co tydzień' : `Co ${n} ${plural(n, 'tydzień', 'tygodnie', 'tygodni')}`,
+        MONTHLY: (n: number) =>
+          n === 1 ? 'Co miesiąc' : `Co ${n} ${plural(n, 'miesiąc', 'miesiące', 'miesięcy')}`,
+        YEARLY: (n: number) => (n === 1 ? 'Co rok' : `Co ${n} ${plural(n, 'rok', 'lata', 'lat')}`),
+      },
+      weekdayShort: WEEKDAY_SHORT,
+      weekdayAccusative: WEEKDAY_ACCUSATIVE,
+      onWeekday: (weekday: number) =>
+        `${weekday === 1 ? 'we' : 'w'} ${WEEKDAY_ACCUSATIVE[weekday]}`,
+      monthDay: (day: number) => (day === -1 ? 'ostatniego dnia' : `dnia ${day}.`),
+      nthWeekday: (position: 1 | 2 | 3 | 4 | -1, weekday: number) =>
+        `${weekday === 1 ? 'we' : 'w'} ${ORDINAL[FEMININE_WEEKDAY[weekday] ? 'feminine' : 'masculine'][position]} ${WEEKDAY_ACCUSATIVE[weekday]}`,
+      yearDay: (day: number, month: number) => `${day} ${MONTH_GENITIVE[month - 1]}`,
+      until: (date: string) => `do ${date}`,
+      times: (n: number) => `${n} ${plural(n, 'raz', 'razy', 'razy')}`,
+      remaining: (n: number) => `zostało: ${n}`,
+      fromCompletion: 'od ukończenia',
+      fromLabel: 'Licz następny termin',
+      fromDue: 'Od terminu',
+      fromCompletionOption: 'Od ukończenia',
+      fromHint: 'Od ukończenia: np. „podlać kwiaty 3 dni po ostatnim podlaniu”.',
+      ends: 'Koniec',
+      endsNever: 'Nigdy',
+      endsOn: 'W dniu',
+      endsAfter: 'Po liczbie razy',
+      timesLabel: 'Ile razy',
+      weekdaysLabel: 'Dni tygodnia',
+      monthlyOn: 'W miesiącu',
+      monthlyByDay: (day: number) => `Dnia ${day}.`,
+      monthlyLastDay: 'Ostatniego dnia',
+      monthlyByWeekday: (position: 1 | 2 | 3 | 4 | -1, weekday: number) =>
+        `${ORDINAL[FEMININE_WEEKDAY[weekday] ? 'feminine' : 'masculine'][position]} ${WEEKDAY_ACCUSATIVE[weekday]}`.replace(
+          /^./,
+          (c) => c.toUpperCase(),
+        ),
+      needsDate: 'Powtarzanie ustawi termin na pierwsze wystąpienie.',
+      skip: 'Pomiń to wystąpienie',
+      skippedLabel: 'pominięte',
+      skipped: (date: string) => `Pominięto. Następny termin: ${date}`,
+      nextOn: (date: string) => `Zrobione. Następny termin: ${date}`,
+      seriesEnded: 'Zrobione. To było ostatnie powtórzenie.',
+      subtaskHint: 'Podzadania nie mogą się powtarzać.',
+      icon: 'Powtarza się',
+    },
   },
   search: {
     placeholder: 'Szukaj we wszystkim',

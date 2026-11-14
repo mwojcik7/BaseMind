@@ -39,10 +39,12 @@ export function upcomingTasks(all: readonly Task[], today: string) {
     .map(([date, tasks]) => ({ date, tasks: tasks.sort(compareOpen) }))
 }
 
-/** Most recently completed first. */
+/** Most recently completed first, with skipped occurrences of repeating tasks. */
 export function completedTasks(all: readonly Task[]) {
   return all
-    .filter((task) => task.status === 'done')
+    .filter(
+      (task) => task.status === 'done' || (task.status === 'cancelled' && task.recurring_task_id),
+    )
     .sort((a, b) => (b.completed_at ?? '').localeCompare(a.completed_at ?? ''))
 }
 

@@ -70,9 +70,14 @@ class ReminderActionController
         return response()->noContent();
     }
 
+    /** A repeating task doesn't ask: its subtasks come back open with the next occurrence. */
     private function hasOpenSubtasks(Reminder $reminder): bool
     {
         return $reminder->entity_type === 'tasks'
+            && Task::where('space_id', $reminder->space_id)
+                ->where('id', $reminder->entity_id)
+                ->whereNull('rrule')
+                ->exists()
             && Task::where('space_id', $reminder->space_id)
                 ->where('parent_id', $reminder->entity_id)
                 ->where('status', 'todo')

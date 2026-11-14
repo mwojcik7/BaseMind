@@ -1,5 +1,7 @@
+import { addDays, differenceInCalendarDays, format, parseISO } from 'date-fns'
 import { db } from '@/db/db'
 import { createRepository, type OwnFields, type SyncedRecord } from '@/db/repository'
+import { nextDueDate, type RepeatFrom } from '@/modules/tasks/recurrence'
 import {
   dismissTaskReminder,
   refreshTaskReminder,
@@ -26,6 +28,16 @@ export interface Task extends SyncedRecord {
   /** 'HH:mm' */
   due_time: string | null
   completed_at: string | null
+  // Repeating tasks (recurrence.ts). Optional: tasks stored before 2026-11-14 don't have them.
+  /** RFC 5545 rule without DTSTART and COUNT; null or missing means the task doesn't repeat. */
+  rrule?: string | null
+  repeat_from?: RepeatFrom
+  /** The date the pattern gives for this occurrence; due_date differs when only it was moved. */
+  repeat_anchor?: string | null
+  /** Occurrences left, this one included; null means no limit. */
+  repeat_remaining?: number | null
+  /** On a copy kept in history: the repeating task it came from. */
+  recurring_task_id?: string | null
 }
 
 export const taskLists = createRepository<TaskList>('task_lists')
@@ -64,6 +76,107 @@ export function reopenTask(id: string) {
 
 export function moveTask(id: string, dueDate: string) {
   return changeTask(id, { due_date: dueDate })
+}
+
+type TaskState = Pick<
+  Task,
+  'status' | 'completed_at' | 'due_date' | 'repeat_anchor' | 'repeat_remaining'
+>
+
+/** What `finishOccurrence` changed, so `undoOccurrence` can put it back. */
+export interface FinishedOccurrence {
+  /** The new due date, or null when the series ended with this occurrence. */
+  next: string | null
+  copyId: string | null
+  before: { id: string; state: TaskState }[]
+}
+
+const stateOf = (task: Task): TaskState => ({
+  status: task.status,
+  completed_at: task.completed_at,
+  due_date: task.due_date,
+  repeat_anchor: task.repeat_anchor ?? null,
+  repeat_remaining: task.repeat_remaining ?? null,
+})
+
+/**
+ * Completes (or skips) the current occurrence of a repeating task: a copy goes to history
+ * and the task moves to its next date, with its subtasks open again and moved by as many
+ * days. When the series has ended, the task itself is completed. Mirrors
+ * `TaskSeries::finishOccurrence` on the server.
+ */
+export function finishOccurrence(id: string, status: 'done' | 'cancelled' = 'done') {
+  return withReminder(async (): Promise<FinishedOccurrence> => {
+    const task = await tasks.get(id)
+    if (!task?.rrule) {
+      throw new Error(`Task ${id} does not repeat`)
+    }
+
+    const now = new Date()
+    const today = format(now, 'yyyy-MM-dd')
+    const currentDue = task.due_date ?? today
+    const next = nextDueDate(
+      task.rrule,
+      task.repeat_from ?? 'due',
+      task.repeat_anchor ?? currentDue,
+      task.repeat_remaining ?? null,
+      today,
+    )
+    const before = [{ id, state: stateOf(task) }]
+
+    if (next === null) {
+      await refreshTaskReminder(await tasks.update(id, { status, completed_at: now.toISOString() }))
+      return { next, copyId: null, before }
+    }
+
+    const copy = await tasks.create({
+      list_id: task.list_id,
+      parent_id: null,
+      title: task.title,
+      notes: task.notes,
+      priority: task.priority,
+      status,
+      due_date: currentDue,
+      due_time: task.due_time,
+      completed_at: now.toISOString(),
+      recurring_task_id: task.id,
+    })
+
+    await refreshTaskReminder(
+      await tasks.update(id, {
+        due_date: next,
+        repeat_anchor: next,
+        repeat_remaining: task.repeat_remaining ? task.repeat_remaining - 1 : null,
+      }),
+    )
+
+    const shift = differenceInCalendarDays(parseISO(next), parseISO(currentDue))
+    for (const subtask of await subtasksOf(id)) {
+      before.push({ id: subtask.id, state: stateOf(subtask) })
+      await refreshTaskReminder(
+        await tasks.update(subtask.id, {
+          status: 'todo',
+          completed_at: null,
+          due_date: subtask.due_date
+            ? format(addDays(parseISO(subtask.due_date), shift), 'yyyy-MM-dd')
+            : null,
+        }),
+      )
+    }
+
+    return { next, copyId: copy.id, before }
+  })
+}
+
+export function undoOccurrence(finished: FinishedOccurrence) {
+  return withReminder(async () => {
+    if (finished.copyId) {
+      await tasks.softDelete(finished.copyId)
+    }
+    for (const { id, state } of finished.before) {
+      await refreshTaskReminder(await tasks.update(id, state))
+    }
+  })
 }
 
 /** The task's live subtasks, oldest first (UUIDv7 ids sort by creation time). */
