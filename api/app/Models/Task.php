@@ -7,6 +7,7 @@ use App\Models\Concerns\Syncable;
 use App\Models\Contracts\SyncableModel;
 use App\Rules\ParentTask;
 use App\Rules\SyncedRecordInSpace;
+use App\Rules\TaskRecurrence;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -28,10 +29,21 @@ class Task extends Model implements SyncableModel
             'notes' => ['nullable', 'string', 'max:10000'],
             'priority' => ['required', 'integer', 'between:1,4'],
             'status' => ['required', 'in:todo,done,cancelled'],
-            'due_date' => ['nullable', 'date_format:Y-m-d'],
+            // A series needs a date to start from.
+            'due_date' => ['nullable', 'date_format:Y-m-d', 'required_with:rrule'],
             'due_time' => ['nullable', 'date_format:H:i'],
             'completed_at' => ['nullable', 'date'],
+            'rrule' => ['nullable', 'string', 'max:255', new TaskRecurrence],
+            'repeat_from' => ['string', 'in:due,completion'],
+            'repeat_anchor' => ['nullable', 'date_format:Y-m-d'],
+            'repeat_remaining' => ['nullable', 'integer', 'between:1,999'],
+            'recurring_task_id' => ['nullable', 'uuid'],
         ];
+    }
+
+    public function isRecurring(): bool
+    {
+        return $this->rrule !== null;
     }
 
     protected function casts(): array
@@ -42,6 +54,8 @@ class Task extends Model implements SyncableModel
             'priority' => 'integer',
             'due_date' => 'date:Y-m-d',
             'completed_at' => 'datetime',
+            'repeat_anchor' => 'date:Y-m-d',
+            'repeat_remaining' => 'integer',
         ];
     }
 

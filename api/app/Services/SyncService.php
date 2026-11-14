@@ -10,6 +10,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 /**
  * Exchanges changes with the PWA (projekt.md, section 5).
@@ -218,6 +219,27 @@ class SyncService
             ...$attributes,
             'version' => $record->version + 1,
             'field_stamps' => [...($record->field_stamps ?? []), ...array_fill_keys(array_keys($attributes), $this->stamp($now))],
+        ], $now);
+    }
+
+    /**
+     * A record created by the server itself, e.g. the history copy of a repeating task.
+     * `$record` must already have its `space_id`. Call inside a transaction.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function recordServerCreate(Model&SyncableModel $record, User $creator, array $attributes): void
+    {
+        $now = CarbonImmutable::now('UTC');
+
+        $this->save($record, [
+            ...$attributes,
+            'id' => $record->id ?? (string) Str::uuid7(),
+            'created_by' => $creator->id,
+            'created_at' => $now,
+            'deleted_at' => null,
+            'version' => 1,
+            'field_stamps' => array_fill_keys(array_keys($attributes), $this->stamp($now)),
         ], $now);
     }
 

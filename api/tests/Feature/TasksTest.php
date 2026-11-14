@@ -124,6 +124,14 @@ class TasksTest extends TestCase
             'date with time' => [['due_date' => '2026-11-12T10:00:00Z']],
             'bad time' => [['due_time' => '25:00']],
             'list that does not exist' => [['list_id' => '019a0000-0000-7000-8000-000000000000']],
+            'repeating without a date' => [['rrule' => 'FREQ=DAILY']],
+            'rule that is not a rule' => [['rrule' => 'co tydzień', 'due_date' => '2026-11-14']],
+            'hourly rule' => [['rrule' => 'FREQ=HOURLY', 'due_date' => '2026-11-14']],
+            'rule with a count' => [['rrule' => 'FREQ=DAILY;COUNT=3', 'due_date' => '2026-11-14']],
+            'rule with a start' => [['rrule' => 'DTSTART=20261114;FREQ=DAILY', 'due_date' => '2026-11-14']],
+            'until with a time' => [['rrule' => 'FREQ=DAILY;UNTIL=20261231T235959Z', 'due_date' => '2026-11-14']],
+            'unknown repeat start' => [['rrule' => 'FREQ=DAILY', 'due_date' => '2026-11-14', 'repeat_from' => 'start']],
+            'no repetitions left' => [['rrule' => 'FREQ=DAILY', 'due_date' => '2026-11-14', 'repeat_remaining' => 0]],
         ];
     }
 
@@ -304,6 +312,127 @@ class TasksTest extends TestCase
         // Without access the answer is 404, never the 409 that would confirm open subtasks.
         $this->actingAs($this->user)->postJson("/api/reminders/{$reminder}/dismiss", ['done' => true])
             ->assertNotFound();
+    }
+
+    public function test_a_repeating_task_is_stored_and_pulled(): void
+    {
+        $task = $this->pushTask([
+            'due_date' => '2026-11-16',
+            'rrule' => 'FREQ=MONTHLY;BYDAY=-1FR;UNTIL=20271231',
+            'repeat_from' => 'completion',
+            'repeat_anchor' => '2026-11-16',
+            'repeat_remaining' => 5,
+        ]);
+        $this->assertSame('applied', $task['status']);
+
+        $record = collect($this->actingAs($this->user)->getJson('/api/sync/pull')->json('changes'))
+            ->firstWhere('record.id', $task['id'])['record'];
+        $this->assertSame('FREQ=MONTHLY;BYDAY=-1FR;UNTIL=20271231', $record['rrule']);
+        $this->assertSame('completion', $record['repeat_from']);
+        $this->assertSame('2026-11-16', $record['repeat_anchor']);
+        $this->assertSame(5, $record['repeat_remaining']);
+        $this->assertNull($record['recurring_task_id']);
+    }
+
+    public function test_a_task_from_an_older_app_counts_from_the_due_date(): void
+    {
+        $task = $this->pushTask();
+
+        $this->assertSame('due', Task::findOrFail($task['id'])->repeat_from);
+        $this->assertNull(Task::findOrFail($task['id'])->rrule);
+    }
+
+    /**
+     * @param  array<string, mixed>  $fields
+     * @return array{0: string, 1: string} The task's and its reminder's ids.
+     */
+    private function repeatingTaskWithReminder(array $fields = []): array
+    {
+        $task = $this->pushTask([
+            'title' => 'Podlać kwiaty',
+            'notes' => 'Także balkon',
+            'priority' => 2,
+            'due_date' => '2026-11-14',
+            'due_time' => '18:00',
+            'rrule' => 'FREQ=WEEKLY;BYDAY=SA',
+            'repeat_anchor' => '2026-11-14',
+            ...$fields,
+        ]);
+
+        return [$task['id'], $this->reminderFor($task['id'])];
+    }
+
+    public function test_the_done_button_moves_a_repeating_task_to_its_next_date(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-11-14 18:05', 'Europe/Warsaw'));
+        [$taskId, $reminderId] = $this->repeatingTaskWithReminder(['repeat_remaining' => 3]);
+
+        $this->dismiss($reminderId, ['done' => true]);
+
+        $task = Task::findOrFail($taskId);
+        $this->assertSame('todo', $task->status);
+        $this->assertSame('2026-11-21', $task->due_date->format('Y-m-d'));
+        $this->assertSame('2026-11-21', $task->repeat_anchor->format('Y-m-d'));
+        $this->assertSame(2, $task->repeat_remaining);
+
+        $copy = Task::where('recurring_task_id', $taskId)->sole();
+        $this->assertSame('done', $copy->status);
+        $this->assertSame('Podlać kwiaty', $copy->title);
+        $this->assertSame('Także balkon', $copy->notes);
+        $this->assertSame(2, $copy->priority);
+        $this->assertSame('2026-11-14', $copy->due_date->format('Y-m-d'));
+        $this->assertNull($copy->rrule);
+        $this->assertNotNull($copy->completed_at);
+        $this->assertSame($this->user->id, $copy->created_by);
+
+        // 18:00 in Warsaw a week later, in UTC.
+        $reminder = DB::table('reminders')->where('id', $reminderId)->first();
+        $this->assertSame('scheduled', $reminder->status);
+        $this->assertSame('2026-11-21 17:00:00', $reminder->remind_at);
+
+        // Every device learns about both changes.
+        $pulled = collect($this->actingAs($this->user)->getJson('/api/sync/pull')->json('changes'))->pluck('record.id');
+        $this->assertContains($copy->id, $pulled);
+    }
+
+    public function test_the_last_occurrence_completes_the_task(): void
+    {
+        [$taskId, $reminderId] = $this->repeatingTaskWithReminder(['repeat_remaining' => 1]);
+
+        $this->dismiss($reminderId, ['done' => true]);
+
+        $task = Task::findOrFail($taskId);
+        $this->assertSame('done', $task->status);
+        $this->assertSame('2026-11-14', $task->due_date->format('Y-m-d'));
+        $this->assertSame(0, Task::whereNotNull('recurring_task_id')->count());
+        $this->assertSame('dismissed', DB::table('reminders')->where('id', $reminderId)->value('status'));
+    }
+
+    public function test_the_done_button_reopens_the_subtasks_of_a_repeating_task(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-11-14 18:05', 'Europe/Warsaw'));
+        [$taskId, $reminderId] = $this->repeatingTaskWithReminder();
+        $dated = $this->pushTask(['parent_id' => $taskId, 'status' => 'done', 'due_date' => '2026-11-13', 'completed_at' => '2026-11-13T10:00:00.000Z']);
+        $undated = $this->pushTask(['parent_id' => $taskId, 'status' => 'done', 'completed_at' => '2026-11-13T10:00:00.000Z']);
+
+        $this->dismiss($reminderId, ['done' => true]);
+
+        $this->assertSame('todo', Task::findOrFail($dated['id'])->status);
+        $this->assertNull(Task::findOrFail($dated['id'])->completed_at);
+        // Moved by the same week as its parent.
+        $this->assertSame('2026-11-20', Task::findOrFail($dated['id'])->due_date->format('Y-m-d'));
+        $this->assertSame('todo', Task::findOrFail($undated['id'])->status);
+        $this->assertNull(Task::findOrFail($undated['id'])->due_date);
+    }
+
+    public function test_an_overdue_repeating_task_comes_back_in_the_future(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-11-25 12:00', 'Europe/Warsaw'));
+        [$taskId, $reminderId] = $this->repeatingTaskWithReminder();
+
+        $this->dismiss($reminderId, ['done' => true]);
+
+        $this->assertSame('2026-11-28', Task::findOrFail($taskId)->due_date->format('Y-m-d'));
     }
 
     public function test_the_digest_leaves_out_deleted_tasks(): void

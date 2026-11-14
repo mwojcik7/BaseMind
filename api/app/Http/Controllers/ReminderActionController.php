@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Reminder;
 use App\Models\Task;
+use App\Models\User;
 use App\Policies\SpaceItemPolicy;
 use App\Services\SyncService;
+use App\Services\TaskSeries;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -17,7 +19,10 @@ use Illuminate\Support\Facades\DB;
  */
 class ReminderActionController
 {
-    public function __construct(private readonly SyncService $sync) {}
+    public function __construct(
+        private readonly SyncService $sync,
+        private readonly TaskSeries $series,
+    ) {}
 
     public function dismiss(Request $request, Reminder $reminder): Response|JsonResponse
     {
@@ -53,12 +58,12 @@ class ReminderActionController
     {
         app(SpaceItemPolicy::class)->update($request->user(), $reminder)->authorize();
 
-        DB::transaction(function () use ($reminder, $attributes, $completeTask) {
+        DB::transaction(function () use ($request, $reminder, $attributes, $completeTask) {
             $locked = Reminder::lockForUpdate()->findOrFail($reminder->id);
             $this->sync->recordServerChange($locked, $attributes);
 
             if ($completeTask && $locked->entity_type === 'tasks') {
-                $this->completeTask($locked);
+                $this->completeTask($locked, $request->user());
             }
         });
 
@@ -75,11 +80,17 @@ class ReminderActionController
     }
 
     /** Looked up within the reminder's space, the one access was just checked for. */
-    private function completeTask(Reminder $reminder): void
+    private function completeTask(Reminder $reminder, User $user): void
     {
         $task = Task::where('space_id', $reminder->space_id)->lockForUpdate()->find($reminder->entity_id);
 
-        if ($task?->status === 'todo') {
+        if ($task?->status !== 'todo') {
+            return;
+        }
+
+        if ($task->isRecurring()) {
+            $this->series->finishOccurrence($task, $user);
+        } else {
             $this->sync->recordServerChange($task, ['status' => 'done', 'completed_at' => now()]);
         }
     }
