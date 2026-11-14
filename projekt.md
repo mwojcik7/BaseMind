@@ -540,22 +540,22 @@ Hosting musi zapewniać:
 | 2026-11-04 | Apache VirtualHost `127.0.0.1:8080` → `api/public` | Użytkownik |
 | 2026-11-04 | Repozytorium zdalne: https://github.com/mwojcik7/BaseMind.git (gałąź `main`) | Użytkownik |
 | 2026-11-04 | Frontend (`web/`) zaczynamy w następnej sesji | Użytkownik |
-| 2026-11-04 | TypeScript 6.0 zamiast 7, bo `typescript-eslint` wymaga TS < 6.1; zostajemy przy ESLint z planu (szablon Vite proponował oxlint) | Claude (do oceny użytkownika) |
-| 2026-11-04 | `cn` (oficjalny pakiet autora shadcn, instalowany przez CLI) zamiast `clsx` + `tailwind-merge` | Claude (do oceny użytkownika) |
+| 2026-11-04 | TypeScript 6.0 zamiast 7, bo `typescript-eslint` wymaga TS < 6.1; zostajemy przy ESLint z planu (szablon Vite proponował oxlint) | Claude (zaakceptowane przez użytkownika 2026-11-14) |
+| 2026-11-04 | `cn` (oficjalny pakiet autora shadcn, instalowany przez CLI) zamiast `clsx` + `tailwind-merge` | Claude (zaakceptowane przez użytkownika 2026-11-14) |
 | 2026-11-04 | Adresy URL po angielsku i bez przedrostka `/more` (`/tasks`, `/notes`, `/finance`) | Użytkownik |
 | 2026-11-04 | Wybór motywu w ustawieniach: zgodny z systemem / jasny / ciemny; na razie zapamiętany na urządzeniu (`localStorage`), synchronizacja z `user_settings` w Etapie 1 | Użytkownik / Claude |
 | 2026-11-05 | Konta zakładane z kodem zaproszenia (`BASEMIND_REGISTRATION_CODE`); pusty kod wyłącza rejestrację | Użytkownik |
 | 2026-11-05 | Sesja wygasa po 30 dniach bezczynności (`SESSION_LIFETIME=43200`), bez opcji „zapamiętaj mnie”, żeby PWA nie wylogowywała na telefonie, a unieważnienie sesji działało od razu | Użytkownik |
-| 2026-11-05 | Hasło: co najmniej 10 znaków; `users.id` pozostaje liczbą (konta tworzy serwer), `spaces.id` to UUID | Claude (do oceny użytkownika) |
-| 2026-11-04 | Dodatkowe biblioteki UI: `sonner` (powiadomienia), `react-day-picker` (kalendarz, przez shadcn), `tw-animate-css` (animacje shadcn); arkusz od dołu własny (Radix + `motion`) zamiast `vaul` | Claude (do oceny użytkownika) |
+| 2026-11-05 | Hasło: co najmniej 10 znaków; `users.id` pozostaje liczbą (konta tworzy serwer), `spaces.id` to UUID | Claude (zaakceptowane przez użytkownika 2026-11-14) |
+| 2026-11-04 | Dodatkowe biblioteki UI: `sonner` (powiadomienia), `react-day-picker` (kalendarz, przez shadcn), `tw-animate-css` (animacje shadcn); arkusz od dołu własny (Radix + `motion`) zamiast `vaul` | Claude (zaakceptowane przez użytkownika 2026-11-14) |
 | 2026-11-04 | Jeden kolor akcentu dla całej aplikacji, bez osobnych kolorów modułów | Użytkownik |
 | 2026-11-04 | Kolor akcentu: niebieski `#2563EB` zamiast indygo (nie myli się z kolorami statusów) | Użytkownik |
 | 2026-11-04 | Moduł lokalizatora w UI nazywa się „Lokalizator rzeczy” (samo „Lokalizator” mogło mylić) | Użytkownik |
 | 2026-11-04 | Usunięte nieużywane pliki frontendu Laravela (`api/package.json`, `api/vite.config.js`, `api/resources/js`, `api/resources/css`) — frontend jest w `web/` | Użytkownik |
-| 2026-11-04 | TanStack Router z trasami w kodzie (bez generatora plików) | Claude (do oceny użytkownika) |
-| 2026-11-04 | CSP: style inline dozwolone (Radix UI), skrypty tylko z `'self'`; `img-src` bez zewnętrznych domen do czasu Etapu 4 | Claude (do oceny użytkownika) |
-| 2026-11-05 | Szyfrowanie: osobne podklucze dla pól i plików; identyfikator klucza wyprowadzany z klucza zamiast ręcznej numeracji; rotacja jako dwie komendy (`basemind:key --rotate`, `basemind:reencrypt`), rotacja plików odłożona do Etapu 6.5 | Claude (do oceny użytkownika) |
-| 2026-11-05 | `basemind:key` nie wypisuje klucza (tylko z `--show`) i nie nadpisuje istniejącego, żeby klucz nie trafił do historii terminala i żeby nie stracić danych przez pomyłkę | Claude (do oceny użytkownika) |
+| 2026-11-04 | TanStack Router z trasami w kodzie (bez generatora plików) | Claude (zaakceptowane przez użytkownika 2026-11-14) |
+| 2026-11-04 | CSP: style inline dozwolone (Radix UI), skrypty tylko z `'self'`; `img-src` bez zewnętrznych domen do czasu Etapu 4 | Claude (zaakceptowane przez użytkownika 2026-11-14) |
+| 2026-11-05 | Szyfrowanie: osobne podklucze dla pól i plików; identyfikator klucza wyprowadzany z klucza zamiast ręcznej numeracji; rotacja jako dwie komendy (`basemind:key --rotate`, `basemind:reencrypt`), rotacja plików odłożona do Etapu 6.5 | Claude (zaakceptowane przez użytkownika 2026-11-14) |
+| 2026-11-05 | `basemind:key` nie wypisuje klucza (tylko z `--show`) i nie nadpisuje istniejącego, żeby klucz nie trafił do historii terminala i żeby nie stracić danych przez pomyłkę | Claude (zaakceptowane przez użytkownika 2026-11-14) |
 | 2026-11-09 | Szyfrowanie pól zostaje przy `secretbox` bez wiązania szyfrogramu z wierszem i kolumną (na razie jeden użytkownik) | Użytkownik |
 | 2026-11-09 | Wylogowanie z niewysłanymi zmianami: próba wysłania, potem ostrzeżenie „Wyloguj mimo to / Anuluj” (krok 1.4) | Użytkownik |
 | 2026-11-09 | Zakończenie sesji przez serwer kasuje lokalne dane bez pytania, także niewysłane zmiany (ochrona zgubionego telefonu) | Użytkownik |
@@ -563,7 +563,7 @@ Hosting musi zapewniać:
 | 2026-11-09 | Poranne podsumowanie: 7:00 ze zmianą w ustawieniach, zawartość jak w pkt 12, wysyłane tylko z treścią | Użytkownik |
 | 2026-11-09 | Tytuły przypomnień szyfrowane (nowe pole 🔐) | Użytkownik |
 | 2026-11-09 | Godziny ciszy wstrzymują oba kanały do ich końca; `offset_minutes` zamiast `offset_rule`; odkładanie przez `snoozed_until`, żeby nie przesuwać terminów cyklicznych; powiadomienia wiązane z sesją | Claude (działanie zaakceptowane przez użytkownika po teście) |
-| 2026-11-09 | Pakiety: `minishlink/web-push` 11, `rlanvin/php-rrule` 3 (backend), `minisearch` 7 (frontend) | Claude (do oceny użytkownika) |
+| 2026-11-09 | Pakiety: `minishlink/web-push` 11, `rlanvin/php-rrule` 3 (backend), `minisearch` 7 (frontend) | Claude (zaakceptowane przez użytkownika 2026-11-14) |
 | 2026-11-09 | Pobieranie zmian co 60 s, gdy aplikacja jest widoczna, bez skracania interwału | Użytkownik |
 | 2026-11-09 | Wyszukiwanie: najpierw silnik i ekran na tagach, kolejne moduły dopisują się do rejestru. Indeks tylko w pamięci, ostatnie wyszukiwania w lokalnej bazie (kasowane przy wylogowaniu) i tylko te, które coś znalazły | Użytkownik / Claude |
 | 2026-11-09 | Tagi i powiązania: teraz dane i synchronizacja, interfejs i parser razem z notatkami (2.3) | Użytkownik |
@@ -573,7 +573,7 @@ Hosting musi zapewniać:
 | 2026-11-09 | Konflikty synchronizacji: wygrywa późniejsza zmiana każdego pola (`field_stamps`), czas urządzenia ograniczony czasem serwera | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Kopia konfliktu notatek przeniesiona z 1.4 do 2.3 | Claude (zaakceptowane przez użytkownika) |
 | 2026-11-09 | Zmiany odrzucone przez serwer zostają w `outbox`, nie są ponownie wysyłane i są pokazywane we wskaźniku | Claude (zaakceptowane przez użytkownika) |
-| 2026-11-09 | Pakiet `uuid` do UUIDv7, `fake-indexeddb` w testach; repozytorium odrzuca lokalnie zapis do przestrzeni bez prawa edycji, zanim zmiana utknie w `outbox` | Claude (do oceny użytkownika) |
+| 2026-11-09 | Pakiet `uuid` do UUIDv7, `fake-indexeddb` w testach; repozytorium odrzuca lokalnie zapis do przestrzeni bez prawa edycji, zanim zmiana utknie w `outbox` | Claude (zaakceptowane przez użytkownika 2026-11-14) |
 | 2026-11-10 | Pojedynczy 401 nie wylogowuje: decyduje powtórzone żądanie po 300 ms; przy sprawdzaniu konta inne błędy (403, 404, 429) nie kasują danych | Użytkownik / Claude |
 | 2026-11-10 | Lokalnie `ThreadsPerChild 1` i `KeepAlive Off` zamiast `config:cache` (ryzyko testów na prawdziwej bazie) | Użytkownik / Claude |
 | 2026-11-09 | Zadania w dwóch częściach; 1.10 połączone z 2.1; przypomnienia przeniesione do części 1, bo mają być w arkuszu [+] | Użytkownik |

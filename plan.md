@@ -17,7 +17,7 @@
 
 > 2026-11-14 (druga sesja) rozstrzygnięte: kolejność dalej (część 2 zadań, potem kosz, sortowanie przeciąganiem odłożone), stan telefonu, `+liczba` = wpływ, PHPUnit zamiast Pest, Larastan i Playwright dodane. Decyzje w `projekt.md`, pkt 13.
 
-1. **Decyzje techniczne Claude „do oceny użytkownika”:** TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2 (podklucze, identyfikator klucza, dwie komendy rotacji, `basemind:key` bez wypisywania klucza), pakiety z 1.8 i 1.3 (`web-push`, `php-rrule`, `minisearch`, `uuid`). Szczegóły: `projekt.md`, pkt 13. Użytkownik zapytał, czy to nie przerost; odpowiedź Claude: nie, większość to sposób wykonania, a nie dodatkowy ciężar; jedyne kandydaty do odchudzenia (`motion`, `uuid`) ocenić pomiarem paczki w Etapie 7. **Czeka na potwierdzenie.**
+> Wszystkie decyzje techniczne Claude „do oceny użytkownika” potwierdzone 2026-11-14 (także `react-day-picker`, choć jako jedyny nie jest konieczny: można go zastąpić systemowym wyborem daty). Brak otwartych pytań.
 
 ---
 
@@ -31,7 +31,7 @@
 - **Telefon:** BaseMind jest zainstalowany jako aplikacja, powiadomienia są włączone.
 - **Klucz szyfrowania:** lokalny `SODIUM_KEY` (identyfikator `2ca17bb1`) jest w `api/.env`, a użytkownik ma jego kopię w menedżerze haseł. Są nim już zaszyfrowane tytuły przypomnień oraz tytuły i notatki zadań, więc utrata klucza oznacza ich utratę. Produkcja dostanie własny klucz.
 - **Klucze VAPID** są w `api/.env` (tylko lokalne). Nowe klucze odłączają wszystkie urządzenia od powiadomień; `basemind:vapid` nie nadpisuje istniejących.
-- **Czeka na użytkownika:** potwierdzenie decyzji technicznych („Pytania na start”) i ustalenie szczegółów części 2 zadań.
+- **Czeka na użytkownika:** ustalenie zakresu i kolejności części 2 zadań.
 - **Uwaga:** ta sama instalacja MariaDB trzyma bazy innego projektu użytkownika (np. `syslead_test`). Nie używać `migrate:fresh` na bazie `basemind` ani poleceń obejmujących cały serwer; testy PHPUnit działają na `basemind_test`, testy e2e na `basemind_e2e` (czyszczona przy każdym uruchomieniu, ze sprawdzeniem nazwy bazy).
 - **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. Przed uruchomieniem sprawdzić, czy już nie działają. W chwili zakończenia sesji są zatrzymane, harmonogram też. Polecenia (każde jako proces w tle): `C:\xampp\mysql\bin\mysqld.exe --defaults-file=C:\xampp\mysql\bin\my.ini --standalone`, `C:\xampp\apache\bin\httpd.exe`, harmonogram z katalogu `api/` z ustawionym `OPENSSL_CONF` (`projekt.md`, pkt 14, 7c). Zatrzymanie MariaDB: `mysqladmin --protocol=tcp -h 127.0.0.1 -u root shutdown`, Apache: zakończyć procesy `httpd`.
 
@@ -46,7 +46,6 @@
 
 ### Otwarte sprawy (nic z tego nie blokuje części 2 zadań)
 **Do wiadomości lub decyzji użytkownika**
-- Decyzje techniczne Claude z rejestru w `projekt.md` oznaczone „do oceny użytkownika”, jeszcze niepotwierdzone: TypeScript 6 zamiast 7, pakiet `cn`, trasy TanStack Router w kodzie, CSP ze stylami inline, biblioteki UI (`sonner`, `react-day-picker`, `tw-animate-css`, własny arkusz), hasło min. 10 znaków i liczbowe `users.id`, szczegóły szyfrowania z kroku 1.2.
 - Kod rejestracji jest w `api/.env`. Przed wdrożeniem ustawić długi kod na produkcji, a po założeniu kont zostawić go pustym.
 
 **Dług techniczny**
@@ -505,3 +504,4 @@ Kontekst: użytkownik po etacie jest trenerem piłki nożnej w klubie, na umowie
 | 2026-11-14 | Krótka sesja bez kodu: przypomnienie stanu projektu, ponownie zadane „Pytania na start” (bez odpowiedzi, zostają na następną sesję). Serwery nie były uruchamiane, audyty i testy nie były sprawdzane (zrobić na starcie następnej sesji). Commit i push za zgodą użytkownika. | „Pytania na start”, potem część 2 zadań — po zgodzie użytkownika. |
 | 2026-11-14 | Do planu dopisany moduł 5.2 „Trener: godziny i wynagrodzenie” (zgłoszenie użytkownika): treningi ze stałego grafiku z wyjątkami, mecze, turnieje, organizacja turnieju, wyjazdy, zwrot paliwa, stawka na godzinę, podsumowania miesięczne i roczne, kalkulator brutto → netto dla zlecenia. Kolejność: zaraz po grafiku pracy (5.1); dalsze kroki Etapu 5 przesunięte na 5.3–5.5. Model danych w `projekt.md`, pkt 4.4. | „Pytania na start”, potem część 2 zadań — po zgodzie użytkownika. |
 | 2026-11-14 | Odpowiedzi użytkownika: część 2 zadań, potem kosz, sortowanie przeciąganiem odłożone; telefon po „Odśwież” ma te same zadania co komputer; `+liczba` = wpływ; zostajemy przy PHPUnit. Larastan 3.15 (poziom 5, `parseModelCastsMethod`): z 41 uwag 0, bez wyciszeń i bez prawdziwych błędów w działaniu; dodane interfejsy `SpaceScoped` i `SyncableModel` (wymuszone typami w `SyncService` i `SpaceItemPolicy`), klasa `SpaceMember`, test rejestru synchronizacji. Playwright 1.65: 7 scenariuszy e2e (logowanie, ciasteczko sesji, start offline, odmowa wylogowania offline, zakończenie sesji drugiego urządzenia) na osobnym serwerze i bazie `basemind_e2e`; baza `basemind` nietknięta (sprawdzone). Testy: api 248 OK, web 292 OK, e2e 7 OK; Larastan, Pint, ESLint, Prettier, `tsc` czyste. Decyzje techniczne z pkt 2 nadal czekają na potwierdzenie. Commity `14287ca`, `bd421fb` i push za zgodą użytkownika. | Potwierdzenie decyzji technicznych, potem część 2 zadań — po ustaleniu zakresu z użytkownikiem. |
+| 2026-11-14 | Użytkownik potwierdził wszystkie decyzje techniczne Claude oznaczone „do oceny użytkownika” (po wyjaśnieniu, że nie są przerostem; jedyną zbędną biblioteką jest `react-day-picker`, zostaje). Rejestr w `projekt.md`, pkt 13, zaktualizowany; brak otwartych „Pytań na start”. | Część 2 zadań — po ustaleniu zakresu i kolejności z użytkownikiem. |
