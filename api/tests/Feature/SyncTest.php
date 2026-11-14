@@ -6,6 +6,7 @@ use App\Casts\SodiumEncrypted;
 use App\Enums\SpaceRole;
 use App\Enums\SpaceType;
 use App\Models\Concerns\Syncable;
+use App\Models\Contracts\SyncableModel;
 use App\Models\Space;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +19,7 @@ use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
-class SyncItemFixture extends Model
+class SyncItemFixture extends Model implements SyncableModel
 {
     use Syncable;
 

@@ -3,11 +3,12 @@
 namespace App\Models;
 
 use App\Models\Concerns\Syncable;
+use App\Models\Contracts\SyncableModel;
 use App\Rules\SyncedRecordInSpace;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
 
-class EntityLink extends Model
+class EntityLink extends Model implements SyncableModel
 {
     use Syncable;
 

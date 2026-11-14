@@ -15,7 +15,8 @@ class TodayTasksSection implements DigestSection
             'title' => __('notifications.digest_tasks_today'),
             'items' => Task::query()->openFor($user)
                 ->whereDate('due_date', $localDate->toDateString())
-                ->get()->pluck('title')->all(),
+                // Titles are encrypted, so they are read through the model cast, not plucked in SQL.
+                ->get()->map(fn (Task $task) => $task->title)->all(),
         ];
     }
 }

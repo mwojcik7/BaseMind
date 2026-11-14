@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\SodiumEncrypted;
 use App\Models\Concerns\Syncable;
+use App\Models\Contracts\SyncableModel;
 use App\Rules\ReminderRecurrence;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Validation\Rule;
 
-class Reminder extends Model
+class Reminder extends Model implements SyncableModel
 {
     use Syncable;
 

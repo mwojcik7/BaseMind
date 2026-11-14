@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * Container for all user data and the unit of sharing (projekt.md, section 4.2).
+ *
+ * @property-read SpaceMember $pivot Present when loaded through User::spaces().
  */
 #[Fillable(['name', 'type', 'owner_id'])]
 class Space extends Model
@@ -34,11 +36,12 @@ class Space extends Model
     }
 
     /**
-     * @return BelongsToMany<User, $this>
+     * @return BelongsToMany<User, $this, SpaceMember>
      */
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'space_members')
+            ->using(SpaceMember::class)
             ->withPivot('role')
             ->withTimestamps();
     }

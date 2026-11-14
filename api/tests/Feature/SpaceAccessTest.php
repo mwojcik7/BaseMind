@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\SpaceRole;
 use App\Enums\SpaceType;
 use App\Models\Concerns\BelongsToSpace;
+use App\Models\Contracts\SpaceScoped;
 use App\Models\Space;
 use App\Models\User;
 use App\Policies\SpaceItemPolicy;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
-class SpaceItemFixture extends Model
+class SpaceItemFixture extends Model implements SpaceScoped
 {
     use BelongsToSpace;
 

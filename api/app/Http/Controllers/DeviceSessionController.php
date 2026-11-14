@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use stdClass;
 
 /**
  * The "Sessions and devices" screen. The API exposes a hash instead of the
@@ -19,7 +20,7 @@ class DeviceSessionController
         $current = $this->publicId($request->session()->getId());
 
         $sessions = $this->sessionsOf($request)
-            ->map(fn (object $session) => [
+            ->map(fn (stdClass $session) => [
                 'id' => $this->publicId($session->id),
                 'ip_address' => $session->ip_address,
                 'user_agent' => $session->user_agent,
@@ -38,7 +39,7 @@ class DeviceSessionController
         abort_if($id === $this->publicId($request->session()->getId()), 422);
 
         $session = $this->sessionsOf($request)
-            ->first(fn (object $session) => hash_equals($this->publicId($session->id), $id));
+            ->first(fn (stdClass $session) => hash_equals($this->publicId($session->id), $id));
 
         // Only the user's own sessions are in that list, so others' look like they don't exist.
         abort_if($session === null, 404);
@@ -59,7 +60,7 @@ class DeviceSessionController
     }
 
     /**
-     * @return Collection<int, object>
+     * @return Collection<int, stdClass>
      */
     private function sessionsOf(Request $request): Collection
     {

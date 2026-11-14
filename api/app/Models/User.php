@@ -38,11 +38,12 @@ class User extends Authenticatable
     }
 
     /**
-     * @return BelongsToMany<Space, $this>
+     * @return BelongsToMany<Space, $this, SpaceMember>
      */
     public function spaces(): BelongsToMany
     {
         return $this->belongsToMany(Space::class, 'space_members')
+            ->using(SpaceMember::class)
             ->withPivot('role')
             ->withTimestamps();
     }

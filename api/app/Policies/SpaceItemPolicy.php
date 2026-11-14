@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\Contracts\SpaceScoped;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Model;
@@ -12,24 +13,24 @@ use Illuminate\Database\Eloquent\Model;
  */
 class SpaceItemPolicy
 {
-    public function view(User $user, Model $item): Response
+    public function view(User $user, Model&SpaceScoped $item): Response
     {
         return $user->roleIn($item->space_id) === null
             ? Response::denyAsNotFound()
             : Response::allow();
     }
 
-    public function update(User $user, Model $item): Response
+    public function update(User $user, Model&SpaceScoped $item): Response
     {
         return $this->edit($user, $item);
     }
 
-    public function delete(User $user, Model $item): Response
+    public function delete(User $user, Model&SpaceScoped $item): Response
     {
         return $this->edit($user, $item);
     }
 
-    private function edit(User $user, Model $item): Response
+    private function edit(User $user, Model&SpaceScoped $item): Response
     {
         $role = $user->roleIn($item->space_id);
 

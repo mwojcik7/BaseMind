@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\RejectedSyncOperation;
+use App\Models\Contracts\SyncableModel;
 use App\Models\User;
 use App\Policies\SpaceItemPolicy;
 use Carbon\CarbonImmutable;
@@ -39,7 +40,7 @@ class SyncService
                 ->orderBy('rev')
                 ->limit($limit + 1)
                 ->get()
-                ->map(fn (Model $record) => ['entity' => $entity, 'record' => $record->toSyncArray()]))
+                ->map(fn (Model&SyncableModel $record) => ['entity' => $entity, 'record' => $record->toSyncArray()]))
             ->sortBy('record.rev')
             ->values();
 
@@ -94,14 +95,16 @@ class SyncService
             'update' => $this->update($user, $record, $op, $changedAt),
             'delete' => $this->delete($user, $record, $changedAt),
             'restore' => $this->restore($user, $record, $changedAt),
+            // The controller validates the operation; this guards direct callers.
+            default => throw new RejectedSyncOperation('invalid'),
         };
     }
 
     /**
-     * @param  class-string<Model>  $model
+     * @param  class-string<Model&SyncableModel>  $model
      * @param  array<string, mixed>  $op
      */
-    private function create(User $user, string $model, ?Model $existing, array $op, CarbonImmutable $changedAt): string
+    private function create(User $user, string $model, (Model&SyncableModel)|null $existing, array $op, CarbonImmutable $changedAt): string
     {
         if ($existing !== null) {
             throw new RejectedSyncOperation('already_exists');
@@ -137,7 +140,7 @@ class SyncService
      *
      * @param  array<string, mixed>  $op
      */
-    private function update(User $user, ?Model $record, array $op, CarbonImmutable $changedAt): string
+    private function update(User $user, (Model&SyncableModel)|null $record, array $op, CarbonImmutable $changedAt): string
     {
         if ($record === null) {
             throw new RejectedSyncOperation('not_found');
@@ -171,7 +174,7 @@ class SyncService
         return $conflict ? 'merged' : 'applied';
     }
 
-    private function delete(User $user, ?Model $record, CarbonImmutable $changedAt): string
+    private function delete(User $user, (Model&SyncableModel)|null $record, CarbonImmutable $changedAt): string
     {
         if ($record === null) {
             throw new RejectedSyncOperation('not_found');
@@ -186,7 +189,7 @@ class SyncService
         return 'applied';
     }
 
-    private function restore(User $user, ?Model $record, CarbonImmutable $changedAt): string
+    private function restore(User $user, (Model&SyncableModel)|null $record, CarbonImmutable $changedAt): string
     {
         if ($record === null) {
             throw new RejectedSyncOperation('not_found');
@@ -207,7 +210,7 @@ class SyncService
      *
      * @param  array<string, mixed>  $attributes
      */
-    public function recordServerChange(Model $record, array $attributes): void
+    public function recordServerChange(Model&SyncableModel $record, array $attributes): void
     {
         $now = CarbonImmutable::now('UTC');
 
@@ -221,7 +224,7 @@ class SyncService
     /**
      * @param  array<string, mixed>  $attributes
      */
-    private function save(Model $record, array $attributes, CarbonImmutable $changedAt): void
+    private function save(Model&SyncableModel $record, array $attributes, CarbonImmutable $changedAt): void
     {
         $record->forceFill([...$attributes, 'updated_at' => $changedAt, 'rev' => $this->nextRev()])->save();
     }
@@ -237,7 +240,7 @@ class SyncService
         return (int) DB::selectOne('SELECT LAST_INSERT_ID() AS rev')->rev;
     }
 
-    private function authorizeEdit(User $user, Model $record): void
+    private function authorizeEdit(User $user, Model&SyncableModel $record): void
     {
         $decision = app(SpaceItemPolicy::class)->update($user, $record);
 
@@ -251,7 +254,7 @@ class SyncService
      * @param  list<string>  $allowed
      * @return array<string, mixed>
      */
-    private function validated(Model $record, array $payload, array $allowed, bool $partial): array
+    private function validated(Model&SyncableModel $record, array $payload, array $allowed, bool $partial): array
     {
         if (array_diff(array_keys($payload), $allowed) !== []) {
             throw new RejectedSyncOperation('unknown_field');

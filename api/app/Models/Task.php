@@ -4,11 +4,12 @@ namespace App\Models;
 
 use App\Casts\SodiumEncrypted;
 use App\Models\Concerns\Syncable;
+use App\Models\Contracts\SyncableModel;
 use App\Rules\SyncedRecordInSpace;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
-class Task extends Model
+class Task extends Model implements SyncableModel
 {
     use Syncable;
 
