@@ -2,10 +2,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
 import { Link, useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { lazy, Suspense, useEffect, useState, type KeyboardEvent } from 'react'
-import { Controller, useForm, useWatch, type UseFormRegisterReturn } from 'react-hook-form'
+import { useEffect, useState, type KeyboardEvent } from 'react'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { FormField } from '@/components/FormField'
+import { MarkdownField } from '@/components/MarkdownField'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -34,9 +35,6 @@ import { subtasksIn } from '@/modules/tasks/selectors'
 import { RepeatField } from '@/modules/tasks/RepeatField'
 import { ListSelect, ReminderSelect } from '@/modules/tasks/TaskFields'
 
-// Loaded only when the preview is opened: the Markdown parser is the biggest part.
-const MarkdownPreview = lazy(() => import('@/components/MarkdownPreview'))
-
 // Radix's Select can't have an empty value.
 const INBOX = 'inbox'
 const PRIORITIES = [1, 2, 3, 4]
@@ -60,68 +58,6 @@ type TaskFormValues = z.infer<typeof taskFormSchema>
 
 function report(error: unknown) {
   toast.error(errorMessage(error))
-}
-
-const FIELD_CLASS =
-  'w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30'
-
-function NotesField({
-  registration,
-  value,
-  error,
-}: {
-  registration: UseFormRegisterReturn<'notes'>
-  value: string
-  error?: string
-}) {
-  const [preview, setPreview] = useState(false)
-
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <Label htmlFor="task-notes">{pl.tasks.notes}</Label>
-        <div className="flex rounded-md bg-secondary p-0.5 text-sm" role="group">
-          {[false, true].map((mode) => (
-            <button
-              key={String(mode)}
-              type="button"
-              aria-pressed={preview === mode}
-              onClick={() => setPreview(mode)}
-              className="min-h-9 rounded px-3 font-medium text-muted-foreground aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-xs"
-            >
-              {mode ? pl.tasks.notesPreview : pl.tasks.notesEdit}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Kept mounted while previewing, so the form keeps the value and the field. */}
-      <textarea
-        id="task-notes"
-        rows={4}
-        hidden={preview}
-        aria-describedby="task-notes-hint"
-        className={FIELD_CLASS}
-        {...registration}
-      />
-      {preview ? (
-        <div className="min-h-24 rounded-md border border-input px-3 py-2">
-          {value.trim() ? (
-            <Suspense fallback={null}>
-              <MarkdownPreview text={value} />
-            </Suspense>
-          ) : (
-            <p className="text-sm text-muted-foreground">{pl.tasks.notesEmpty}</p>
-          )}
-        </div>
-      ) : (
-        <p id="task-notes-hint" className="text-xs text-muted-foreground">
-          {pl.tasks.notesMarkdownHint}
-        </p>
-      )}
-      {error && <p className="text-sm text-danger">{error}</p>}
-    </div>
-  )
 }
 
 /** Each subtask opens like any task; completing one never asks, as it has no subtasks. */
@@ -322,7 +258,13 @@ function TaskForm({
         {...register('title')}
       />
 
-      <NotesField registration={register('notes')} value={notes} error={errors.notes?.message} />
+      <MarkdownField
+        id="task-notes"
+        label={pl.tasks.notes}
+        registration={register('notes')}
+        value={notes}
+        error={errors.notes?.message}
+      />
 
       {/* Subtasks are one level deep. Checked on parent_id, not on a live parent: the server
           still sees a subtask whose parent was deleted as one, and would refuse its subtasks. */}

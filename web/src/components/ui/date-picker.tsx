@@ -16,6 +16,10 @@ interface DatePickerProps {
   placeholder?: string
   /** Short date, for narrow fields. */
   compact?: boolean
+  /** What the date is, for screen readers when no visible label points at the field. */
+  label?: string
+  /** False for a date that must stay set. */
+  clearable?: boolean
 }
 
 export function DatePicker({
@@ -24,6 +28,8 @@ export function DatePicker({
   onChange,
   placeholder = pl.datePicker.placeholder,
   compact = false,
+  label,
+  clearable = true,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false)
   const selected = value ? parseISO(value) : undefined
@@ -41,6 +47,11 @@ export function DatePicker({
       trigger={
         <Button
           id={id}
+          aria-label={
+            label && selected
+              ? `${label}: ${format(selected, 'd MMMM yyyy', { locale: dateLocale })}`
+              : label
+          }
           variant="outline"
           className="w-full justify-start text-base font-normal has-[>svg]:px-3"
         >
@@ -62,7 +73,7 @@ export function DatePicker({
         defaultMonth={selected}
         onSelect={(date) => select(format(date, 'yyyy-MM-dd'))}
       />
-      {value && (
+      {clearable && value && (
         <Button variant="ghost" className="mt-2 w-full" onClick={() => select(null)}>
           {pl.datePicker.clear}
         </Button>

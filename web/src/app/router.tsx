@@ -91,6 +91,26 @@ const calendarRoute = createRoute({
   component: lazyRouteComponent(() => import('@/modules/calendar/CalendarPage'), 'CalendarPage'),
 })
 
+/** ?date=yyyy-MM-dd: the day a new event goes on, or the occurrence of a series opened. */
+const validateDate = (search: Record<string, unknown>): { date?: string } =>
+  typeof search.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(search.date)
+    ? { date: search.date }
+    : {}
+
+const newEventRoute = createRoute({
+  getParentRoute: () => calendarRoute,
+  path: 'new',
+  validateSearch: validateDate,
+  component: lazyRouteComponent(() => import('@/modules/calendar/EventDetail'), 'NewEvent'),
+})
+
+const eventDetailRoute = createRoute({
+  getParentRoute: () => calendarRoute,
+  path: 'events/$eventId',
+  validateSearch: validateDate,
+  component: lazyRouteComponent(() => import('@/modules/calendar/EventDetail'), 'EventDetail'),
+})
+
 const moreRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/more',
@@ -152,7 +172,7 @@ const routeTree = rootRoute.addChildren([
   appRoute.addChildren([
     todayRoute,
     tasksRoute.addChildren([taskDetailRoute]),
-    calendarRoute,
+    calendarRoute.addChildren([newEventRoute, eventDetailRoute]),
     moreRoute,
     settingsRoute,
     sessionsRoute,

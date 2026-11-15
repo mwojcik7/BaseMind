@@ -51,6 +51,18 @@
   --danger-soft: light-dark(#fee2e2, #450a0a);
   --shadow-raised: 0 8px 24px rgb(0 0 0 / 0.16);
   --radius: 0.875rem;
+  /*
+   * Calendar event colors (App\Models\Event::COLORS); lighter shades on the dark background.
+   * Apart in hue and in lightness, so even neighbours like green and red don't blur together.
+   */
+  --event-blue: light-dark(#2563eb, #60a5fa);
+  --event-cyan: light-dark(#06b6d4, #22d3ee);
+  --event-green: light-dark(#047857, #10b981);
+  --event-yellow: light-dark(#eab308, #fde047);
+  --event-orange: light-dark(#f97316, #fb923c);
+  --event-red: light-dark(#ef4444, #f87171);
+  --event-purple: light-dark(#7c3aed, #a78bfa);
+  --event-gray: light-dark(#6b7280, #9ca3af);
 }
 
 :root[data-theme='light'] {
@@ -91,6 +103,14 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --shadow-raised: var(--shadow-raised);
+  --color-event-blue: var(--event-blue);
+  --color-event-cyan: var(--event-cyan);
+  --color-event-green: var(--event-green);
+  --color-event-yellow: var(--event-yellow);
+  --color-event-orange: var(--event-orange);
+  --color-event-red: var(--event-red);
+  --color-event-purple: var(--event-purple);
+  --color-event-gray: var(--event-gray);
   --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

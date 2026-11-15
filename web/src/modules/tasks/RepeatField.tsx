@@ -247,15 +247,18 @@ type Ending = 'never' | 'on' | 'after'
 
 /**
  * The repeat choice in the task's editor. `date` is the task's date, or today for a task
- * without one: the quick choices and new rules are based on it.
+ * without one: the quick choices and new rules are based on it. Calendar events use it too,
+ * without the choice of repeating from completion (`fromCompletion={false}`).
  */
 export function RepeatField({
   value,
   date,
+  fromCompletion = true,
   onChange,
 }: {
   value: RepeatValue
   date: string
+  fromCompletion?: boolean
   onChange: (value: RepeatValue) => void
 }) {
   const presets = presetsFor(date)
@@ -357,27 +360,29 @@ export function RepeatField({
             )}
           </div>
 
-          <fieldset>
-            <legend className="text-sm font-medium">{text.fromLabel}</legend>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {(['due', 'completion'] as const).map((from) => (
-                <label
-                  key={from}
-                  className="flex h-11 cursor-pointer items-center justify-center rounded-md bg-secondary text-sm font-medium outline-2 outline-transparent has-checked:outline-primary has-focus-visible:ring-2 has-focus-visible:ring-ring"
-                >
-                  {from === 'due' ? text.fromDue : text.fromCompletionOption}
-                  <input
-                    type="radio"
-                    className="sr-only"
-                    name="repeat-from"
-                    checked={value.repeat_from === from}
-                    onChange={() => onChange({ ...value, repeat_from: from })}
-                  />
-                </label>
-              ))}
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">{text.fromHint}</p>
-          </fieldset>
+          {fromCompletion && (
+            <fieldset>
+              <legend className="text-sm font-medium">{text.fromLabel}</legend>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {(['due', 'completion'] as const).map((from) => (
+                  <label
+                    key={from}
+                    className="flex h-11 cursor-pointer items-center justify-center rounded-md bg-secondary text-sm font-medium outline-2 outline-transparent has-checked:outline-primary has-focus-visible:ring-2 has-focus-visible:ring-ring"
+                  >
+                    {from === 'due' ? text.fromDue : text.fromCompletionOption}
+                    <input
+                      type="radio"
+                      className="sr-only"
+                      name="repeat-from"
+                      checked={value.repeat_from === from}
+                      onChange={() => onChange({ ...value, repeat_from: from })}
+                    />
+                  </label>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{text.fromHint}</p>
+            </fieldset>
+          )}
         </>
       )}
     </div>

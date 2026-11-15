@@ -20,7 +20,7 @@ class Event extends Model implements SyncableModel
     use Syncable;
 
     /** Names of the palette colours; the app maps them to its own shades. */
-    public const COLORS = ['blue', 'teal', 'green', 'yellow', 'orange', 'red', 'pink', 'purple'];
+    public const COLORS = ['blue', 'cyan', 'green', 'yellow', 'orange', 'red', 'purple', 'gray'];
 
     public function syncRules(): array
     {
