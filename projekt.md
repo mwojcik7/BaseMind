@@ -239,7 +239,8 @@ Kluczowe cechy:
 - **Zasada:** każde zapytanie API i każdy rekord synchronizacji przechodzi przez Laravel Policy/Gate „czy użytkownik jest członkiem `space_id` z odpowiednią rolą”. CRM i bank prezentów zawsze w przestrzeni prywatnej.
 - `push_subscriptions` — user_id, session_id (koniec sesji zatrzymuje powiadomienia), endpoint, endpoint_hash, p256dh, auth, device_name, created_at.
 - `user_settings` — user_id, JSON ustawień (motyw, widżety dashboardu, godzina digestu, kanały powiadomień, waluta domyślna, start tygodnia).
-- `sync_counter` — jeden wiersz z globalnym licznikiem `rev`.
+- `sync_counter` — jeden wiersz z globalnym licznikiem `rev` i `purge_horizon` (najnowszy `rev` wśród zapomnianych informacji o usunięciu).
+- `sync_purges` — entity, record_id, space_id, rev, purged_at: informacja o rekordzie usuniętym na zawsze (bez treści), trzymana rok (`config/trash.php`).
 
 ### 4.3 Wspólne mechanizmy
 - `tags` — id, space_id, name, color.
@@ -345,7 +346,7 @@ Kluczowe cechy:
 5. **Pliki:** załączniki zapisywane lokalnie jako Blob w IndexedDB, wysyłane osobną kolejką (w kawałkach, jeśli duże — limity hostingu); miniatury generowane na kliencie.
 6. **Wylogowanie** czyści lokalną bazę. Najpierw próba wysłania zmian z `outbox`, a gdy się nie uda, ostrzeżenie „Wyloguj mimo to / Anuluj” (od kroku 1.4). Zakończenie sesji przez serwer (401 potwierdzony powtórzeniem żądania po 300 ms: odwołane urządzenie, wygaśnięcie) czyści bazę bez pytania, także z niewysłanymi zmianami, żeby odwołanie zgubionego telefonu usuwało z niego odszyfrowane dane. Zalogowanie na inne konto też czyści bazę.
 7. Wskaźnik w UI: „zsynchronizowano / X zmian czeka / offline / błąd”.
-8. Operacje push to `create`, `update`, `delete` i `restore` (przywrócenie usuniętego rekordu: „Cofnij”, a później kosz).
+8. Operacje push to `create`, `update`, `delete`, `restore` (przywrócenie usuniętego rekordu: „Cofnij” i kosz) i `purge` (trwałe usunięcie elementu z kosza). Pull zwraca rekordy usunięte na zawsze jako `{entity, record: {id, rev}, purged: true}`; gdy kursor urządzenia jest starszy niż zapomniane informacje o usunięciu (`sync_counter.purge_horizon`), odpowiedź ma `reset: true` i urządzenie pobiera wszystko od nowa.
 9. Rejestr encji synchronizowanych po obu stronach (front: nowy wpis w `SCHEMA_VERSIONS` w `web/src/db/db.ts`; back: model z traitem `Syncable` i `syncRules()` + wpis w `config/sync.php`, uprawnienia z `SpaceItemPolicy`) — dodanie modułu = wpis w rejestrze. Nazwa encji musi być taka sama po obu stronach.
 
 ---
@@ -507,7 +508,7 @@ Hosting musi zapewniać:
 7. Ewentualne rozszerzenie listy pól 🔐 (przy każdym module).
 8. (rozstrzygnięte: ograniczenie zaakceptowane, pkt 8.4)
 9. Czy `+liczba` w arkuszu [+] to wpływ (przyjęte przez Claude, do potwierdzenia przy 3.1).
-10. Kosz (`plan.md`, 1.12): co zostaje po 30 dniach, żeby urządzenia offline dowiedziały się o usunięciu, a treść zniknęła.
+10. (rozstrzygnięte 2026-11-15: wiersz znika, zostaje wpis w `sync_purges` bez treści, trzymany rok; pkt 13)
 11. Trener (`plan.md`, 5.2): zwrot paliwa jako kwota z rachunku czy stawka za kilometr, opodatkowany czy nie (użytkownik jeszcze nie korzystał).
 
 ---
@@ -611,6 +612,10 @@ Hosting musi zapewniać:
 | 2026-11-14 | Podzadania nie mogą się powtarzać (pole „Powtarzaj” ukryte); odhaczenie zadania cyklicznego z otwartymi podzadaniami nie pyta, także „Zrobione” na powiadomieniu (podzadania wracają otwarte z następnym wystąpieniem); terminy podzadań przesuwają się o tyle dni co rodzic; zadanie z „godziną” lub powtarzaniem z arkusza [+] bez daty dostaje dziś lub pierwsze wystąpienie; „co tydzień/miesiąc/rok” bez dnia bierze dzień z terminu | Claude (potwierdzone przez użytkownika 2026-11-15) |
 | 2026-11-14 | Playwright w `web/` (`pnpm e2e`): zbudowana aplikacja na serwerze PHP (`php -S`, port 8091) z bazą `basemind_e2e`, ustawienia przez zmienne środowiskowe zamiast `api/.env`, testowy klucz szyfrowania; przed czyszczeniem bazy skrypt sprawdza jej nazwę; emulacja Pixel 7, własny Chromium Playwrighta, nowe konto w każdym teście | Użytkownik / Claude |
 | 2026-11-15 | Powiadomienie push bez stałej treści „Przypomnienie z BaseMind” (sam tytuł; mail: temat bez zmian, w treści sam tytuł). Wariant z terminem i listą w treści odłożony na później | Użytkownik || 2026-11-15 | Kanały powiadomień dla typu: w `/settings/notifications` sekcja „Według typu” (przełączniki Telefon i E-mail); zadania domyślnie tylko telefon; przełączniki ogólne nadrzędne; bez wyboru kanału dla pojedynczego przypomnienia i bez opcji „tylko w podsumowaniu”. Typy w `api/config/notifications.php` (klucz = `entity_type` przypomnienia) i `web/src/modules/notificationTypes.ts`; zapis bez `types` (starsza wersja aplikacji) zachowuje zapisane typy | Użytkownik (zakres) / Claude (szczegóły) |
+| 2026-11-15 | Kosz: zadania (z podzadaniami jako jedna pozycja) i listy zadań; przypomnienia, tagi i powiązania idą za elementem; przywrócenie podzadania przywraca rodzica bez jego innych podzadań; usunięta lista zostawia zadaniom `list_id` (widoczne w Skrzynce do przywrócenia listy); „Usuń na zawsze” i „Opróżnij kosz” z potwierdzeniem; 30 dni; wejście tylko z „Więcej” | Użytkownik |
+| 2026-11-15 | Kosz technicznie: pole `tasks.deleted_with_parent`, operacja `purge`, po trwałym usunięciu wpis w `sync_purges` bez treści przez rok, potem pełne pobranie dla starszych urządzeń; czyszczenie codziennie o 3:30; „Usuń na zawsze” jako ikona ✕ w wierszu (brak komponentu menu); kopia wystąpienia cofnięta przez „Cofnij” usuwana od razu | Claude (zaakceptowane przez użytkownika po teście) |
+| 2026-11-15 | Arkusz [+]: pole „Lista”; domyślnie lista otwarta na ekranie zadań, `#lista` w tekście ją zmienia, wybór ręczny wygrywa | Użytkownik |
+| 2026-11-15 | Limity logowania i rejestracji konfigurowalne (`BASEMIND_THROTTLE_AUTH_ROUTES`, `BASEMIND_THROTTLE_LOGIN_PER_IP`, domyślnie 30 i 20/min), podniesione tylko dla testów e2e | Claude |
 
 ---
 

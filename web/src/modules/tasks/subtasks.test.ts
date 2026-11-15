@@ -116,4 +116,44 @@ describe('subtasks', () => {
     expect(await isDeleted(finished.id)).toBe(false)
     expect(await isDeleted(deletedEarlier.id)).toBe(true)
   })
+
+  it('remembers which subtasks went with their task, for the trash on any device', async () => {
+    const { parent, open } = await family()
+    const deletedEarlier = await createTask(fields({ title: 'Stare', parent_id: parent.id }))
+    await removableTasks.softDelete(deletedEarlier.id)
+
+    await removableTasks.softDelete(parent.id)
+
+    const stored = (id: string) => db.table<Task>('tasks').get(id)
+    expect((await stored(open.id))?.deleted_with_parent).toBe(true)
+    expect((await stored(deletedEarlier.id))?.deleted_with_parent).toBeFalsy()
+
+    await removableTasks.restore(parent.id)
+    expect((await stored(open.id))?.deleted_with_parent).toBe(false)
+  })
+
+  it('brings back the parent of a restored subtask, but not its other subtasks', async () => {
+    const { parent, open, finished } = await family()
+    await removableTasks.softDelete(open.id)
+    await removableTasks.softDelete(parent.id)
+
+    await removableTasks.restore(open.id)
+
+    expect(await isDeleted(open.id)).toBe(false)
+    expect(await isDeleted(parent.id)).toBe(false)
+    expect(await isDeleted(finished.id)).toBe(true)
+  })
+
+  it('removes a task for good together with its deleted subtasks', async () => {
+    const { parent, open } = await family()
+    const other = await createTask(fields({ title: 'Inne' }))
+    await removableTasks.softDelete(parent.id)
+    await removableTasks.softDelete(other.id)
+
+    await removableTasks.purge(parent.id)
+
+    expect(await db.table<Task>('tasks').get(parent.id)).toBeUndefined()
+    expect(await db.table<Task>('tasks').get(open.id)).toBeUndefined()
+    expect(await isDeleted(other.id)).toBe(true)
+  })
 })

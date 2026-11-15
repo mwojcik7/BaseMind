@@ -49,12 +49,12 @@ class FortifyServiceProvider extends ServiceProvider
             return [
                 Limit::perMinute(5)->by($email.'|'.$request->ip()),
                 // Trying many accounts from one address.
-                Limit::perMinute(20)->by($request->ip()),
+                Limit::perMinute(config('basemind.throttle.login_per_ip'))->by($request->ip()),
             ];
         });
 
         // All auth endpoints (projekt.md, section 8.3).
-        RateLimiter::for('auth-routes', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
+        RateLimiter::for('auth-routes', fn (Request $request) => Limit::perMinute(config('basemind.throttle.auth_routes'))->by($request->ip()));
 
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(300)->by($request->user()?->id ?: $request->ip()));
     }

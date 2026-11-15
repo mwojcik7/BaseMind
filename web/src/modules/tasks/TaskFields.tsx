@@ -65,3 +65,37 @@ export function PrioritySelect({
     </Select>
   )
 }
+
+/** Null is the inbox. A list deleted meanwhile shows as the inbox too. */
+export function ListSelect({
+  id,
+  value,
+  lists,
+  onChange,
+}: {
+  id?: string
+  value: string | null
+  lists: readonly { id: string; name: string }[]
+  onChange: (value: string | null) => void
+}) {
+  const sorted = [...lists].sort((a, b) => a.name.localeCompare(b.name, 'pl'))
+
+  return (
+    <Select
+      value={value && lists.some((list) => list.id === value) ? value : NONE}
+      onValueChange={(next) => onChange(next === NONE ? null : next)}
+    >
+      <SelectTrigger id={id} aria-label={pl.tasks.list} className="w-full">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NONE}>{pl.tasks.inbox}</SelectItem>
+        {sorted.map((list) => (
+          <SelectItem key={list.id} value={list.id}>
+            {list.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}

@@ -71,4 +71,16 @@ return [
     */
     'block_on_critical' => env('BASEMIND_BLOCK_ON_CRITICAL', env('APP_ENV') === 'production'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Requests per minute from one address
+    |--------------------------------------------------------------------------
+    | Limits on the sign-in, sign-up and password endpoints. Raised only for the
+    | e2e tests, which sign up and sign in many accounts from localhost.
+    */
+    'throttle' => [
+        'auth_routes' => (int) env('BASEMIND_THROTTLE_AUTH_ROUTES', 30),
+        'login_per_ip' => (int) env('BASEMIND_THROTTLE_LOGIN_PER_IP', 20),
+    ],
+
 ];

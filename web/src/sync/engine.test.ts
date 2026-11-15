@@ -231,6 +231,61 @@ describe('synchronisation', () => {
     expect(await items.get('server-item')).toBeUndefined()
   })
 
+  it('drops a record removed for good, with changes to it still waiting', async () => {
+    await db.table('items').put(serverItem())
+    await db.outbox.add({
+      op_id: 'waiting',
+      entity: 'items',
+      record_id: 'server-item',
+      op: 'update',
+      payload: { note: 'x' },
+      base_version: 1,
+      client_ts: '2026-11-09T11:00:00.000Z',
+      rejected_reason: 'deleted',
+    })
+    answerPull = () =>
+      json({
+        ...EMPTY_PAGE,
+        changes: [{ entity: 'items', record: { id: 'server-item', rev: 7 }, purged: true }],
+        cursor: 7,
+      })
+
+    await runSync()
+
+    expect(await db.table('items').get('server-item')).toBeUndefined()
+    expect(await db.outbox.count()).toBe(0)
+    expect((await db.meta.get('sync_cursor'))?.value).toBe(7)
+  })
+
+  it('does not bring back a record removed for good during a sync', async () => {
+    await db.table('items').put(serverItem({ deleted_at: '2026-11-09T11:00:00.000Z' }))
+    answerPull = async () => {
+      await items.purge('server-item')
+      return json(pageWith(serverItem({ deleted_at: '2026-11-09T11:00:00.000Z', rev: 6 }), 6))
+    }
+
+    await runSync()
+
+    expect(await db.table('items').get('server-item')).toBeUndefined()
+  })
+
+  it('downloads everything again when the server asks to start over', async () => {
+    await db.meta.put({ key: 'sync_cursor', value: 3 })
+    await db.table('items').put(serverItem({ id: 'stale' }))
+    const pages = [
+      { ...EMPTY_PAGE, cursor: 0, has_more: true, reset: true },
+      pageWith(serverItem(), 9),
+    ]
+    answerPull = () => json(pages.shift())
+
+    await runSync()
+
+    expect(pullUrls[1]).toContain('cursor=0')
+    expect(await db.table('items').get('stale')).toBeUndefined()
+    expect(await items.get('server-item')).toBeDefined()
+    expect((await db.meta.get('account'))?.value).toEqual(ACCOUNT)
+  })
+
   it('keeps edits made during a sync on top of the pulled record', async () => {
     await db.table('items').put(serverItem())
     answerPull = async () => {

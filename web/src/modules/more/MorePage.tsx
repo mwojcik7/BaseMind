@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { ChevronRight, Settings } from 'lucide-react'
+import { ChevronRight, Settings, Trash2 } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { pl } from '@/i18n/pl'
 import { gridModules } from '@/modules/registry'
@@ -27,6 +27,14 @@ export function MorePage() {
       >
         <Settings aria-hidden className="size-5 text-muted-foreground" />
         {pl.settings.title}
+        <ChevronRight aria-hidden className="ml-auto size-5 text-muted-foreground" />
+      </Link>
+      <Link
+        to="/trash"
+        className="mt-2 flex min-h-14 items-center gap-3 rounded-lg bg-card px-4 text-sm font-medium text-card-foreground"
+      >
+        <Trash2 aria-hidden className="size-5 text-muted-foreground" />
+        {pl.trash.title}
         <ChevronRight aria-hidden className="ml-auto size-5 text-muted-foreground" />
       </Link>
     </>

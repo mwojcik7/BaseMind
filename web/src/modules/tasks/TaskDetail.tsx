@@ -12,13 +12,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { toast } from '@/components/ui/toaster'
 import { useRecord, useRecords } from '@/db/hooks'
 import { pl } from '@/i18n/pl'
@@ -39,7 +32,7 @@ import {
 } from '@/modules/tasks/repo'
 import { subtasksIn } from '@/modules/tasks/selectors'
 import { RepeatField } from '@/modules/tasks/RepeatField'
-import { ReminderSelect } from '@/modules/tasks/TaskFields'
+import { ListSelect, ReminderSelect } from '@/modules/tasks/TaskFields'
 
 // Loaded only when the preview is opened: the Markdown parser is the biggest part.
 const MarkdownPreview = lazy(() => import('@/components/MarkdownPreview'))
@@ -411,23 +404,14 @@ function TaskForm({
             control={control}
             name="list"
             render={({ field }) => (
-              <Select
-                // A task can still point at a list deleted on another device.
-                value={lists?.some((list) => list.id === field.value) ? field.value : INBOX}
-                onValueChange={field.onChange}
-              >
-                <SelectTrigger id="task-list" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={INBOX}>{pl.tasks.inbox}</SelectItem>
-                  {lists?.map((list) => (
-                    <SelectItem key={list.id} value={list.id}>
-                      {list.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              // A list deleted meanwhile shows as the inbox, but the task keeps it until
+              // another one is picked, so restoring the list from the trash brings it back.
+              <ListSelect
+                id="task-list"
+                value={field.value === INBOX ? null : field.value}
+                lists={lists ?? []}
+                onChange={(next) => field.onChange(next ?? INBOX)}
+              />
             )}
           />
         </div>

@@ -140,6 +140,39 @@ describe('repository', () => {
     })
   })
 
+  it('lists what is in the trash', async () => {
+    const kept = await items.create(NEW_ITEM)
+    const deleted = await items.create({ ...NEW_ITEM, title: 'Chleb' })
+    await items.softDelete(deleted.id)
+
+    expect((await items.listDeleted()).map((item) => item.id)).toEqual([deleted.id])
+    expect((await items.list()).map((item) => item.id)).toEqual([kept.id])
+  })
+
+  it('removes a record in the trash for good and queues it', async () => {
+    const item = await items.create(NEW_ITEM)
+    await items.softDelete(item.id)
+
+    await items.purge(item.id)
+
+    expect(await database.table('items').get(item.id)).toBeUndefined()
+    expect((await outbox()).at(-1)).toMatchObject({
+      op: 'purge',
+      record_id: item.id,
+      base_version: 2,
+    })
+  })
+
+  it('removes for good only what is in the trash', async () => {
+    const item = await items.create(NEW_ITEM)
+
+    await expect(items.purge(item.id)).rejects.toThrow()
+    await items.purge('missing')
+
+    expect(await items.get(item.id)).toBeDefined()
+    expect(await outbox()).toHaveLength(1)
+  })
+
   it('does nothing when restoring a live record, and refuses a missing one', async () => {
     const item = await items.create(NEW_ITEM)
 

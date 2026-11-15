@@ -7,7 +7,7 @@ export interface OutboxEntry {
   op_id: string
   entity: string
   record_id: string
-  op: 'create' | 'update' | 'delete' | 'restore'
+  op: 'create' | 'update' | 'delete' | 'restore' | 'purge'
   /** The whole record for `create`, only the changed fields for `update`. */
   payload: Record<string, unknown>
   /** The record's version before this change; the server compares it to detect conflicts. */

@@ -49,6 +49,36 @@ export const pl = {
     cancel: 'Anuluj',
     undo: 'Cofnij',
   },
+  trash: {
+    title: 'Kosz',
+    description: 'Usunięte elementy można przywrócić przez 30 dni. Potem znikają na zawsze.',
+    empty: 'Kosz jest pusty',
+    emptyDescription: 'Tu trafia wszystko, co usuniesz.',
+    today: 'Dziś',
+    yesterday: 'Wczoraj',
+    daysLeft: (days: number) =>
+      days === 0
+        ? 'Zniknie przy najbliższym czyszczeniu'
+        : `${plural(days, 'Został', 'Zostały', 'Zostało')} ${days} ${plural(days, 'dzień', 'dni', 'dni')}`,
+    restore: 'Przywróć',
+    restored: 'Przywrócono',
+    purge: 'Usuń na zawsze',
+    purgeTitle: (title: string) => `Usunąć „${title}” na zawsze?`,
+    purgeDescription: 'Tego nie da się cofnąć.',
+    purged: 'Usunięto na zawsze',
+    emptyTrash: 'Opróżnij kosz',
+    emptyTrashTitle: 'Opróżnić kosz?',
+    emptyTrashDescription: (count: number) =>
+      `Elementy w koszu: ${count}. Znikną na zawsze i tego nie da się cofnąć.`,
+    emptied: 'Opróżniono kosz',
+    task: 'Zadanie',
+    subtask: (parent: string) => `Podzadanie · ${parent}`,
+    withSubtasks: (count: number) =>
+      `+${count} ${plural(count, 'podzadanie', 'podzadania', 'podzadań')}`,
+    list: 'Lista zadań',
+    listTasks: (count: number) =>
+      `${count} ${plural(count, 'zadanie', 'zadania', 'zadań')} w Skrzynce`,
+  },
   notifications: {
     push: 'Powiadomienia na tym urządzeniu',
     pushUnsupported: 'Ta przeglądarka nie obsługuje powiadomień.',
@@ -192,7 +222,8 @@ export const pl = {
     renameList: 'Zmień nazwę listy',
     deleteList: 'Usuń listę',
     deleteListTitle: (name: string) => `Usunąć listę „${name}”?`,
-    deleteListDescription: 'Zadania z tej listy trafią do Skrzynki.',
+    deleteListDescription:
+      'Zadania z tej listy trafią do Skrzynki. Przez 30 dni możesz przywrócić listę z kosza razem z nimi.',
     listDeleted: 'Usunięto listę',
     backToLists: 'Wróć do list',
     subtasks: 'Podzadania',

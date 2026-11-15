@@ -38,6 +38,8 @@ export interface Task extends SyncedRecord {
   repeat_remaining?: number | null
   /** On a copy kept in history: the repeating task it came from. */
   recurring_task_id?: string | null
+  /** On a deleted subtask: it went to the trash with its parent and comes back with it. */
+  deleted_with_parent?: boolean
 }
 
 export const taskLists = createRepository<TaskList>('task_lists')
@@ -170,8 +172,10 @@ export function finishOccurrence(id: string, status: 'done' | 'cancelled' = 'don
 
 export function undoOccurrence(finished: FinishedOccurrence) {
   return withReminder(async () => {
+    // Gone for good: the copy was never meant to be deleted, so it doesn't go to the trash.
     if (finished.copyId) {
       await tasks.softDelete(finished.copyId)
+      await tasks.purge(finished.copyId)
     }
     for (const { id, state } of finished.before) {
       await refreshTaskReminder(await tasks.update(id, state))
@@ -215,42 +219,65 @@ export function reopenTasks(ids: readonly string[]) {
   })
 }
 
-// The subtasks deleted together with each task, so undoing brings back just those and not
-// ones deleted on their own earlier. Kept in memory: undo is only offered for a few seconds.
-const deletedWithParent = new Map<string, string[]>()
+/** Deleted tasks too, which the trash needs. */
+function anyTask(id: string) {
+  return db.table<Task, string>('tasks').get(id)
+}
 
-/** Deleting and undoing it, with the reminder following the task and its subtasks. */
+async function restoreOne(id: string) {
+  await tasks.restore(id)
+  const task = await tasks.get(id)
+  if (task?.deleted_with_parent) {
+    await tasks.update(id, { deleted_with_parent: false })
+  }
+  if (task) {
+    await refreshTaskReminder((await tasks.get(id)) ?? task)
+  }
+}
+
+/**
+ * Deleting and restoring (by undo or from the trash), with reminders following the tasks.
+ * A task takes its subtasks along, and brings back just those when restored, not ones
+ * deleted on their own earlier.
+ */
 export const removableTasks = {
   softDelete: (id: string) =>
     withReminder(async () => {
-      const subtaskIds = (await subtasksOf(id)).map((task) => task.id)
-      for (const taskId of [id, ...subtaskIds]) {
-        await tasks.softDelete(taskId)
-        await dismissTaskReminder(taskId)
+      for (const subtask of await subtasksOf(id)) {
+        await tasks.update(subtask.id, { deleted_with_parent: true })
+        await tasks.softDelete(subtask.id)
+        await dismissTaskReminder(subtask.id)
       }
-      deletedWithParent.set(id, subtaskIds)
+      await tasks.softDelete(id)
+      await dismissTaskReminder(id)
     }),
   restore: (id: string) =>
     withReminder(async () => {
-      for (const taskId of [id, ...(deletedWithParent.get(id) ?? [])]) {
-        await tasks.restore(taskId)
-        const task = await tasks.get(taskId)
-        if (task) {
-          await refreshTaskReminder(task)
+      const task = await anyTask(id)
+      // A subtask cannot come back without its parent; the parent's other subtasks stay.
+      const parent = task?.parent_id ? await anyTask(task.parent_id) : undefined
+      if (parent && parent.deleted_at !== null) {
+        await restoreOne(parent.id)
+      }
+
+      await restoreOne(id)
+
+      const deleted = await db.table<Task, string>('tasks').where('parent_id').equals(id).toArray()
+      for (const subtask of deleted) {
+        if (subtask.deleted_at !== null && subtask.deleted_with_parent) {
+          await restoreOne(subtask.id)
         }
       }
-      deletedWithParent.delete(id)
     }),
-}
-
-/** The list's tasks are kept: they go back to the inbox. */
-export function deleteTaskList(id: string) {
-  return db.transaction('rw', db.table('tasks'), db.table('task_lists'), db.outbox, async () => {
-    for (const task of await tasks.list()) {
-      if (task.list_id === id) {
-        await tasks.update(task.id, { list_id: null })
+  /** Removes it for good, with its subtasks (the server does the same). */
+  purge: (id: string) =>
+    withReminder(async () => {
+      const subtasks = await db.table<Task, string>('tasks').where('parent_id').equals(id).toArray()
+      for (const subtask of subtasks) {
+        if (subtask.deleted_at !== null) {
+          await tasks.purge(subtask.id)
+        }
       }
-    }
-    await taskLists.softDelete(id)
-  })
+      await tasks.purge(id)
+    }),
 }

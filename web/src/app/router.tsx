@@ -127,6 +127,12 @@ const dashboardSettingsRoute = createRoute({
   ),
 })
 
+const trashRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/trash',
+  component: lazyRouteComponent(() => import('@/modules/trash/TrashPage'), 'TrashPage'),
+})
+
 // Preview of the design system; not linked from the app. Remove before deployment (stage 7).
 const designRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -152,6 +158,7 @@ const routeTree = rootRoute.addChildren([
     sessionsRoute,
     notificationsRoute,
     dashboardSettingsRoute,
+    trashRoute,
     designRoute,
     moduleRoute,
   ]),

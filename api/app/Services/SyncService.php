@@ -29,10 +29,17 @@ class SyncService
     }
 
     /**
-     * @return array{changes: list<array{entity: string, record: array<string, mixed>}>, cursor: int, has_more: bool}
+     * A record removed for good arrives as `purged: true` with just its id and rev.
+     *
+     * @return array{changes: list<array{entity: string, record: array<string, mixed>, purged?: true}>, cursor: int, has_more: bool, reset?: true}
      */
     public function pull(User $user, int $cursor, int $limit): array
     {
+        // The notices of some removals are gone: the device must start over to drop those records.
+        if ($cursor > 0 && $cursor < (int) DB::table('sync_counter')->where('id', 1)->value('purge_horizon')) {
+            return ['changes' => [], 'cursor' => 0, 'has_more' => true, 'reset' => true];
+        }
+
         // One row over the limit per entity is enough to know whether another page exists.
         $changes = collect(config('sync.entities'))
             ->flatMap(fn (string $model, string $entity) => $model::withTrashed()
@@ -42,6 +49,17 @@ class SyncService
                 ->limit($limit + 1)
                 ->get()
                 ->map(fn (Model&SyncableModel $record) => ['entity' => $entity, 'record' => $record->toSyncArray()]))
+            ->concat(DB::table('sync_purges')
+                ->whereIn('space_id', DB::table('space_members')->select('space_id')->where('user_id', $user->id))
+                ->where('rev', '>', $cursor)
+                ->orderBy('rev')
+                ->limit($limit + 1)
+                ->get()
+                ->map(fn (object $purge) => [
+                    'entity' => $purge->entity,
+                    'record' => ['id' => $purge->record_id, 'rev' => (int) $purge->rev],
+                    'purged' => true,
+                ]))
             ->sortBy('record.rev')
             ->values();
 
@@ -96,6 +114,7 @@ class SyncService
             'update' => $this->update($user, $record, $op, $changedAt),
             'delete' => $this->delete($user, $record, $changedAt),
             'restore' => $this->restore($user, $record, $changedAt),
+            'purge' => $this->purge($user, $record),
             // The controller validates the operation; this guards direct callers.
             default => throw new RejectedSyncOperation('invalid'),
         };
@@ -203,6 +222,51 @@ class SyncService
         }
 
         return 'applied';
+    }
+
+    /**
+     * Removes a record in the trash for good. One already gone counts as done: the trash
+     * may have been emptied on another device, or by the server after 30 days.
+     */
+    private function purge(User $user, (Model&SyncableModel)|null $record): string
+    {
+        if ($record === null) {
+            return 'applied';
+        }
+
+        $this->authorizeEdit($user, $record);
+
+        if ($record->deleted_at === null) {
+            throw new RejectedSyncOperation('not_deleted');
+        }
+
+        app(Trash::class)->purge($record);
+
+        return 'applied';
+    }
+
+    /**
+     * Deletes the row and leaves a notice, so devices drop their copy too. Call inside a
+     * transaction; App\Services\Trash also removes what depends on the record.
+     */
+    public function forget(Model&SyncableModel $record): void
+    {
+        DB::table('sync_purges')->insert([
+            'entity' => $this->entityOf($record),
+            'record_id' => $record->id,
+            'space_id' => $record->space_id,
+            'rev' => $this->nextRev(),
+            'purged_at' => CarbonImmutable::now('UTC'),
+        ]);
+
+        $record->forceDelete();
+    }
+
+    public function entityOf(Model&SyncableModel $record): string
+    {
+        $entity = array_search($record::class, config('sync.entities'), true);
+
+        return is_string($entity) ? $entity : throw new \LogicException($record::class.' is not in config/sync.php');
     }
 
     /**

@@ -28,10 +28,17 @@ export const useSyncStatus = create<SyncStatus>(() => ({
   rejected: 0,
 }))
 
+type PulledChange =
+  | { entity: string; record: SyncedRecord; purged?: undefined }
+  /** Removed for good on the server: only its id is left. */
+  | { entity: string; record: { id: string; rev: number }; purged: true }
+
 interface PullPage {
-  changes: { entity: string; record: SyncedRecord }[]
+  changes: PulledChange[]
   cursor: number
   has_more: boolean
+  /** The server no longer knows everything this device missed: download it all again. */
+  reset?: true
   settings: { theme: string | null; dashboard: DashboardLayout | null }
 }
 
@@ -94,11 +101,26 @@ async function applyPage(page: PullPage, userId: number): Promise<boolean> {
       return false
     }
 
+    if (page.reset) {
+      const local = db.tables.filter((table) => table.name !== 'outbox' && table.name !== 'meta')
+      await Promise.all(local.map((table) => table.clear()))
+    }
+
     const unsent = (await db.outbox.toArray()).filter((entry) => !entry.rejected_reason)
 
-    for (const { entity, record } of page.changes) {
+    for (const change of page.changes) {
+      const { entity, record } = change
       const own = unsent.filter((entry) => entry.entity === entity && entry.record_id === record.id)
-      await db.table(entity).put(withUnsentChanges(record, own))
+
+      if (change.purged) {
+        // Changes to it waiting here could only be refused now.
+        await db.table(entity).delete(record.id)
+        await db.outbox
+          .filter((entry) => entry.entity === entity && entry.record_id === record.id)
+          .delete()
+      } else if (!own.some((entry) => entry.op === 'purge')) {
+        await db.table(entity).put(withUnsentChanges(change.record, own))
+      }
     }
 
     await db.meta.put({ key: CURSOR_KEY, value: page.cursor })

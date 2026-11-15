@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Schedule;
 
 // Daily runtime security check; e-mails the owner on critical issues.
 Schedule::command('basemind:security-check --notify')->dailyAt('06:00');
+Schedule::command('basemind:empty-trash')->dailyAt('03:30')->withoutOverlapping();
 
 Schedule::command('basemind:send-reminders')->everyMinute()->withoutOverlapping();
 Schedule::command('basemind:send-digests')->everyMinute()->withoutOverlapping();

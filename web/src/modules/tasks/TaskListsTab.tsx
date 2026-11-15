@@ -1,5 +1,5 @@
 import { ArrowLeft, ChevronRight, Inbox, ListTodo, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,7 +14,9 @@ import { Input } from '@/components/ui/input'
 import { toast } from '@/components/ui/toaster'
 import { pl } from '@/i18n/pl'
 import { errorMessage } from '@/lib/form-errors'
-import { deleteTaskList, taskLists, type Task, type TaskList } from '@/modules/tasks/repo'
+import { deleteWithUndo } from '@/lib/delete-with-undo'
+import { useActiveTaskList } from '@/modules/tasks/activeList'
+import { taskLists, type Task, type TaskList } from '@/modules/tasks/repo'
 import { taskContexts, tasksInList } from '@/modules/tasks/selectors'
 import { TaskRow } from '@/modules/tasks/TaskRow'
 
@@ -107,6 +109,13 @@ export function TaskListsTab({
   const items = viewing ? tasksInList(all, list?.id ?? null, liveIds) : []
   const contextOf = taskContexts(all)
 
+  // The [+] sheet adds to the list open here.
+  const activeListId = viewing ? (list?.id ?? null) : undefined
+  useEffect(() => {
+    useActiveTaskList.setState({ listId: activeListId })
+    return () => useActiveTaskList.setState({ listId: undefined })
+  }, [activeListId])
+
   async function handleDelete() {
     setConfirmingDelete(false)
     if (!list) {
@@ -114,9 +123,9 @@ export function TaskListsTab({
     }
 
     try {
-      await deleteTaskList(list.id)
+      // Its tasks keep the list and show in the inbox until it is restored or purged.
+      await deleteWithUndo(taskLists, list.id, pl.tasks.listDeleted)
       setSelected(undefined)
-      toast.success(pl.tasks.listDeleted)
     } catch (error) {
       toast.error(errorMessage(error))
     }

@@ -11,9 +11,10 @@ import { errorMessage } from '@/lib/form-errors'
 import { parseQuickText } from '@/lib/quick-parser'
 import { taskRules } from '@/modules/tasks/parse'
 import { describeRecurrence, firstDueDate, pinToDate } from '@/modules/tasks/recurrence'
+import { useActiveTaskList } from '@/modules/tasks/activeList'
 import type { ReminderOffset } from '@/modules/tasks/reminder'
 import { createTask, DEFAULT_PRIORITY, taskLists } from '@/modules/tasks/repo'
-import { PrioritySelect, ReminderSelect } from '@/modules/tasks/TaskFields'
+import { ListSelect, PrioritySelect, ReminderSelect } from '@/modules/tasks/TaskFields'
 
 /** What is typed fills the fields in; a value picked by hand takes precedence over it. */
 export function TaskQuickAddForm({ onDone }: { onDone: () => void }) {
@@ -25,6 +26,10 @@ export function TaskQuickAddForm({ onDone }: { onDone: () => void }) {
   const [pickedPriority, setPickedPriority] = useState<number>()
   const [pickedTime, setPickedTime] = useState<string>()
   const [pickedOffset, setPickedOffset] = useState<ReminderOffset>()
+  // undefined: not picked; null: the inbox picked on purpose.
+  const [pickedList, setPickedList] = useState<string | null>()
+  // Read once: the sheet adds to the list that was open when it was opened.
+  const [openList] = useState(() => useActiveTaskList.getState().listId ?? null)
   const [saving, setSaving] = useState(false)
 
   const now = new Date()
@@ -41,7 +46,8 @@ export function TaskQuickAddForm({ onDone }: { onDone: () => void }) {
   const offset = pickedOffset !== undefined ? pickedOffset : (fields.reminder_offset ?? null)
   const priority = pickedPriority ?? fields.priority ?? DEFAULT_PRIORITY
   const repeat = rrule && dueDate ? pinToDate(rrule, dueDate) : null
-  const listName = lists?.find((list) => list.id === fields.list_id)?.name
+  // Picked by hand, then "#list" in the text, then the list open on the tasks screen.
+  const listId = pickedList !== undefined ? pickedList : (fields.list_id ?? openList)
   const summary = [
     repeat &&
       describeRecurrence({
@@ -49,7 +55,6 @@ export function TaskQuickAddForm({ onDone }: { onDone: () => void }) {
         repeat_from: fields.repeat_from,
         repeat_remaining: fields.repeat_remaining,
       }),
-    listName,
   ].filter(Boolean)
   const ready = title.length > 0
 
@@ -63,7 +68,8 @@ export function TaskQuickAddForm({ onDone }: { onDone: () => void }) {
     try {
       await createTask(
         {
-          list_id: fields.list_id ?? null,
+          // The list may have been deleted on another device while the sheet was open.
+          list_id: listId && lists?.some((list) => list.id === listId) ? listId : null,
           parent_id: null,
           title,
           notes: null,
@@ -128,6 +134,9 @@ export function TaskQuickAddForm({ onDone }: { onDone: () => void }) {
           disabled={!dueDate}
           onChange={setPickedOffset}
         />
+        <div className="col-span-2">
+          <ListSelect value={listId} lists={lists ?? []} onChange={setPickedList} />
+        </div>
       </div>
       <Button type="submit" disabled={!ready || saving}>
         {pl.quickAdd.add}

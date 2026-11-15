@@ -777,6 +777,43 @@ describe('app shell', () => {
       expect(await page().findByText('Kupić chleb')).toBeInTheDocument()
     })
 
+    it('adds to the list open on the tasks screen, unless the text names another', async () => {
+      const user = userEvent.setup()
+      await openTasks()
+      const home = await taskLists.create({ name: 'Dom' })
+      const work = await taskLists.create({ name: 'Praca' })
+      await user.click(screen.getByRole('tab', { name: pl.tasks.tabs.lists }))
+      await user.click(await page().findByRole('button', { name: /^Dom/ }))
+
+      await user.click(bottomNav().getByRole('button', { name: pl.nav.add }))
+      let sheet = within(await screen.findByRole('dialog', { name: pl.quickAdd.title }))
+      expect(sheet.getByRole('combobox', { name: pl.tasks.list })).toHaveTextContent('Dom')
+      await user.type(sheet.getByRole('textbox'), 'Odkurzyć')
+      await user.click(sheet.getByRole('button', { name: pl.quickAdd.add }))
+      await waitFor(async () => expect(await tasks.list()).toHaveLength(1))
+
+      await user.click(bottomNav().getByRole('button', { name: pl.nav.add }))
+      sheet = within(await screen.findByRole('dialog', { name: pl.quickAdd.title }))
+      await user.type(sheet.getByRole('textbox'), 'Raport #Praca')
+      expect(sheet.getByRole('combobox', { name: pl.tasks.list })).toHaveTextContent('Praca')
+      await user.click(sheet.getByRole('button', { name: pl.quickAdd.add }))
+
+      await waitFor(async () => expect(await tasks.list()).toHaveLength(2))
+      const byTitle = new Map((await tasks.list()).map((task) => [task.title, task.list_id]))
+      expect(byTitle.get('Odkurzyć')).toBe(home.id)
+      expect(byTitle.get('Raport')).toBe(work.id)
+    })
+
+    it('adds to the inbox from other screens', async () => {
+      const user = userEvent.setup()
+      await openTasks()
+      await taskLists.create({ name: 'Dom' })
+
+      await user.click(bottomNav().getByRole('button', { name: pl.nav.add }))
+      const sheet = within(await screen.findByRole('dialog', { name: pl.quickAdd.title }))
+      expect(sheet.getByRole('combobox', { name: pl.tasks.list })).toHaveTextContent(pl.tasks.inbox)
+    })
+
     it('keeps the time and reminder off until there is a date', async () => {
       const user = userEvent.setup()
       await openTasks()
@@ -901,7 +938,7 @@ describe('app shell', () => {
       expect((await tasks.list())[0].title).toBe('Kupić mleko')
     })
 
-    it('creates a list and sends its tasks to the inbox when it is deleted', async () => {
+    it('creates a list and shows its tasks in the inbox while it is in the trash', async () => {
       const user = userEvent.setup()
       await openTasks()
       await user.click(screen.getByRole('tab', { name: pl.tasks.tabs.lists }))
@@ -924,7 +961,10 @@ describe('app shell', () => {
       )
 
       await waitFor(async () => expect(await taskLists.list()).toHaveLength(0))
-      expect((await tasks.list())[0].list_id).toBeNull()
+      // The task keeps its list, so restoring the list from the trash brings the task back to it.
+      expect((await tasks.list())[0].list_id).toBe(list.id)
+      await user.click(await page().findByRole('button', { name: /^Skrzynka/ }))
+      expect(await page().findByText('Kupić mleko')).toBeInTheDocument()
     })
 
     it('shows the tasks due today on the "Dziś" screen', async () => {

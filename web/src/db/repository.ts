@@ -92,6 +92,11 @@ export function createRepository<T extends SyncedRecord>(
       return table.filter((record) => record.deleted_at === null).toArray()
     },
 
+    /** What is in the trash: deleted records not yet removed for good. */
+    listDeleted(): Promise<T[]> {
+      return table.filter((record) => record.deleted_at !== null).toArray()
+    },
+
     async create(data: OwnFields<T>, options: { spaceId?: string } = {}): Promise<T> {
       const { spaceId, userId } = writableSpace(options.spaceId)
       const timestamp = new Date().toISOString()
@@ -191,6 +196,23 @@ export function createRepository<T extends SyncedRecord>(
           version: deleted.version + 1,
         })
         await enqueue('restore', id, {}, deleted.version, timestamp)
+      })
+    },
+
+    /** Removes a deleted record for good. Only what is in the trash can be removed. */
+    purge(id: string): Promise<void> {
+      return database.transaction('rw', table, database.outbox, async () => {
+        const deleted = await table.get(id)
+        if (!deleted) {
+          return
+        }
+        if (deleted.deleted_at === null) {
+          throw new Error(`The ${entity} record ${id} is not in the trash`)
+        }
+
+        writableSpace(deleted.space_id)
+        await table.delete(id)
+        await enqueue('purge', id, {}, deleted.version, new Date().toISOString())
       })
     },
   }

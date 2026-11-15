@@ -21,4 +21,7 @@ export const serverEnv: Record<string, string> = {
   // A test-only key, the same one phpunit.xml uses. Never the real SODIUM_KEY.
   SODIUM_KEY: 'YmFzZW1pbmQtdGVzdC1rZXktbm90LWEtc2VjcmV0ISE=',
   SODIUM_PREVIOUS_KEYS: '',
+  // Every test signs up and signs in a new account from localhost.
+  BASEMIND_THROTTLE_AUTH_ROUTES: '1000',
+  BASEMIND_THROTTLE_LOGIN_PER_IP: '1000',
 }
