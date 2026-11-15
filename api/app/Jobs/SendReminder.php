@@ -44,7 +44,6 @@ class SendReminder implements ShouldQueue
 
         $push->send($user, [
             'title' => $reminder->title,
-            'body' => __('notifications.reminder_body'),
             'reminder_id' => $reminder->id,
             'url' => '/',
             'badge' => Reminder::where('created_by', $user->id)->where('status', 'sent')->count(),

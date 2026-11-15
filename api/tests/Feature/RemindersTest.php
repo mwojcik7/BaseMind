@@ -204,6 +204,38 @@ class RemindersTest extends TestCase
         Queue::assertPushed(SendReminder::class, fn ($job) => $job->channel === 'push');
     }
 
+    public function test_task_reminders_skip_e_mail_by_default(): void
+    {
+        $this->reminder(['entity_type' => 'tasks', 'entity_id' => (string) Str::uuid7()]);
+
+        $this->run_at('2026-11-09 10:00:00');
+
+        Queue::assertPushed(SendReminder::class, 1);
+        Queue::assertPushed(SendReminder::class, fn ($job) => $job->channel === 'push');
+    }
+
+    public function test_each_type_follows_its_own_channels(): void
+    {
+        $this->setPreferences(['types' => ['tasks' => ['push' => false, 'email' => true]]]);
+        $this->reminder(['entity_type' => 'tasks', 'entity_id' => (string) Str::uuid7()]);
+
+        $this->run_at('2026-11-09 10:00:00');
+
+        Queue::assertPushed(SendReminder::class, 1);
+        Queue::assertPushed(SendReminder::class, fn ($job) => $job->channel === 'email');
+    }
+
+    public function test_a_general_switch_turned_off_wins_over_the_type(): void
+    {
+        $this->setPreferences(['email' => false, 'types' => ['tasks' => ['push' => true, 'email' => true]]]);
+        $this->reminder(['entity_type' => 'tasks', 'entity_id' => (string) Str::uuid7()]);
+
+        $this->run_at('2026-11-09 10:00:00');
+
+        Queue::assertPushed(SendReminder::class, 1);
+        Queue::assertPushed(SendReminder::class, fn ($job) => $job->channel === 'push');
+    }
+
     public function test_only_the_channels_of_the_reminder_are_used(): void
     {
         $this->reminder(['channels' => ['email']]);
@@ -404,7 +436,7 @@ class RemindersTest extends TestCase
     {
         $reminder = $this->reminder(['title' => 'Kawa & ciastko']);
 
-        $this->assertStringContainsString('Kawa & ciastko', (new ReminderMail($reminder))->render());
+        $this->assertSame('Kawa & ciastko', trim((new ReminderMail($reminder))->render()));
     }
 
     public function test_the_push_job_sends_what_the_notification_needs(): void
@@ -415,7 +447,9 @@ class RemindersTest extends TestCase
         $push->shouldReceive('send')->once()->withArgs(fn ($user, $payload) => $user->is($this->user)
             && $payload['title'] === 'Przegląd auta'
             && $payload['reminder_id'] === $reminder->id
-            && $payload['badge'] === 1);
+            && $payload['badge'] === 1
+            // The title says it all: Android already shows the app's name above it.
+            && ! array_key_exists('body', $payload));
 
         (new SendReminder($reminder->id, 'push'))->handle($push);
     }
@@ -515,6 +549,7 @@ class RemindersTest extends TestCase
             'email' => true,
             'quiet_hours' => null,
             'digest' => ['enabled' => true, 'time' => '07:00'],
+            'types' => ['tasks' => ['push' => true, 'email' => false]],
         ]]);
 
         $changed = [
@@ -522,6 +557,7 @@ class RemindersTest extends TestCase
             'email' => true,
             'quiet_hours' => ['start' => '22:00', 'end' => '07:00'],
             'digest' => ['enabled' => false, 'time' => '06:30'],
+            'types' => ['tasks' => ['push' => false, 'email' => true]],
         ];
         $this->actingAs($this->user)->postJson('/api/settings', ['notifications' => $changed])->assertNoContent();
 
@@ -550,6 +586,42 @@ class RemindersTest extends TestCase
             'quiet_hours' => null,
             'digest' => ['enabled' => true, 'time' => '25:00'],
         ]])->assertUnprocessable();
+    }
+
+    public function test_saving_without_types_keeps_them(): void
+    {
+        $types = ['tasks' => ['push' => false, 'email' => true]];
+        $this->setPreferences(['types' => $types]);
+
+        // What an older version of the app sends.
+        $this->actingAs($this->user)->postJson('/api/settings', ['notifications' => [
+            'push' => true,
+            'email' => true,
+            'quiet_hours' => null,
+            'digest' => ['enabled' => true, 'time' => '07:00'],
+        ]])->assertNoContent();
+
+        $this->assertSame($types, $this->user->refresh()->settings->notifications()['types']);
+    }
+
+    public function test_only_known_types_and_channels_are_accepted(): void
+    {
+        $base = [
+            'push' => true,
+            'email' => true,
+            'quiet_hours' => null,
+            'digest' => ['enabled' => true, 'time' => '07:00'],
+        ];
+
+        foreach ([
+            ['unknown' => ['push' => true, 'email' => true]],
+            ['tasks' => ['push' => true, 'email' => true, 'sms' => true]],
+            ['tasks' => ['push' => true]],
+            ['tasks' => ['push' => 'yes', 'email' => true]],
+        ] as $types) {
+            $this->actingAs($this->user)->postJson('/api/settings', ['notifications' => [...$base, 'types' => $types]])
+                ->assertUnprocessable();
+        }
     }
 
     public function test_changing_the_theme_keeps_notification_settings(): void

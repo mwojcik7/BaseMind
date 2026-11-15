@@ -15,16 +15,34 @@ class UserSettings extends Model
     public $incrementing = false;
 
     /**
-     * @return array{push: bool, email: bool, quiet_hours: array{start: string, end: string}|null, digest: array{enabled: bool, time: string}}
+     * @return array{push: bool, email: bool, quiet_hours: array{start: string, end: string}|null, digest: array{enabled: bool, time: string}, types: array<string, array{push: bool, email: bool}>}
      */
     public function notifications(): array
     {
-        return array_replace_recursive([
+        $defaults = config('notifications.types');
+        $preferences = array_replace_recursive([
             'push' => true,
             'email' => true,
             'quiet_hours' => null,
             'digest' => ['enabled' => true, 'time' => '07:00'],
+            'types' => $defaults,
         ], $this->settings['notifications'] ?? []);
+
+        // A type a module no longer has is not reported back.
+        $preferences['types'] = array_intersect_key($preferences['types'], $defaults);
+
+        return $preferences;
+    }
+
+    /**
+     * Whether a reminder of this type may go out on this channel.
+     */
+    public function allowsChannel(?string $type, string $channel): bool
+    {
+        $preferences = $this->notifications();
+
+        return ($preferences[$channel] ?? false)
+            && ($type === null || ($preferences['types'][$type][$channel] ?? true));
     }
 
     /**

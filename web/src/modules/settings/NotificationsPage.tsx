@@ -9,12 +9,20 @@ import { pl } from '@/i18n/pl'
 import { api } from '@/lib/api'
 import { errorMessage } from '@/lib/form-errors'
 import { disablePush, enablePush, getPushState, type PushState } from '@/lib/push'
+import { notificationTypes, type NotificationType } from '@/modules/notificationTypes'
 
 interface NotificationSettings {
   push: boolean
   email: boolean
   quiet_hours: { start: string; end: string } | null
   digest: { enabled: boolean; time: string }
+  /** Missing while the server is older than this app. */
+  types?: Record<string, TypeChannels>
+}
+
+interface TypeChannels {
+  push: boolean
+  email: boolean
 }
 
 const DEFAULT_QUIET_HOURS = { start: '22:00', end: '07:00' }
@@ -71,6 +79,47 @@ function TimeField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
+    </div>
+  )
+}
+
+function TypeRow({
+  type,
+  channels,
+  emailDisabled,
+  onChange,
+}: {
+  type: NotificationType
+  channels: TypeChannels
+  emailDisabled: boolean
+  onChange: (channels: TypeChannels) => void
+}) {
+  const Icon = type.icon
+
+  return (
+    <div className="rounded-lg bg-card p-4 text-card-foreground">
+      <p className="flex items-center gap-2 text-sm font-medium">
+        <Icon aria-hidden className="size-4 text-muted-foreground" />
+        {type.label}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3">
+        {(['push', 'email'] as const).map((channel) => {
+          const id = `type-${type.id}-${channel}`
+          return (
+            <div key={channel} className="flex items-center gap-2">
+              <Switch
+                id={id}
+                checked={channels[channel]}
+                disabled={channel === 'email' && emailDisabled}
+                onCheckedChange={(on) => onChange({ ...channels, [channel]: on })}
+              />
+              <Label htmlFor={id}>
+                {channel === 'push' ? pl.notifications.typePush : pl.notifications.typeEmail}
+              </Label>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -190,6 +239,31 @@ export function NotificationsPage() {
               onChange={(time) => update({ digest: { ...settings.digest, time } })}
             />
           </SwitchRow>
+
+          {settings.types && (
+            <section className="mt-6 flex flex-col gap-2">
+              <div>
+                <h2 className="text-sm font-semibold">{pl.notifications.byType}</h2>
+                <p className="mt-1 text-xs text-muted-foreground">{pl.notifications.byTypeHint}</p>
+              </div>
+              {notificationTypes.map((type) => {
+                const channels = settings.types?.[type.id]
+                return (
+                  channels && (
+                    <TypeRow
+                      key={type.id}
+                      type={type}
+                      channels={channels}
+                      emailDisabled={!settings.email}
+                      onChange={(changed) =>
+                        update({ types: { ...settings.types, [type.id]: changed } })
+                      }
+                    />
+                  )
+                )
+              })}
+            </section>
+          )}
 
           <Button className="mt-2" disabled={busy} onClick={() => void save(settings)}>
             {pl.notifications.save}

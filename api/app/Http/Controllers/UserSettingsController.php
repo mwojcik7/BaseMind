@@ -25,6 +25,11 @@ class UserSettingsController
             'notifications.quiet_hours.end' => ['required_with:notifications.quiet_hours', 'date_format:H:i'],
             'notifications.digest.enabled' => ['required_with:notifications', 'boolean'],
             'notifications.digest.time' => ['required_with:notifications', 'date_format:H:i'],
+            // Optional, so an older version of the app saving its form doesn't erase them.
+            'notifications.types' => ['sometimes', 'array:'.implode(',', array_keys(config('notifications.types')))],
+            'notifications.types.*' => ['array:push,email'],
+            'notifications.types.*.push' => ['required', 'boolean'],
+            'notifications.types.*.email' => ['required', 'boolean'],
             // Widget ids are not checked against a list: the registry lives in the app, and
             // devices may run different versions of it.
             'dashboard' => ['sometimes', 'array:order,hidden'],
@@ -35,6 +40,14 @@ class UserSettingsController
         ]);
 
         $settings = $request->user()->settings;
+
+        if (isset($data['notifications'])) {
+            $data['notifications']['types'] = [
+                ...$settings->settings['notifications']['types'] ?? [],
+                ...$data['notifications']['types'] ?? [],
+            ];
+        }
+
         $settings->update(['settings' => [...$settings->settings, ...$data]]);
 
         return response()->noContent();

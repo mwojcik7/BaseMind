@@ -44,17 +44,17 @@ class ReminderDispatcher
             }
 
             $user = $reminder->creator;
-            $preferences = $user->settings->notifications();
+            $settings = $user->settings;
 
             // Stays due, so it goes out as soon as the quiet hours end.
-            if ($this->isQuietTime($preferences['quiet_hours'], $user, $now)) {
+            if ($this->isQuietTime($settings->notifications()['quiet_hours'], $user, $now)) {
                 return false;
             }
 
             $this->sync->recordServerChange($reminder, $this->stateAfterFiring($reminder, $user, $now));
 
             foreach ($reminder->channels as $channel) {
-                if ($preferences[$channel] ?? false) {
+                if ($settings->allowsChannel($reminder->entity_type, $channel)) {
                     SendReminder::dispatch($reminder->id, $channel)->afterCommit();
                 }
             }
