@@ -42,12 +42,12 @@ describe('task reminders', () => {
     const task = { due_date: '2026-11-12', due_time: '14:30' }
 
     expect(reminderMoment(task, 30)).toEqual(new Date(2026, 10, 12, 14, 0))
-    expect(reminderMoment(task, 1440)).toEqual(new Date(2026, 10, 11, 14, 30))
+    expect(reminderMoment(task, 1440)).toEqual(new Date(2026, 10, 11, 7, 0))
   })
 
   it('uses the morning for a task without a time', () => {
     expect(reminderMoment({ due_date: '2026-11-12', due_time: null }, 0)).toEqual(
-      new Date(2026, 10, 12, 9, 0),
+      new Date(2026, 10, 12, 7, 0),
     )
   })
 
@@ -60,7 +60,7 @@ describe('task reminders', () => {
       title: 'Zadzwonić',
       offset_minutes: 60,
       status: 'scheduled',
-      remind_at: reminderMoment(task, 60).toISOString(),
+      remind_at: reminderMoment({ due_date: tomorrow, due_time: task.due_time }, 60).toISOString(),
     })
   })
 

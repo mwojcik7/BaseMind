@@ -60,6 +60,16 @@ class Reminder extends Model implements SyncableModel
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /** Where tapping the notification opens the app: the thing it is about, if it has a screen. */
+    public function appPath(): string
+    {
+        $path = config('notifications.paths.'.$this->entity_type);
+
+        return is_string($path) && $this->entity_id !== null
+            ? str_replace('{id}', rawurlencode($this->entity_id), $path)
+            : '/';
+    }
+
     /**
      * @param  Builder<static>  $query
      */

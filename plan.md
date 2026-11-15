@@ -58,6 +58,7 @@
 
 **Dług techniczny**
 - Playwright: zostały scenariusze do dopisania: błędny i poprawny kod zaproszenia; reset hasła z linku w mailu (serwer e2e ma `MAIL_MAILER=log`, więc mail trafia do wspólnego `api/storage/logs/laravel.log`; rozważyć osobny plik logu dla e2e); motyw przed pierwszym renderem; ściąganie arkusza i przesuwanie wiersza. Kolejne dokładać przy modułach.
+- Niestabilny test e2e `trash.spec.ts` › „a list can be removed for good and the trash emptied”: raz nie przeszedł 2026-11-15, potem 4 razy z rzędu OK; obserwować.
 - Larastan na poziomie 5: podnieść poziom, gdy będzie okazja (np. przy Etapie 7).
 - Reguły `.htaccess` w trybie awaryjnym (docroot = cały `api/`) po dodaniu PWA nie zostały sprawdzone (punkt w 0.3).
 - `pnpm audit` zgłasza 3 luki tylko w narzędziach deweloperskich (`glob`, `minimatch`, `deepmerge`): 2 umiarkowane, 1 niską; w paczkach produkcyjnych brak. Sprawdzać przy aktualizacjach.
@@ -74,7 +75,7 @@
 - Przy każdym module (lista kontrolna): sekcja w `config/digest.php` (jeśli dotyczy); typ w kanałach powiadomień (`api/config/notifications.php` + `web/src/modules/notificationTypes.ts`); wpis w koszu (`web/src/modules/trashRegistry.ts`, a na serwerze zależności w `App\Services\Trash::purge`, jeśli moduł ma rekordy podrzędne); wpis w arkuszu [+] (`quickAddRegistry.ts`); wyszukiwanie; widżet dashboardu.
 - Przyciski na powiadomieniu bez internetu nie działają: odpowiedź przepada, przypomnienie zostaje bez odpowiedzi.
 - Ekran z listą przypomnień nie istnieje: tworzy się je przy zadaniach (arkusz [+], edycja) i testowo z `/design`.
-- Dotknięcie powiadomienia o zadaniu otwiera aplikację na ekranie głównym (`'url' => '/'` w `SendReminder`), a nie samo zadanie: do rozważenia (np. razem z przypomnieniami wydarzeń w 2.2). (Przycisk „Zrobione” przy otwartych podzadaniach już otwiera samo zadanie przez `openAppAt` w `web/src/sw.ts` — można to wykorzystać.)
+- Dotknięcie powiadomienia o zadaniu otwiera już samo zadanie (2026-11-15): sprawdzić na telefonie.
 - Cykliczność: nowa seria z arkusza [+] ma przypomnienie w chwili terminu tylko, gdy wpisano „przypomnij”; termin „do dnia” (`UNTIL`) w parserze nie jest rozpoznawany (tylko w edytorze). Ręczna zmiana terminu w edytorze zmienia też wzorzec (`repeat_anchor`), a „na jutro” nie.
 - Treść powiadomienia (wariant B, odłożony przez użytkownika 2026-11-15): dziś push ma sam tytuł (stały dopisek „Przypomnienie z BaseMind” usunięty). Później: w treści coś przydatnego, np. termin i lista („Dziś 18:00 · Sport”), dla „X dni przed” „Termin: pt 18:00” (serwer musi odczytać encję i sformatować datę w strefie użytkownika; każdy moduł podaje własny opis).
 - Poranne podsumowanie pokazuje podzadania samym tytułem, bez nazwy rodzica (w aplikacji jest „podzadanie · rodzic”). Do rozważenia.
@@ -320,14 +321,14 @@ Zrobione razem z 2.1 (decyzja użytkownika).
 - [ ] Encja `events` (+ sync): tytuł 🔐, miejsce 🔐, notatka 🔐 (Markdown z podglądem), cały dzień / godziny (domyślnie 1 godz.), wielodniowe, kolor z palety ok. 8 kolorów (nie dowolny), `rrule`.
 - [ ] Cykliczność: ten sam edytor `RepeatField`; wszystkie wystąpienia wyliczane z reguły w strefie użytkownika (godzina stała przy zmianie czasu); w części 1 zmiana całej serii albo pominięcie jednego wystąpienia.
 - [ ] Przypomnienia: w chwili rozpoczęcia, 15 min, 30 min, 1 godz., 1 dzień przed; **domyślnie 1 dzień przed**; „1 dzień przed” zawsze dzień wcześniej **o 7:00** (także dla wydarzeń z godziną); całodniowe liczone od 7:00; przed każdym wystąpieniem serii (serwer po wysłaniu wylicza następne).
-- [ ] Zadania: przypomnienia bez godziny liczone od **7:00** zamiast 9:00; „1 dzień przed” też dzień wcześniej o 7:00 (spójnie z wydarzeniami).
+- [x] Zadania: przypomnienia bez godziny liczone od **7:00** zamiast 9:00; „1 dzień przed” też dzień wcześniej o 7:00 (spójnie z wydarzeniami). Wspólna reguła `reminder-moment.ts` / `App\Support\ReminderMoment` z przypadkami w `web/src/lib/reminder-moment.cases.json`; etykieta „Dzień wcześniej, 7:00”. Zaplanowanych przypomnień nie trzeba było przeliczać (jedyne nie podlegało zmianie).
 - [ ] Widoki: Agenda (domyślny na telefonie, dzień po dniu, w przód i w tył) i Miesiąc (siatka z kropkami, lista dnia pod spodem); przycisk „Dziś”, przesuwanie palcem.
 - [ ] Rejestr „dostawców dat” z warstwami do włączania (wybór zapisany w `user_settings`): Wydarzenia; Zadania z terminem (domyślnie włączone; odhaczanie z „Cofnij”, dotknięcie otwiera zadanie; zaległe w swoim dniu oraz dziś w sekcji „Zaległe” na górze; zrobione domyślnie ukryte, przełącznik „Pokazuj zrobione zadania” w ustawieniach kalendarza); Polskie święta ustawowe (wyliczane w aplikacji, z Wielkanocą i Wigilią od 2025).
 - [ ] Widżet „Wydarzenia” na „Dziś”: dziś i jutro (identyfikator `events` zostaje).
 - [ ] Sekcja „Wydarzenia dziś” w porannym podsumowaniu.
 - [ ] Arkusz [+]: zakładka „Wydarzenie” z parserem (`jutro 18:00 dentysta`, `w piątek 10-12 …`, `co wtorek 18:00 …`, `przypomnij …`).
 - [ ] Wyszukiwanie, kosz, typ „Wydarzenia” w kanałach powiadomień (domyślnie tylko telefon).
-- [ ] Dotknięcie powiadomienia otwiera samo wydarzenie; **to samo dla zadań** (dziś otwiera ekran główny).
+- [~] Dotknięcie powiadomienia otwiera samo wydarzenie; **to samo dla zadań** — zadania zrobione (adresy w `config/notifications.php`, sekcja `paths`; otwarta aplikacja przechodzi do zadania), niesprawdzone na telefonie; wydarzenia dopisać przy encji.
 
 **Część 2**
 - [ ] Widoki Dzień i Tydzień z osią godzin.

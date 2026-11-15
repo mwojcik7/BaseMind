@@ -448,10 +448,30 @@ class RemindersTest extends TestCase
             && $payload['title'] === 'Przegląd auta'
             && $payload['reminder_id'] === $reminder->id
             && $payload['badge'] === 1
+            // Not tied to anything: tapping it just opens the app.
+            && $payload['url'] === '/'
             // The title says it all: Android already shows the app's name above it.
             && ! array_key_exists('body', $payload));
 
         (new SendReminder($reminder->id, 'push'))->handle($push);
+    }
+
+    public function test_tapping_a_reminder_about_a_task_opens_that_task(): void
+    {
+        $taskId = (string) Str::uuid7();
+        $reminder = $this->reminder(['entity_type' => 'tasks', 'entity_id' => $taskId]);
+        $this->run_at('2026-11-09 10:00:00');
+        $push = Mockery::mock(WebPushService::class);
+        $push->shouldReceive('send')->once()->withArgs(fn ($user, $payload) => $payload['url'] === '/tasks/'.$taskId);
+
+        (new SendReminder($reminder->id, 'push'))->handle($push);
+    }
+
+    public function test_a_reminder_of_a_type_without_a_screen_opens_the_app(): void
+    {
+        $reminder = (new Reminder)->forceFill(['entity_type' => 'tags', 'entity_id' => (string) Str::uuid7()]);
+
+        $this->assertSame('/', $reminder->appPath());
     }
 
     public function test_a_job_for_a_reminder_that_is_gone_does_nothing(): void

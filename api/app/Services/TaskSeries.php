@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Reminder;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\ReminderMoment;
 use Carbon\CarbonImmutable;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -18,9 +19,6 @@ use RRule\RRule;
  */
 class TaskSeries
 {
-    /** A task with a date but no time is reminded about at this hour (as in the app). */
-    private const DEFAULT_REMINDER_TIME = '09:00';
-
     public function __construct(private readonly SyncService $sync) {}
 
     /**
@@ -140,10 +138,12 @@ class TaskSeries
             return;
         }
 
-        $moment = CarbonImmutable::parse(
-            $task->due_date->format('Y-m-d').' '.($task->due_time ?? self::DEFAULT_REMINDER_TIME),
+        $moment = ReminderMoment::for(
+            $task->due_date->format('Y-m-d'),
+            $task->due_time,
+            $reminder->offset_minutes,
             $user->timezone,
-        )->subMinutes($reminder->offset_minutes)->utc();
+        );
 
         $this->sync->recordServerChange($reminder, [
             'remind_at' => $moment,

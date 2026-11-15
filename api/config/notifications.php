@@ -13,4 +13,13 @@ return [
         'tasks' => ['push' => true, 'email' => false],
     ],
 
+    /*
+    | Where tapping a reminder's notification opens the app, keyed by the
+    | reminder's entity_type; {id} is the entity's id. Reminders of a type not
+    | listed here (or not tied to anything) open the home screen.
+    */
+    'paths' => [
+        'tasks' => '/tasks/{id}',
+    ],
+
 ];

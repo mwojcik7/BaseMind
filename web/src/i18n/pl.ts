@@ -213,7 +213,7 @@ export const pl = {
       0: 'W chwili terminu',
       30: '30 min przed',
       60: '1 godz. przed',
-      1440: '1 dzień przed',
+      1440: 'Dzień wcześniej, 7:00',
     },
     list: 'Lista',
     save: 'Zapisz',

@@ -1,4 +1,5 @@
 import { reminders } from '@/db/reminders'
+import { reminderMoment as momentFor } from '@/lib/reminder-moment'
 import type { Task } from '@/modules/tasks/repo'
 
 /** Minutes before the due moment; null means no reminder. */
@@ -6,12 +7,11 @@ export type ReminderOffset = number | null
 
 export const REMINDER_OFFSETS: readonly number[] = [0, 30, 60, 1440]
 
-// A task with a date but no time still needs a moment to remind at.
-const DEFAULT_REMINDER_TIME = '09:00'
-
-export function reminderMoment(task: Pick<Task, 'due_date' | 'due_time'>, offset: number) {
-  const due = new Date(`${task.due_date}T${task.due_time ?? DEFAULT_REMINDER_TIME}:00`)
-  return new Date(due.getTime() - offset * 60_000)
+export function reminderMoment(
+  task: { due_date: string; due_time: string | null },
+  offset: number,
+) {
+  return momentFor(task.due_date, task.due_time, offset)
 }
 
 export async function findTaskReminder(taskId: string) {
@@ -31,7 +31,7 @@ export async function setTaskReminder(task: Task, offset: ReminderOffset) {
     return
   }
 
-  const moment = reminderMoment(task, offset)
+  const moment = reminderMoment({ due_date: task.due_date, due_time: task.due_time }, offset)
   const fields = {
     title: task.title,
     remind_at: moment.toISOString(),

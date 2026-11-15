@@ -181,7 +181,8 @@ self.addEventListener('notificationclick', (event) => {
     Promise.all([
       // Offline, the answer is lost and the reminder simply stays unanswered in the app.
       answer.then(tellOpenAppsToSync).catch(() => {}),
-      event.action ? undefined : openApp(url ?? '/'),
+      // A reminder opens on the thing it is about; anything else just brings the app up.
+      event.action ? undefined : url && url !== '/' ? openAppAt(url) : openApp('/'),
     ]),
   )
 })
