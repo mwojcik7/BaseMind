@@ -755,6 +755,8 @@ php artisan schedule:work   # z katalogu api/
 - **Git Bash i `sed` gubią ukośniki odwrotne w przestrzeniach nazw PHP** (`App\Models\...` zamienia się w `AppModels...`). Do takich zamian używać narzędzia Edit albo PowerShell `[IO.File]::ReadAllText/WriteAllText` i sprawdzić wynik.
 - **Apache z XAMPP startuje u nas około 30 sekund.** Przy sprawdzaniu `/api/health` zaraz po starcie dać mu tyle czasu, zanim uzna się start za nieudany.
 - **Nie czyścić `api/public/` przy buildzie w całości** (są tam `index.php`, `.htaccess`) — tylko `web/scripts/clean-build.mjs` z jawną listą.
+- **`pnpm exec playwright test` (lub `pnpm e2e:only`) nie buduje aplikacji** — testuje ostatni build z `api/public/`. Po zmianach w `web/` uruchamiać `pnpm e2e` (build + testy), inaczej testy widzą starą wersję (2026-11-15: nowe testy kalendarza „nie widziały” ekranu, bo build był sprzed zmian). `pnpm e2e` przy okazji odświeża też aplikację serwowaną przez Apache na `:8080`.
+- **Ukryte pola wyboru (`sr-only`) w Playwright:** klikać widoczną etykietę (np. `getByTitle`), nie sam `radio` — jest poza widokiem i `check()` kończy się błędem.
 - **MariaDB nasłuchuje tylko na 127.0.0.1** — łączyć się przez `127.0.0.1`, nie `::1`/`localhost` z IPv6.
 - `max_allowed_packet=1M` w `my.ini` — może trzeba podnieść przy synchronizacji (Etap 1.4).
 - Na hostingu: zweryfikować wariant document root (najlepiej `api/public`; awaryjnie cały `api/` — przetestowany lokalnie, bezpieczny).
