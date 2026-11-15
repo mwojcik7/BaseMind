@@ -2,6 +2,7 @@
 
 use App\Models\EntityLink;
 use App\Models\EntityTag;
+use App\Models\Event;
 use App\Models\Reminder;
 use App\Models\Tag;
 use App\Models\Task;
@@ -21,6 +22,7 @@ return [
         'reminders' => Reminder::class,
         'task_lists' => TaskList::class,
         'tasks' => Task::class,
+        'events' => Event::class,
     ],
 
 ];

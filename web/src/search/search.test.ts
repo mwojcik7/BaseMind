@@ -137,6 +137,27 @@ describe('search sources', () => {
       text: '',
     })
   })
+
+  it('turn an event into a document, searching its place and description too', () => {
+    const events = searchSources.find((source) => source.entity === 'events')!
+    const event = {
+      id: 'e',
+      title: 'Dentysta',
+      location: 'Gabinet Uśmiech',
+      description: null,
+      start_date: '2026-11-20',
+      start_time: '18:00',
+    }
+
+    expect(toDocument(events, event as unknown as SyncedRecord)).toEqual({
+      id: 'events:e',
+      entity: 'events',
+      title: 'Dentysta',
+      subtitle: '20.11.2026 18:00',
+      href: '/calendar/events/e',
+      text: 'Gabinet Uśmiech',
+    })
+  })
 })
 
 describe('recent searches', () => {

@@ -38,6 +38,7 @@ export const SCHEMA_VERSIONS: SchemaVersion[] = [
   { reminders: 'id, status' },
   { task_lists: 'id', tasks: 'id, status, due_date, list_id' },
   { tasks: 'id, status, due_date, list_id, parent_id' },
+  { events: 'id, start_date, end_date' },
 ]
 
 export class LocalDatabase extends Dexie {

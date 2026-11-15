@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { pl } from '@/i18n/pl'
 import { useAuth, type Account } from '@/lib/auth'
+import { events } from '@/modules/calendar/repo'
 import { createTask, removableTasks, taskLists, type Task } from '@/modules/tasks/repo'
 import { daysLeft, trashSources } from '@/modules/trashRegistry'
 
@@ -55,6 +56,29 @@ describe('trash', () => {
     const [entry] = await source('task_lists').entries()
 
     expect(entry).toMatchObject({ id: list.id, title: 'Dom', detail: pl.trash.listTasks(1) })
+  })
+
+  it('shows a deleted event with when it was', async () => {
+    const event = await events.create({
+      title: 'Dentysta',
+      location: null,
+      description: null,
+      start_date: '2026-11-20',
+      start_time: '18:00',
+      end_date: '2026-11-20',
+      end_time: '19:00',
+      rrule: null,
+      exdates: null,
+      color: null,
+    })
+    await events.softDelete(event.id)
+
+    const [entry] = await source('events').entries()
+
+    expect(entry).toMatchObject({ id: event.id, title: 'Dentysta', detail: '20.11.2026 18:00' })
+
+    await source('events').restore(event.id)
+    expect(await source('events').entries()).toEqual([])
   })
 
   it('counts the days left until removal', () => {

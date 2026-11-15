@@ -1,6 +1,7 @@
 // Loaded inside the search worker: type-only imports, and nothing from React.
 import type { SyncedRecord } from '@/db/repository'
 import type { Tag } from '@/db/tags'
+import type { CalendarEvent } from '@/modules/calendar/repo'
 import type { Task } from '@/modules/tasks/repo'
 import type { SearchDocument } from '@/search/engine'
 
@@ -30,6 +31,14 @@ export const searchSources: readonly SearchSource[] = [
     text: (task) => task.notes ?? '',
     subtitle: (task) => task.due_date?.split('-').reverse().join('.') ?? null,
     href: (task) => `/tasks/${task.id}`,
+  }),
+  source<CalendarEvent>({
+    entity: 'events',
+    title: (event) => event.title,
+    text: (event) => [event.location, event.description].filter(Boolean).join('\n'),
+    subtitle: (event) =>
+      [event.start_date.split('-').reverse().join('.'), event.start_time].filter(Boolean).join(' '),
+    href: (event) => `/calendar/events/${event.id}`,
   }),
   source<Tag>({ entity: 'tags', title: (tag) => tag.name }),
 ]

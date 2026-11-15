@@ -75,6 +75,7 @@ export const pl = {
     subtask: (parent: string) => `Podzadanie · ${parent}`,
     withSubtasks: (count: number) =>
       `+${count} ${plural(count, 'podzadanie', 'podzadania', 'podzadań')}`,
+    event: 'Wydarzenie',
     list: 'Lista zadań',
     listTasks: (count: number) =>
       `${count} ${plural(count, 'zadanie', 'zadania', 'zadań')} w Skrzynce`,
@@ -315,6 +316,7 @@ export const pl = {
     removeRecent: (query: string) => `Usuń z ostatnich: ${query}`,
     groups: {
       tasks: 'Zadania',
+      events: 'Wydarzenia',
       tags: 'Tagi',
     },
   },
