@@ -99,6 +99,8 @@ export const pl = {
     save: 'Zapisz',
     saved: 'Zapisano ustawienia',
     done: 'Zrobione',
+    /** On a reminder about an event, which can't be done, only noted. */
+    ok: 'OK',
     snooze: 'Odłóż 1 h',
   },
   pwa: {

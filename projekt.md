@@ -285,7 +285,7 @@ Kluczowe cechy:
 - Stawki podatku i ZUS na każdy rok w konfiguracji serwera i klienta (obliczenia działają offline).
 
 **Kalendarz**
-- `events` — title 🔐, location 🔐, description 🔐 (Markdown), start_date, start_time, end_date, end_time (czas „na zegarze” użytkownika jak w zadaniach; bez godzin = całodniowe, `end_date` włącznie), rrule (bez `DTSTART`, seria od `start_date`; `COUNT` dozwolone), exdates (JSON: daty pominiętych wystąpień), color (`blue` | `teal` | `green` | `yellow` | `orange` | `red` | `pink` | `purple`; puste = akcent). Migracja `2026_11_15_220000_create_events_table`. Serwer sprawdza, że koniec nie wypada przed początkiem, tylko gdy obie daty przychodzą w tej samej zmianie (aplikacja zawsze wysyła daty i godziny razem).
+- `events` — title 🔐, location 🔐, description 🔐 (Markdown), start_date, start_time, end_date, end_time (czas „na zegarze” użytkownika jak w zadaniach; bez godzin = całodniowe, `end_date` włącznie), rrule (bez `DTSTART`, seria od `start_date`; `COUNT` dozwolone), exdates (JSON: daty pominiętych wystąpień), color (`blue` | `teal` | `green` | `yellow` | `orange` | `red` | `pink` | `purple`; puste = akcent). Migracja `2026_11_15_220000_create_events_table`. Serwer sprawdza, że koniec nie wypada przed początkiem, tylko gdy obie daty przychodzą w tej samej zmianie (synchronizacja wysyła tylko zmienione pola, a scalanie per pole i tak nie gwarantuje spójności); pilnuje tego formularz w aplikacji. Przypomnienie o wydarzeniu nie ma własnej reguły (`rrule` puste): wskazuje najbliższe wystąpienie, a po wysłaniu serwer wylicza następne z samego wydarzenia (`EventSeries`, z pominięciem `exdates`); wystąpienia i przypomnienia liczą `EventSeries` (serwer) i `modules/calendar/series.ts` (aplikacja) według wspólnych przypadków `series.cases.json`.
   - Wystąpienia serii wyliczane z `rrule` w strefie użytkownika (godzina stała przy zmianie czasu). Przypomnienia: domyślnie „1 dzień przed” = dzień wcześniej o 7:00 (także dla wydarzeń z godziną); całodniowe liczone od 7:00.
 - Widok łączy `events` + wirtualne zdarzenia z innych modułów (rejestr „dostawców dat”).
 
@@ -622,6 +622,7 @@ Hosting musi zapewniać:
 | 2026-11-15 | Przypomnienie o wydarzeniu domyślnie 1 dzień przed; „1 dzień przed” zawsze dzień wcześniej o 7:00 (wydarzenia i zadania, także z godziną); zadania bez godziny liczone od 7:00 zamiast 9:00 | Użytkownik |
 | 2026-11-15 | Dotknięcie powiadomienia otwiera samo wydarzenie lub zadanie (nie ekran główny) | Użytkownik |
 | 2026-11-15 | Wydarzenia przechowują daty i godziny „na zegarze” użytkownika (`start_date`, `start_time`, `end_date`, `end_time`) zamiast `start_at`/`end_at`/`all_day`, jak zadania: seria zachowuje godzinę przy zmianie czasu, a całodniowe = brak godzin; pominięte wystąpienia w `exdates`; kolor jako nazwa z palety 8 kolorów | Claude |
+| 2026-11-15 | Przypomnienie o wydarzeniu bez własnej reguły: wskazuje najbliższe wystąpienie, serwer po wysłaniu wylicza następne z wydarzenia (z pominiętymi wystąpieniami i `COUNT`); na powiadomieniu o wydarzeniu przycisk „OK” zamiast „Zrobione” (zamyka tylko to przypomnienie, seria idzie dalej) | Claude |
 
 ---
 

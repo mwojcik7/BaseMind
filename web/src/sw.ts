@@ -82,6 +82,8 @@ interface PushPayload {
   body?: string
   url?: string
   reminder_id?: string
+  /** What the reminder is about, e.g. 'tasks' or 'events'. */
+  entity_type?: string | null
   badge?: number
 }
 
@@ -103,7 +105,11 @@ self.addEventListener('push', (event) => {
     data: payload,
     actions: payload.reminder_id
       ? [
-          { action: 'done', title: pl.notifications.done },
+          // An event can't be done: the same button only notes the reminder.
+          {
+            action: 'done',
+            title: payload.entity_type === 'events' ? pl.notifications.ok : pl.notifications.done,
+          },
           { action: 'snooze', title: pl.notifications.snooze },
         ]
       : [],

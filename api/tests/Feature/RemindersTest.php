@@ -569,7 +569,10 @@ class RemindersTest extends TestCase
             'email' => true,
             'quiet_hours' => null,
             'digest' => ['enabled' => true, 'time' => '07:00'],
-            'types' => ['tasks' => ['push' => true, 'email' => false]],
+            'types' => [
+                'tasks' => ['push' => true, 'email' => false],
+                'events' => ['push' => true, 'email' => false],
+            ],
         ]]);
 
         $changed = [
@@ -577,7 +580,10 @@ class RemindersTest extends TestCase
             'email' => true,
             'quiet_hours' => ['start' => '22:00', 'end' => '07:00'],
             'digest' => ['enabled' => false, 'time' => '06:30'],
-            'types' => ['tasks' => ['push' => false, 'email' => true]],
+            'types' => [
+                'tasks' => ['push' => false, 'email' => true],
+                'events' => ['push' => true, 'email' => true],
+            ],
         ];
         $this->actingAs($this->user)->postJson('/api/settings', ['notifications' => $changed])->assertNoContent();
 
@@ -621,7 +627,11 @@ class RemindersTest extends TestCase
             'digest' => ['enabled' => true, 'time' => '07:00'],
         ]])->assertNoContent();
 
-        $this->assertSame($types, $this->user->refresh()->settings->notifications()['types']);
+        // Types added since then get their defaults.
+        $this->assertSame(
+            [...$types, 'events' => ['push' => true, 'email' => false]],
+            $this->user->refresh()->settings->notifications()['types'],
+        );
     }
 
     public function test_only_known_types_and_channels_are_accepted(): void

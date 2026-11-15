@@ -11,6 +11,7 @@ return [
     */
     'types' => [
         'tasks' => ['push' => true, 'email' => false],
+        'events' => ['push' => true, 'email' => false],
     ],
 
     /*
@@ -20,6 +21,7 @@ return [
     */
     'paths' => [
         'tasks' => '/tasks/{id}',
+        'events' => '/calendar/events/{id}',
     ],
 
 ];

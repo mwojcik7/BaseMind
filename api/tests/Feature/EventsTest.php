@@ -2,13 +2,19 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\SendReminder;
 use App\Models\Event;
 use App\Models\Reminder;
 use App\Models\User;
+use App\Services\ReminderDispatcher;
 use App\Services\Trash;
+use App\Services\WebPushService;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -176,29 +182,109 @@ class EventsTest extends TestCase
         ], 3)['status']);
     }
 
-    public function test_removing_an_event_for_good_removes_its_reminder(): void
+    /** A reminder as the app makes it: no rule of its own, pointing at the next occurrence. */
+    private function pushReminder(string $eventId, string $remindAt, int $offset): Reminder
     {
-        $event = $this->pushEvent();
-        $reminderId = (string) Str::uuid7();
+        $id = (string) Str::uuid7();
         $this->actingAs($this->user)->postJson('/api/sync/push', ['ops' => [[
             'op_id' => (string) Str::uuid7(),
             'entity' => 'reminders',
-            'record_id' => $reminderId,
+            'record_id' => $id,
             'op' => 'create',
             'payload' => [
-                'id' => $reminderId,
+                'id' => $id,
                 'space_id' => $this->user->spaces()->first()->id,
                 'entity_type' => 'events',
-                'entity_id' => $event['id'],
+                'entity_id' => $eventId,
                 'title' => 'Dentysta',
-                'remind_at' => '2026-11-19T06:00:00.000Z',
-                'offset_minutes' => 1440,
-                'channels' => ['push'],
+                'remind_at' => $remindAt,
+                'offset_minutes' => $offset,
+                'channels' => ['push', 'email'],
                 'status' => 'scheduled',
             ],
             'base_version' => 0,
             'client_ts' => '2026-11-16T09:00:00.000Z',
         ]]])->assertOk()->assertJsonPath('results.0.status', 'applied');
+
+        return Reminder::findOrFail($id);
+    }
+
+    private function runAt(string $utc): int
+    {
+        return app(ReminderDispatcher::class)->dispatchDue(CarbonImmutable::parse($utc, 'UTC'));
+    }
+
+    public function test_a_reminder_moves_on_to_the_next_occurrence_skipping_left_out_ones(): void
+    {
+        Queue::fake();
+        // Tuesdays at 18:00 in Warsaw (17:00 UTC in winter), reminded an hour before.
+        $event = $this->pushEvent([
+            'start_date' => '2026-11-17',
+            'end_date' => '2026-11-17',
+            'rrule' => 'FREQ=WEEKLY;BYDAY=TU',
+            'exdates' => ['2026-11-24'],
+        ]);
+        $reminder = $this->pushReminder($event['id'], '2026-11-17T16:00:00.000Z', 60);
+
+        $this->assertSame(1, $this->runAt('2026-11-17 16:00:00'));
+
+        $reminder->refresh();
+        $this->assertSame('scheduled', $reminder->status);
+        $this->assertSame('2026-12-01 16:00', $reminder->remind_at->utc()->format('Y-m-d H:i'));
+        // Events go to the phone only, unless the user says otherwise.
+        Queue::assertPushed(SendReminder::class, 1);
+        Queue::assertPushed(SendReminder::class, fn (SendReminder $job) => $job->channel === 'push');
+    }
+
+    public function test_a_reminder_about_a_single_event_or_a_deleted_one_ends_when_sent(): void
+    {
+        Queue::fake();
+        $single = $this->pushReminder($this->pushEvent()['id'], '2026-11-19T06:00:00.000Z', 1440);
+        $deleted = $this->pushEvent(['rrule' => 'FREQ=DAILY']);
+        $orphan = $this->pushReminder($deleted['id'], '2026-11-19T06:00:00.000Z', 1440);
+        $this->op('delete', $deleted['id'], baseVersion: 1);
+
+        $this->assertSame(2, $this->runAt('2026-11-19 06:00:00'));
+
+        $this->assertSame('sent', $single->refresh()->status);
+        $this->assertSame('sent', $orphan->refresh()->status);
+    }
+
+    public function test_noting_the_notification_keeps_a_series_going_and_ends_a_single_event(): void
+    {
+        Queue::fake();
+        $series = $this->pushReminder(
+            $this->pushEvent(['start_date' => '2026-11-17', 'end_date' => '2026-11-17', 'rrule' => 'FREQ=WEEKLY;BYDAY=TU'])['id'],
+            '2026-11-17T16:00:00.000Z',
+            60,
+        );
+        $single = $this->pushReminder($this->pushEvent(['start_date' => '2026-11-17', 'end_date' => '2026-11-17'])['id'], '2026-11-17T16:00:00.000Z', 60);
+        $this->runAt('2026-11-17 16:00:00');
+        $this->travelTo(CarbonImmutable::parse('2026-11-17 16:05:00', 'UTC'));
+
+        $this->actingAs($this->user)->postJson("/api/reminders/{$series->id}/dismiss", ['done' => true])->assertNoContent();
+        $this->actingAs($this->user)->postJson("/api/reminders/{$single->id}/dismiss", ['done' => true])->assertNoContent();
+
+        $this->assertSame('scheduled', $series->refresh()->status);
+        $this->assertSame('2026-11-24 16:00', $series->remind_at->utc()->format('Y-m-d H:i'));
+        $this->assertSame('dismissed', $single->refresh()->status);
+    }
+
+    public function test_the_notification_opens_the_event_and_says_what_it_is_about(): void
+    {
+        $event = $this->pushEvent();
+        $reminder = $this->pushReminder($event['id'], '2026-11-19T06:00:00.000Z', 1440);
+        $push = Mockery::mock(WebPushService::class);
+        $push->shouldReceive('send')->once()->withArgs(fn ($user, $payload) => $payload['url'] === '/calendar/events/'.$event['id']
+            && $payload['entity_type'] === 'events');
+
+        (new SendReminder($reminder->id, 'push'))->handle($push);
+    }
+
+    public function test_removing_an_event_for_good_removes_its_reminder(): void
+    {
+        $event = $this->pushEvent();
+        $reminderId = $this->pushReminder($event['id'], '2026-11-19T06:00:00.000Z', 1440)->id;
 
         $this->assertSame('applied', $this->op('delete', $event['id'], baseVersion: 1)['status']);
         DB::transaction(fn () => app(Trash::class)->purge(Event::withTrashed()->lockForUpdate()->findOrFail($event['id'])));

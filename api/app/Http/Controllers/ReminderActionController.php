@@ -35,8 +35,9 @@ class ReminderActionController
         }
 
         return $this->change($request, $reminder, [
-            // A repeating reminder keeps going; only this occurrence is dealt with.
-            'status' => $reminder->rrule === null ? 'dismissed' : 'scheduled',
+            // A repeating reminder keeps going; only this occurrence is dealt with. So does
+            // one that has already moved on to the next occurrence of its event.
+            'status' => $reminder->rrule !== null || $reminder->remind_at->isFuture() ? 'scheduled' : 'dismissed',
             'snoozed_until' => null,
         ], completeTask: $request->boolean('done'));
     }

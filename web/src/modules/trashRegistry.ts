@@ -2,7 +2,7 @@ import { parseISO } from 'date-fns'
 import { CalendarDays, CheckSquare, ListTodo, type LucideIcon } from 'lucide-react'
 import { db } from '@/db/db'
 import { pl } from '@/i18n/pl'
-import { events } from '@/modules/calendar/repo'
+import { events, removableEvents } from '@/modules/calendar/repo'
 import { removableTasks, taskLists, tasks, type Task } from '@/modules/tasks/repo'
 
 /** Days a deleted item stays in the trash; the server's config/trash.php says the same. */
@@ -105,8 +105,8 @@ const eventSource: TrashSource = {
         .join(' '),
       deletedAt: event.deleted_at!,
     })),
-  restore: events.restore,
-  purge: events.purge,
+  restore: removableEvents.restore,
+  purge: removableEvents.purge,
 }
 
 /** Everything that can be restored from the trash. A module adds one entry here. */

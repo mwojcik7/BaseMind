@@ -319,16 +319,16 @@ Zrobione razem z 2.1 (decyzja użytkownika).
 
 **Część 1**
 - [x] Encja `events` (+ sync; zrobione 2026-11-15, model w `projekt.md`, pkt 4; ekran edycji w osobnym punkcie): tytuł 🔐, miejsce 🔐, notatka 🔐 (Markdown z podglądem), cały dzień / godziny (domyślnie 1 godz.), wielodniowe, kolor z palety ok. 8 kolorów (nie dowolny), `rrule`.
-- [ ] Cykliczność: ten sam edytor `RepeatField`; wszystkie wystąpienia wyliczane z reguły w strefie użytkownika (godzina stała przy zmianie czasu); w części 1 zmiana całej serii albo pominięcie jednego wystąpienia.
-- [ ] Przypomnienia: w chwili rozpoczęcia, 15 min, 30 min, 1 godz., 1 dzień przed; **domyślnie 1 dzień przed**; „1 dzień przed” zawsze dzień wcześniej **o 7:00** (także dla wydarzeń z godziną); całodniowe liczone od 7:00; przed każdym wystąpieniem serii (serwer po wysłaniu wylicza następne).
+- [~] Cykliczność: ten sam edytor `RepeatField`; wszystkie wystąpienia wyliczane z reguły w strefie użytkownika (godzina stała przy zmianie czasu); w części 1 zmiana całej serii albo pominięcie jednego wystąpienia. Wyliczanie wystąpień zrobione (`series.ts` / `EventSeries`); edytor w ekranie wydarzenia.
+- [x] Przypomnienia: w chwili rozpoczęcia, 15 min, 30 min, 1 godz., 1 dzień przed; **domyślnie 1 dzień przed**; „1 dzień przed” zawsze dzień wcześniej **o 7:00** (także dla wydarzeń z godziną); całodniowe liczone od 7:00; przed każdym wystąpieniem serii (serwer po wysłaniu wylicza następne). Zrobione: przypomnienie bez własnej reguły, serwer po wysłaniu przechodzi do następnego wystąpienia; „Zrobione” na powiadomieniu o wydarzeniu nazywa się „OK” i tylko zamyka przypomnienie, seria idzie dalej.
 - [x] Zadania: przypomnienia bez godziny liczone od **7:00** zamiast 9:00; „1 dzień przed” też dzień wcześniej o 7:00 (spójnie z wydarzeniami). Wspólna reguła `reminder-moment.ts` / `App\Support\ReminderMoment` z przypadkami w `web/src/lib/reminder-moment.cases.json`; etykieta „Dzień wcześniej, 7:00”. Zaplanowanych przypomnień nie trzeba było przeliczać (jedyne nie podlegało zmianie).
 - [ ] Widoki: Agenda (domyślny na telefonie, dzień po dniu, w przód i w tył) i Miesiąc (siatka z kropkami, lista dnia pod spodem); przycisk „Dziś”, przesuwanie palcem.
 - [ ] Rejestr „dostawców dat” z warstwami do włączania (wybór zapisany w `user_settings`): Wydarzenia; Zadania z terminem (domyślnie włączone; odhaczanie z „Cofnij”, dotknięcie otwiera zadanie; zaległe w swoim dniu oraz dziś w sekcji „Zaległe” na górze; zrobione domyślnie ukryte, przełącznik „Pokazuj zrobione zadania” w ustawieniach kalendarza); Polskie święta ustawowe (wyliczane w aplikacji, z Wielkanocą i Wigilią od 2025).
 - [ ] Widżet „Wydarzenia” na „Dziś”: dziś i jutro (identyfikator `events` zostaje).
 - [ ] Sekcja „Wydarzenia dziś” w porannym podsumowaniu.
 - [ ] Arkusz [+]: zakładka „Wydarzenie” z parserem (`jutro 18:00 dentysta`, `w piątek 10-12 …`, `co wtorek 18:00 …`, `przypomnij …`).
-- [~] Wyszukiwanie i kosz zrobione (adres wyniku `/calendar/events/{id}` zacznie działać z ekranem wydarzenia); typ „Wydarzenia” w kanałach powiadomień (domyślnie tylko telefon).
-- [~] Dotknięcie powiadomienia otwiera samo wydarzenie; **to samo dla zadań** — zadania zrobione (adresy w `config/notifications.php`, sekcja `paths`; otwarta aplikacja przechodzi do zadania), niesprawdzone na telefonie; wydarzenia dopisać przy encji.
+- [x] Wyszukiwanie, kosz (z przypomnieniem idącym za wydarzeniem) i typ „Wydarzenia” w kanałach powiadomień (domyślnie tylko telefon). Adres wyniku `/calendar/events/{id}` zacznie działać z ekranem wydarzenia.
+- [~] Dotknięcie powiadomienia otwiera samo wydarzenie; **to samo dla zadań** — zadania zrobione (adresy w `config/notifications.php`, sekcja `paths`; otwarta aplikacja przechodzi do zadania), niesprawdzone na telefonie; wydarzenia: adres `/calendar/events/{id}` w `paths`, zadziała z ekranem wydarzenia.
 
 **Część 2**
 - [ ] Widoki Dzień i Tydzień z osią godzin.

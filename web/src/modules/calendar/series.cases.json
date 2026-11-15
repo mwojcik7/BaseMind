@@ -1,0 +1,253 @@
+{
+  "occurrences": [
+    {
+      "name": "a single event in the range",
+      "event": {
+        "start_date": "2026-11-20",
+        "end_date": "2026-11-20",
+        "rrule": null,
+        "exdates": null
+      },
+      "from": "2026-11-16",
+      "to": "2026-11-22",
+      "starts": ["2026-11-20"]
+    },
+    {
+      "name": "a single event before the range",
+      "event": {
+        "start_date": "2026-11-10",
+        "end_date": "2026-11-10",
+        "rrule": null,
+        "exdates": null
+      },
+      "from": "2026-11-16",
+      "to": "2026-11-22",
+      "starts": []
+    },
+    {
+      "name": "a trip that started before the range and is still going",
+      "event": {
+        "start_date": "2026-11-13",
+        "end_date": "2026-11-17",
+        "rrule": null,
+        "exdates": null
+      },
+      "from": "2026-11-16",
+      "to": "2026-11-22",
+      "starts": ["2026-11-13"]
+    },
+    {
+      "name": "a range of a single day",
+      "event": {
+        "start_date": "2026-11-20",
+        "end_date": "2026-11-20",
+        "rrule": null,
+        "exdates": null
+      },
+      "from": "2026-11-20",
+      "to": "2026-11-20",
+      "starts": ["2026-11-20"]
+    },
+    {
+      "name": "weekly, two weeks",
+      "event": {
+        "start_date": "2026-11-03",
+        "end_date": "2026-11-03",
+        "rrule": "FREQ=WEEKLY;BYDAY=TU",
+        "exdates": null
+      },
+      "from": "2026-11-16",
+      "to": "2026-11-29",
+      "starts": ["2026-11-17", "2026-11-24"]
+    },
+    {
+      "name": "weekly, with one skipped",
+      "event": {
+        "start_date": "2026-11-03",
+        "end_date": "2026-11-03",
+        "rrule": "FREQ=WEEKLY;BYDAY=TU",
+        "exdates": ["2026-11-17"]
+      },
+      "from": "2026-11-16",
+      "to": "2026-11-29",
+      "starts": ["2026-11-24"]
+    },
+    {
+      "name": "a series does not start before its first date",
+      "event": {
+        "start_date": "2026-11-24",
+        "end_date": "2026-11-24",
+        "rrule": "FREQ=WEEKLY;BYDAY=TU",
+        "exdates": null
+      },
+      "from": "2026-11-16",
+      "to": "2026-11-29",
+      "starts": ["2026-11-24"]
+    },
+    {
+      "name": "a count ends the series, skipped ones included",
+      "event": {
+        "start_date": "2026-11-16",
+        "end_date": "2026-11-16",
+        "rrule": "FREQ=DAILY;COUNT=3",
+        "exdates": ["2026-11-17"]
+      },
+      "from": "2026-11-16",
+      "to": "2026-11-30",
+      "starts": ["2026-11-16", "2026-11-18"]
+    },
+    {
+      "name": "until is the last possible day",
+      "event": {
+        "start_date": "2026-11-16",
+        "end_date": "2026-11-16",
+        "rrule": "FREQ=DAILY;UNTIL=20261118",
+        "exdates": null
+      },
+      "from": "2026-11-16",
+      "to": "2026-11-30",
+      "starts": ["2026-11-16", "2026-11-17", "2026-11-18"]
+    },
+    {
+      "name": "a weekend away every week, seen from Sunday",
+      "event": {
+        "start_date": "2026-11-06",
+        "end_date": "2026-11-08",
+        "rrule": "FREQ=WEEKLY;BYDAY=FR",
+        "exdates": null
+      },
+      "from": "2026-11-22",
+      "to": "2026-11-22",
+      "starts": ["2026-11-20"]
+    },
+    {
+      "name": "monthly on the last day",
+      "event": {
+        "start_date": "2026-10-31",
+        "end_date": "2026-10-31",
+        "rrule": "FREQ=MONTHLY;BYMONTHDAY=-1",
+        "exdates": null
+      },
+      "from": "2026-11-01",
+      "to": "2027-02-28",
+      "starts": ["2026-11-30", "2026-12-31", "2027-01-31", "2027-02-28"]
+    },
+    {
+      "name": "yearly birthday",
+      "event": {
+        "start_date": "2020-03-14",
+        "end_date": "2020-03-14",
+        "rrule": "FREQ=YEARLY",
+        "exdates": null
+      },
+      "from": "2026-01-01",
+      "to": "2026-12-31",
+      "starts": ["2026-03-14"]
+    }
+  ],
+  "reminders": [
+    {
+      "name": "a day before, in the morning",
+      "event": {
+        "start_date": "2026-11-20",
+        "start_time": "18:00",
+        "rrule": null,
+        "exdates": null
+      },
+      "offset": 1440,
+      "after": "2026-11-16 12:00",
+      "next": "2026-11-19 07:00"
+    },
+    {
+      "name": "the moment has passed",
+      "event": {
+        "start_date": "2026-11-20",
+        "start_time": "18:00",
+        "rrule": null,
+        "exdates": null
+      },
+      "offset": 1440,
+      "after": "2026-11-19 07:00",
+      "next": null
+    },
+    {
+      "name": "an all-day event, on the day",
+      "event": { "start_date": "2026-11-20", "start_time": null, "rrule": null, "exdates": null },
+      "offset": 0,
+      "after": "2026-11-16 12:00",
+      "next": "2026-11-20 07:00"
+    },
+    {
+      "name": "weekly, the next week once this one has gone out",
+      "event": {
+        "start_date": "2026-11-03",
+        "start_time": "18:00",
+        "rrule": "FREQ=WEEKLY;BYDAY=TU",
+        "exdates": null
+      },
+      "offset": 60,
+      "after": "2026-11-17 17:00",
+      "next": "2026-11-24 17:00"
+    },
+    {
+      "name": "weekly, later the same day",
+      "event": {
+        "start_date": "2026-11-03",
+        "start_time": "18:00",
+        "rrule": "FREQ=WEEKLY;BYDAY=TU",
+        "exdates": null
+      },
+      "offset": 60,
+      "after": "2026-11-17 09:00",
+      "next": "2026-11-17 17:00"
+    },
+    {
+      "name": "a day before today's occurrence is gone, so tomorrow's",
+      "event": {
+        "start_date": "2026-11-16",
+        "start_time": "18:00",
+        "rrule": "FREQ=DAILY",
+        "exdates": null
+      },
+      "offset": 1440,
+      "after": "2026-11-17 08:00",
+      "next": "2026-11-18 07:00"
+    },
+    {
+      "name": "a skipped occurrence is not reminded about",
+      "event": {
+        "start_date": "2026-11-03",
+        "start_time": "18:00",
+        "rrule": "FREQ=WEEKLY;BYDAY=TU",
+        "exdates": ["2026-11-24"]
+      },
+      "offset": 60,
+      "after": "2026-11-17 17:00",
+      "next": "2026-12-01 17:00"
+    },
+    {
+      "name": "the series has ended",
+      "event": {
+        "start_date": "2026-11-16",
+        "start_time": "18:00",
+        "rrule": "FREQ=DAILY;COUNT=2",
+        "exdates": null
+      },
+      "offset": 0,
+      "after": "2026-11-17 18:00",
+      "next": null
+    },
+    {
+      "name": "the hour stays across the clock change",
+      "event": {
+        "start_date": "2026-10-20",
+        "start_time": "18:00",
+        "rrule": "FREQ=WEEKLY;BYDAY=TU",
+        "exdates": null
+      },
+      "offset": 0,
+      "after": "2026-10-21 12:00",
+      "next": "2026-10-27 18:00"
+    }
+  ]
+}

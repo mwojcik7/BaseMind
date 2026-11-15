@@ -17,7 +17,10 @@ class ReminderDispatcher
 {
     private const BATCH_SIZE = 200;
 
-    public function __construct(private readonly SyncService $sync) {}
+    public function __construct(
+        private readonly SyncService $sync,
+        private readonly EventSeries $events,
+    ) {}
 
     /**
      * @return int How many reminders went out.
@@ -69,14 +72,25 @@ class ReminderDispatcher
     private function stateAfterFiring(Reminder $reminder, User $user, CarbonImmutable $now): array
     {
         $state = ['snoozed_until' => null, 'last_sent_at' => $now];
+        $followsEvent = $reminder->entity_type === 'events';
 
-        if ($reminder->rrule === null) {
+        if ($reminder->rrule === null && ! $followsEvent) {
             return [...$state, 'status' => 'sent'];
         }
 
         // A snooze ending: the regular schedule has already moved on and stays as it is.
         if ($reminder->remind_at->isAfter($now)) {
             return [...$state, 'status' => 'scheduled'];
+        }
+
+        // An event's reminder follows the event's own series (skipped dates included),
+        // so it carries no rule of its own.
+        if ($followsEvent) {
+            $next = $this->events->nextReminderFor($reminder, $now, $user->timezone);
+
+            return $next === null
+                ? [...$state, 'status' => 'sent']
+                : [...$state, 'status' => 'scheduled', 'remind_at' => $next];
         }
 
         $next = $this->nextFiring($reminder, $user->timezone, $now);

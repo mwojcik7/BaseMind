@@ -1,4 +1,4 @@
-import { CheckSquare, type LucideIcon } from 'lucide-react'
+import { CalendarDays, CheckSquare, type LucideIcon } from 'lucide-react'
 import { pl } from '@/i18n/pl'
 
 export interface NotificationType {
@@ -11,4 +11,5 @@ export interface NotificationType {
 /** Kinds of reminders with their own channel settings. A module adds one entry here. */
 export const notificationTypes: readonly NotificationType[] = [
   { id: 'tasks', label: pl.nav.tasks, icon: CheckSquare },
+  { id: 'events', label: pl.search.groups.events, icon: CalendarDays },
 ]
