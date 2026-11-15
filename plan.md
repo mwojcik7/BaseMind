@@ -21,15 +21,11 @@
 
 > 2026-11-15 rozstrzygnięte: test cykliczności na telefonie zaliczony, dwie decyzje Claude potwierdzone, zakres kanałów dla typu ustalony i zrobiony.
 
-**Na start następnej sesji (koniec sesji 2026-11-15 na prośbę użytkownika; wszystko wypchnięte, serwery zatrzymane)**
-1. Brak otwartych pytań z poprzednich sesji: wszystko z 2026-11-15 zostało potwierdzone na telefonie i zapisane w `projekt.md`, pkt 13.
-2. Następny krok: **kalendarz (2.2)**. Przed kodem przygotować propozycję i ustalić z użytkownikiem zakres, m.in.:
-   - widoki na start (Agenda jako domyślny na telefonie? Dzień / Tydzień / Miesiąc od razu czy później);
-   - wydarzenia: pola (tytuł 🔐, miejsce, notatka, cały dzień / godziny, kolor?), cykliczność (ten sam edytor co w zadaniach), przypomnienia (ten sam mechanizm, nowy typ w kanałach powiadomień);
-   - co z zadań pokazywać w kalendarzu (zadania z terminem jako warstwa do włączenia/wyłączenia);
-   - widżet „Wydarzenia” na ekranie „Dziś” (dziś zaślepka, identyfikator `events` zostaje), sekcja w porannym podsumowaniu, wpis w koszu i w arkuszu [+] (parser dat już jest);
-   - czy integracja z Google Calendar / ICS (raczej później).
-3. Przy okazji przypomnieć o sprawach z „Otwartych spraw” (np. test porannego podsumowania na żywo, otwieranie zadania z dotknięcia powiadomienia).
+> 2026-11-15 (druga sesja) rozstrzygnięte: zakres kalendarza (2.2) — opis w kroku 2.2, decyzje w `projekt.md`, pkt 13.
+
+**Na start następnej sesji**
+1. Brak otwartych pytań. Następny krok: **część 1 kalendarza (2.2)** — zaproponować kolejność pracy i zacząć po zgodzie użytkownika.
+2. Przy okazji przypomnieć o sprawach z „Otwartych spraw” (np. test porannego podsumowania na żywo).
 
 ---
 
@@ -43,7 +39,7 @@
 - **Telefon:** BaseMind jest zainstalowany jako aplikacja, powiadomienia są włączone.
 - **Klucz szyfrowania:** lokalny `SODIUM_KEY` (identyfikator `2ca17bb1`) jest w `api/.env`, a użytkownik ma jego kopię w menedżerze haseł. Są nim już zaszyfrowane tytuły przypomnień oraz tytuły i notatki zadań, więc utrata klucza oznacza ich utratę. Produkcja dostanie własny klucz.
 - **Klucze VAPID** są w `api/.env` (tylko lokalne). Nowe klucze odłączają wszystkie urządzenia od powiadomień; `basemind:vapid` nie nadpisuje istniejących.
-- **Czeka na użytkownika:** ustalenie zakresu kalendarza (2.2).
+- **Czeka na użytkownika:** zgoda na kolejność pracy w części 1 kalendarza (2.2; zakres ustalony 2026-11-15).
 - **Uwaga:** ta sama instalacja MariaDB trzyma bazy innego projektu użytkownika (np. `syslead_test`). Nie używać `migrate:fresh` na bazie `basemind` ani poleceń obejmujących cały serwer; testy PHPUnit działają na `basemind_test`, testy e2e na `basemind_e2e` (czyszczona przy każdym uruchomieniu, ze sprawdzeniem nazwy bazy).
 - **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. Przed uruchomieniem sprawdzić, czy już nie działają. W chwili zakończenia sesji są zatrzymane, harmonogram też. Polecenia (każde jako proces w tle): `C:\xampp\mysql\bin\mysqld.exe --defaults-file=C:\xampp\mysql\bin\my.ini --standalone`, `C:\xampp\apache\bin\httpd.exe`, harmonogram z katalogu `api/` z ustawionym `OPENSSL_CONF` (`projekt.md`, pkt 14, 7c). Zatrzymanie MariaDB: `mysqladmin --protocol=tcp -h 127.0.0.1 -u root shutdown`, Apache: zakończyć procesy `httpd`.
 
@@ -52,7 +48,7 @@
 2. Sprawdzić stan: `git status`, `git log --oneline -5`, `composer audit` w `api/` (nowe poprawki bezpieczeństwa pojawiają się często; Symfony miało je już 2026-11-04) i `pnpm audit --prod` w `web/`.
 3. Uruchomić Apache i MariaDB (panel XAMPP lub poleceniami; Apache startuje do ok. 30 s; ma zostać `ThreadsPerChild 1`, `projekt.md`, pkt 14, 4a). Sprawdzić `http://localhost:8080/api/health`, testy `cd api && php artisan test` i `composer analyse` (Larastan) oraz `cd web && pnpm test` i `pnpm e2e` (Playwright: buduje aplikację i uruchamia własny serwer na porcie 8091; Apache niepotrzebny, MariaDB tak). Do testów powiadomień na żywo uruchomić też harmonogram z ustawionym `OPENSSL_CONF` (`projekt.md`, pkt 14).
 4. Powiedzieć użytkownikowi, na czym skończyliśmy, i **zadać „Pytania na start”** (na górze pliku). Przy okazji przypomnieć o sprawach z listy „Otwarte sprawy” poniżej.
-5. **Kalendarz (2.2):** przed kodem ustalić z użytkownikiem zakres. Do testów powiadomień na żywo uruchomić harmonogram (bez niego przypomnienia nie wychodzą). Na stronie `/design` są prawdziwe tagi i przycisk „Przypomnij za minutę” do testów na żywo.
+5. **Kalendarz (2.2):** zakres ustalony (opis w kroku 2.2); przed kodem zaproponować kolejność pracy w części 1. Do testów powiadomień na żywo uruchomić harmonogram (bez niego przypomnienia nie wychodzą). Na stronie `/design` są prawdziwe tagi i przycisk „Przypomnij za minutę” do testów na żywo.
 6. **Test na telefonie przez USB** (instrukcja w `README.md`): do sprawdzania PWA używać builda, czyli port `8080 → localhost:8080` i na telefonie `http://localhost:8080`. Telefon użytkownika: Samsung S25 Ultra, debugowanie USB już włączone. Jeśli logowanie zgłasza brak połączenia, najpierw sprawdzić `http://localhost:8080/api/health` na telefonie (`projekt.md`, pkt 15). Do testu offline odłączyć kabel: tryb samolotowy nie przerywa przekierowania portu przez USB.
 7. Po sesji: zaktualizować ten plik („Stan bieżący”, checklisty, „Dziennik zmian”) i rejestr decyzji w `projekt.md`, a po zgodzie zrobić commit i `git push`.
 
@@ -318,12 +314,31 @@ Zrobione razem z 2.1 (decyzja użytkownika).
 - [ ] Sortowanie przeciąganiem (odłożone, decyzja użytkownika 2026-11-14; nie w części 2). Do tego czasu podzadania w kolejności dodania.
 
 ### 2.2 Kalendarz
-- [ ] Encja `events` (rrule, przypomnienia).
-- [ ] Widoki: Agenda (domyślny mobile), Dzień, Tydzień, Miesiąc.
-- [ ] Agregator „dostawców dat” z filtrem warstw (zadania; kolejne moduły dopisują się później).
-- [ ] Polskie święta ustawowe.
-- [ ] Widżet dashboardu: dziś i jutro.
-- [ ] (Później, 🔒) eksport iCal.
+> Zakres ustalony z użytkownikiem 2026-11-15 (decyzje w `projekt.md`, pkt 13). Dwie części, jak przy zadaniach.
+
+**Część 1**
+- [ ] Encja `events` (+ sync): tytuł 🔐, miejsce 🔐, notatka 🔐 (Markdown z podglądem), cały dzień / godziny (domyślnie 1 godz.), wielodniowe, kolor z palety ok. 8 kolorów (nie dowolny), `rrule`.
+- [ ] Cykliczność: ten sam edytor `RepeatField`; wszystkie wystąpienia wyliczane z reguły w strefie użytkownika (godzina stała przy zmianie czasu); w części 1 zmiana całej serii albo pominięcie jednego wystąpienia.
+- [ ] Przypomnienia: w chwili rozpoczęcia, 15 min, 30 min, 1 godz., 1 dzień przed; **domyślnie 1 dzień przed**; „1 dzień przed” zawsze dzień wcześniej **o 7:00** (także dla wydarzeń z godziną); całodniowe liczone od 7:00; przed każdym wystąpieniem serii (serwer po wysłaniu wylicza następne).
+- [ ] Zadania: przypomnienia bez godziny liczone od **7:00** zamiast 9:00; „1 dzień przed” też dzień wcześniej o 7:00 (spójnie z wydarzeniami).
+- [ ] Widoki: Agenda (domyślny na telefonie, dzień po dniu, w przód i w tył) i Miesiąc (siatka z kropkami, lista dnia pod spodem); przycisk „Dziś”, przesuwanie palcem.
+- [ ] Rejestr „dostawców dat” z warstwami do włączania (wybór zapisany w `user_settings`): Wydarzenia; Zadania z terminem (domyślnie włączone; odhaczanie z „Cofnij”, dotknięcie otwiera zadanie; zaległe w swoim dniu oraz dziś w sekcji „Zaległe” na górze; zrobione domyślnie ukryte, przełącznik „Pokazuj zrobione zadania” w ustawieniach kalendarza); Polskie święta ustawowe (wyliczane w aplikacji, z Wielkanocą i Wigilią od 2025).
+- [ ] Widżet „Wydarzenia” na „Dziś”: dziś i jutro (identyfikator `events` zostaje).
+- [ ] Sekcja „Wydarzenia dziś” w porannym podsumowaniu.
+- [ ] Arkusz [+]: zakładka „Wydarzenie” z parserem (`jutro 18:00 dentysta`, `w piątek 10-12 …`, `co wtorek 18:00 …`, `przypomnij …`).
+- [ ] Wyszukiwanie, kosz, typ „Wydarzenia” w kanałach powiadomień (domyślnie tylko telefon).
+- [ ] Dotknięcie powiadomienia otwiera samo wydarzenie; **to samo dla zadań** (dziś otwiera ekran główny).
+
+**Część 2**
+- [ ] Widoki Dzień i Tydzień z osią godzin.
+- [ ] Zmiana jednego wystąpienia serii: „tylko to”, „to i następne”, „wszystkie”.
+- [ ] Przeciąganie wydarzeń na inną godzinę lub dzień.
+- [ ] Duplikowanie wydarzenia.
+
+**Później (🔒, osobne decyzje)**
+- [ ] Eksport iCal (subskrybowany link) / import `.ics`.
+- [-] Dwustronna synchronizacja z Google Calendar — raczej nie (koszt, konflikt z szyfrowaniem).
+- [-] Zaproszenia i uczestnicy — nie; wspólne wydarzenia przez przestrzenie współdzielone.
 
 ### 2.3 Notatki Markdown z backlinkami
 - [ ] Encje `notes` (content 🔐, kolumna `MEDIUMTEXT`, bo szyfrogram jest o ok. 1/3 dłuższy), `note_folders`.
@@ -531,3 +546,4 @@ Kontekst: użytkownik po etacie jest trenerem piłki nożnej w klubie, na umowie
 | 2026-11-15 | Test cykliczności na telefonie zaliczony; dwie decyzje Claude potwierdzone. Powiadomienie push bez stałej treści „Przypomnienie z BaseMind” (sam tytuł; mail z samym tytułem w treści); wariant z terminem i listą zapisany w „Otwartych sprawach”. Kanały powiadomień dla typu: `config/notifications.php`, `UserSettings::allowsChannel`, walidacja typów, zapis bez `types` zachowuje typy; w aplikacji rejestr `notificationTypes.ts` i sekcja „Według typu”; zadania domyślnie tylko telefon. Potwierdzone na telefonie. Testy: api 297 OK, web 413 OK, e2e 13 OK; Larastan, Pint, ESLint, `tsc` czyste. Commit i push za zgodą użytkownika. Część 2 zadań zamknięta. | Kosz (1.12) — po ustaleniu szczegółów z użytkownikiem. |
 | 2026-11-15 | Kosz (1.12) według propozycji zaakceptowanej przez użytkownika: migracja `add_trash_support` (wykonana na `basemind`, tylko dodanie kolumny i tabeli), operacja `purge`, serwis `Trash`, codzienne czyszczenie po 30 dniach, informacje o usunięciu przez rok z pełnym pobraniem dla starszych urządzeń; w aplikacji ekran „Kosz”, rejestr źródeł, `deleted_with_parent` zamiast listy w pamięci, listy zostawiają zadaniom `list_id`. Po uwagach użytkownika: kosz tylko w „Więcej” (nie w Ustawieniach); w arkuszu [+] pole „Lista” (domyślnie otwarta lista, `#lista` w tekście, wybór ręczny wygrywa), ten sam komponent w oknie zadania. Testy e2e trafiały na limit 30 logowań/min z jednego adresu: limity konfigurowalne (`config/basemind.php`), podniesione tylko na serwerze e2e. Potwierdzone na telefonie. Testy: api 308 OK, web 428 OK, e2e 16 OK; Larastan, Pint, ESLint, Prettier, `tsc` czyste. Commit i push za zgodą użytkownika. | Kalendarz (2.2) — po ustaleniu zakresu z użytkownikiem. |
 | 2026-11-15 | Koniec sesji na prośbę użytkownika: dokumentacja przygotowana do wznowienia (pytania o zakres kalendarza w „Pytaniach na start”, lista kontrolna dla nowych modułów w „Otwartych sprawach”), push za zgodą użytkownika. MariaDB, Apache i harmonogram zatrzymane. | Kalendarz (2.2) — najpierw propozycja zakresu i decyzje użytkownika. |
+| 2026-11-15 | Sesja bez kodu: propozycja kalendarza (2.2) zaakceptowana z uwagami użytkownika. Dwie części (1: wydarzenia, Agenda + Miesiąc, warstwy zadań i świąt, przypomnienia, widżet, podsumowanie, arkusz [+]; 2: Dzień/Tydzień, zmiana pojedynczych wystąpień, przeciąganie, duplikowanie). Przypomnienie domyślne 1 dzień przed, zawsze o 7:00; zadania bez godziny od 7:00 zamiast 9:00; dotknięcie powiadomienia otwiera wydarzenie lub zadanie. Serwery nie były uruchamiane. | Część 1 kalendarza — kolejność pracy po zgodzie użytkownika. |

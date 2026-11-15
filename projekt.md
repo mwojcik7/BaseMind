@@ -265,7 +265,7 @@ Kluczowe cechy:
 - `task_lists` — name (na razie tylko to; icon, color, sort_order w części 2).
 - `tasks` — list_id (puste = Skrzynka; lista w koszu traktowana tak samo, a po jej trwałym usunięciu serwer czyści pole), parent_id, deleted_with_parent (podzadanie usunięte razem z rodzicem wraca z nim z kosza), title 🔐, notes 🔐, priority (1–4), status (`todo` | `done` | `cancelled`), due_date, due_time, rrule, repeat_from (`due` | `completion`), repeat_anchor, repeat_remaining, recurring_task_id, completed_at, sort_order.
   - Cykliczność od 2026-11-14 (migracja `2026_11_14_180000_add_recurrence_to_tasks_table`): `rrule` bez `DTSTART` i `COUNT`, `UNTIL` jako data (`UNTIL=20261231`); seria startuje od `repeat_anchor` (data wg wzorca; różni się od `due_date`, gdy przesunięto tylko jedno wystąpienie); `repeat_remaining` = ile wystąpień zostało łącznie z bieżącym (puste = bez limitu); `recurring_task_id` ma kopia w historii (status `done` albo `cancelled` = pominięte). Następny termin liczą `TaskSeries` (serwer) i `recurrence.ts` (aplikacja) według tych samych przypadków `web/src/modules/tasks/recurrence.cases.json`: od terminu = pierwsze wystąpienie po bieżącym i po dzisiejszym dniu; od ukończenia = pierwsze po dniu ukończenia. Zadania sprzed tej daty nie mają tych pól w Dexie (`undefined`).
-  - Przypomnienie o zadaniu z datą, ale bez godziny, jest liczone od **9:00** tego dnia.
+  - Przypomnienie o zadaniu z datą, ale bez godziny, jest liczone od **7:00** tego dnia (decyzja 2026-11-15; wcześniej 9:00, zmiana razem z częścią 1 kalendarza). Przypomnienie „1 dzień przed” przychodzi dzień wcześniej o 7:00, także przy zadaniu z godziną.
   - `parent_id` jest od 2026-11-14 (migracja `2026_11_14_120000_add_parent_id_to_tasks_table`): podzadania jednopoziomowe, bez klucza obcego; podzadanie, którego rodzic jest usunięty, aplikacja pokazuje jako zadanie główne. sort_order powstanie z sortowaniem przeciąganiem (odłożone). due_time to tekst `HH:MM` na zegarze użytkownika.
   - Zadania zapisane na urządzeniach przed 2026-11-14 nie mają w Dexie pola `parent_id` (`undefined`, nie `null`), dopóki się nie zmienią: w kodzie sprawdzać je przez prawdziwość (`task.parent_id ? …`).
 
@@ -285,7 +285,8 @@ Kluczowe cechy:
 - Stawki podatku i ZUS na każdy rok w konfiguracji serwera i klienta (obliczenia działają offline).
 
 **Kalendarz**
-- `events` — title, description, location, start_at, end_at, all_day, rrule, color.
+- `events` — title 🔐, description 🔐 (Markdown), location 🔐, start_at, end_at, all_day, rrule, color (jeden z ok. 8 kolorów palety).
+  - Wystąpienia serii wyliczane z `rrule` w strefie użytkownika (godzina stała przy zmianie czasu). Przypomnienia: domyślnie „1 dzień przed” = dzień wcześniej o 7:00 (także dla wydarzeń z godziną); całodniowe liczone od 7:00.
 - Widok łączy `events` + wirtualne zdarzenia z innych modułów (rejestr „dostawców dat”).
 
 **Notatki**
@@ -616,6 +617,10 @@ Hosting musi zapewniać:
 | 2026-11-15 | Kosz technicznie: pole `tasks.deleted_with_parent`, operacja `purge`, po trwałym usunięciu wpis w `sync_purges` bez treści przez rok, potem pełne pobranie dla starszych urządzeń; czyszczenie codziennie o 3:30; „Usuń na zawsze” jako ikona ✕ w wierszu (brak komponentu menu); kopia wystąpienia cofnięta przez „Cofnij” usuwana od razu | Claude (zaakceptowane przez użytkownika po teście) |
 | 2026-11-15 | Arkusz [+]: pole „Lista”; domyślnie lista otwarta na ekranie zadań, `#lista` w tekście ją zmienia, wybór ręczny wygrywa | Użytkownik |
 | 2026-11-15 | Limity logowania i rejestracji konfigurowalne (`BASEMIND_THROTTLE_AUTH_ROUTES`, `BASEMIND_THROTTLE_LOGIN_PER_IP`, domyślnie 30 i 20/min), podniesione tylko dla testów e2e | Claude |
+| 2026-11-15 | Kalendarz (2.2) w dwóch częściach. Część 1: wydarzenia (tytuł, miejsce, notatka 🔐; cały dzień / godziny; wielodniowe; kolor z palety; cykliczność z edytora zadań, wystąpienia wyliczane z reguły), widoki Agenda (domyślny na telefonie) i Miesiąc, warstwy (wydarzenia, zadania z terminem, polskie święta), widżet dziś i jutro, sekcja podsumowania, zakładka w arkuszu [+], wyszukiwanie, kosz, typ w kanałach powiadomień. Część 2: widoki Dzień i Tydzień, zmiana pojedynczego wystąpienia („tylko to”, „to i następne”, „wszystkie”), przeciąganie, duplikowanie. iCal później (🔒); bez synchronizacji z Google Calendar i bez zaproszeń | Claude (zaakceptowane przez użytkownika) |
+| 2026-11-15 | Zadania w kalendarzu: warstwa domyślnie włączona; zaległe w swoim dniu i dziś w sekcji „Zaległe”; zrobione domyślnie ukryte, z przełącznikiem w ustawieniach kalendarza | Użytkownik |
+| 2026-11-15 | Przypomnienie o wydarzeniu domyślnie 1 dzień przed; „1 dzień przed” zawsze dzień wcześniej o 7:00 (wydarzenia i zadania, także z godziną); zadania bez godziny liczone od 7:00 zamiast 9:00 | Użytkownik |
+| 2026-11-15 | Dotknięcie powiadomienia otwiera samo wydarzenie lub zadanie (nie ekran główny) | Użytkownik |
 
 ---
 
