@@ -5,12 +5,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useState } from 'react'
+import { CUSTOM_REMINDER, CustomReminderForm } from '@/components/CustomReminderForm'
 import { pl } from '@/i18n/pl'
-import { REMINDER_OFFSETS, type ReminderOffset } from '@/modules/tasks/reminder'
+import { reminderLabel } from '@/lib/reminder-label'
+import { parseTimingKey, timingKey } from '@/lib/reminder-moment'
+import { REMINDER_OFFSETS, type ReminderSetting } from '@/modules/tasks/reminder'
 
 // Radix's Select can't have an empty value.
 const NONE = 'none'
 
+/**
+ * No reminder, a ready-made one, or one made by hand ("Własne…"); a hand-made one shows
+ * as one more choice. The form takes both grid columns where the select sits in a grid.
+ */
 export function ReminderSelect({
   id,
   value,
@@ -18,26 +26,50 @@ export function ReminderSelect({
   onChange,
 }: {
   id?: string
-  value: ReminderOffset
+  value: ReminderSetting
   disabled?: boolean
-  onChange: (value: ReminderOffset) => void
+  onChange: (value: ReminderSetting) => void
 }) {
+  const [custom, setCustom] = useState(false)
+
+  if (custom) {
+    return (
+      <div className="col-span-2">
+        <CustomReminderForm
+          onAdd={(timing) => {
+            onChange(timing)
+            setCustom(false)
+          }}
+          onCancel={() => setCustom(false)}
+        />
+      </div>
+    )
+  }
+
+  const current = value === null ? NONE : timingKey(value)
+  const keys = REMINDER_OFFSETS.map(timingKey)
+  if (current !== NONE && !keys.includes(current)) keys.push(current)
+
   return (
     <Select
-      value={value === null ? NONE : String(value)}
+      value={current}
       disabled={disabled}
-      onValueChange={(next) => onChange(next === NONE ? null : Number(next))}
+      onValueChange={(next) => {
+        if (next === CUSTOM_REMINDER) setCustom(true)
+        else onChange(next === NONE ? null : parseTimingKey(next))
+      }}
     >
       <SelectTrigger id={id} aria-label={pl.tasks.reminder} className="w-full">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         <SelectItem value={NONE}>{pl.tasks.reminderNone}</SelectItem>
-        {REMINDER_OFFSETS.map((offset) => (
-          <SelectItem key={offset} value={String(offset)}>
-            {pl.tasks.reminderOffsets[offset as keyof typeof pl.tasks.reminderOffsets]}
+        {keys.map((key) => (
+          <SelectItem key={key} value={key}>
+            {reminderLabel(parseTimingKey(key), 'task')}
           </SelectItem>
         ))}
+        <SelectItem value={CUSTOM_REMINDER}>{pl.reminders.custom}</SelectItem>
       </SelectContent>
     </Select>
   )

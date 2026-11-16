@@ -48,10 +48,16 @@ export function occurrenceStarts(event: Dates, from: string, to: string): string
 
 /**
  * When the reminder `offset` minutes before an occurrence goes out next, strictly after
- * `after`; null when no occurrence is left to remind about.
+ * `after`; null when no occurrence is left to remind about. `at` is the reminder's own
+ * time of day for whole days before (lib/reminder-moment).
  */
-export function nextReminderAt(event: Timing, offset: number, after: Date): Date | null {
-  const momentOf = (start: string) => reminderMoment(start, event.start_time, offset)
+export function nextReminderAt(
+  event: Timing,
+  offset: number,
+  after: Date,
+  at: string | null = null,
+): Date | null {
+  const momentOf = (start: string) => reminderMoment(start, event.start_time, offset, at)
 
   if (!event.rrule) {
     const moment = momentOf(event.start_date)

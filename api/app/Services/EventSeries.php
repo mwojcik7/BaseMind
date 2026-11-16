@@ -54,7 +54,8 @@ class EventSeries
 
     /**
      * When the reminder `$offset` minutes before an occurrence goes out next, strictly
-     * after `$after`; null when no occurrence is left to remind about.
+     * after `$after`; null when no occurrence is left to remind about. `$at` is the
+     * reminder's own time of day for whole days before (ReminderMoment).
      *
      * @param  list<string>|null  $exdates
      */
@@ -66,8 +67,9 @@ class EventSeries
         int $offset,
         CarbonImmutable $after,
         string $timezone,
+        ?string $at = null,
     ): ?CarbonImmutable {
-        $momentOf = fn (string $start) => ReminderMoment::for($start, $startTime, $offset, $timezone);
+        $momentOf = fn (string $start) => ReminderMoment::for($start, $startTime, $offset, $timezone, $at);
 
         if ($rrule === null) {
             $moment = $momentOf($startDate);
@@ -120,6 +122,7 @@ class EventSeries
             $reminder->offset_minutes,
             $after,
             $timezone,
+            $reminder->remind_time,
         );
     }
 

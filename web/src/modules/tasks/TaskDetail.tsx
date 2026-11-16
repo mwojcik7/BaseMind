@@ -20,7 +20,8 @@ import { deleteWithUndo } from '@/lib/delete-with-undo'
 import { errorMessage } from '@/lib/form-errors'
 import { finishWithUndo, requestCompleteTask } from '@/modules/tasks/completion'
 import { firstDueDate } from '@/modules/tasks/recurrence'
-import { findTaskReminder, type ReminderOffset } from '@/modules/tasks/reminder'
+import { timingOfReminder } from '@/db/reminders'
+import { findTaskReminder, type ReminderSetting } from '@/modules/tasks/reminder'
 import {
   createTask,
   DEFAULT_PRIORITY,
@@ -46,7 +47,12 @@ const taskFormSchema = z.object({
   list: z.string(),
   due_date: z.string().nullable(),
   due_time: z.string(),
-  reminder: z.number().int().min(0).nullable(),
+  reminder: z
+    .union([
+      z.number().int().min(0),
+      z.object({ offset: z.number().int().min(0), time: z.string().nullable() }),
+    ])
+    .nullable(),
   repeat: z.object({
     rrule: z.string().nullable(),
     repeat_from: z.enum(['due', 'completion']),
@@ -156,7 +162,7 @@ function TaskForm({
 }: {
   task: Task
   parent: Task | undefined
-  reminder: ReminderOffset
+  reminder: ReminderSetting
   onDone: () => void
 }) {
   const lists = useRecords(taskLists)
@@ -381,10 +387,10 @@ export function TaskDetail() {
   const task = useRecord(tasks, taskId)
   // A deleted parent makes the subtask top-level again (see selectors).
   const parent = useRecord(tasks, task?.parent_id ?? '')
-  const reminder = useLiveQuery(
-    async () => (await findTaskReminder(taskId))?.offset_minutes ?? null,
-    [taskId],
-  )
+  const reminder = useLiveQuery(async () => {
+    const existing = await findTaskReminder(taskId)
+    return existing ? timingOfReminder(existing) : null
+  }, [taskId])
   const navigate = useNavigate()
   const router = useRouter()
 

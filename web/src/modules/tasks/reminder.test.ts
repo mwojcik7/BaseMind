@@ -131,4 +131,22 @@ describe('task reminders', () => {
     await removableTasks.restore(task.id)
     expect((await findTaskReminder(task.id))?.status).toBe('scheduled')
   })
+
+  it('may go out days ahead at a time of its own', async () => {
+    const later = format(addDays(new Date(), 5), 'yyyy-MM-dd')
+    const task = await createTask(fields({ due_date: later }), { offset: 2880, time: '20:00' })
+
+    expect(await findTaskReminder(task.id)).toMatchObject({
+      offset_minutes: 2880,
+      remind_time: '20:00',
+      remind_at: new Date(`${format(addDays(new Date(), 3), 'yyyy-MM-dd')}T20:00:00`).toISOString(),
+    })
+
+    // A change of date keeps the time of day.
+    const moved = format(addDays(new Date(), 6), 'yyyy-MM-dd')
+    await moveTask(task.id, moved)
+    expect((await findTaskReminder(task.id))?.remind_at).toBe(
+      new Date(`${format(addDays(new Date(), 4), 'yyyy-MM-dd')}T20:00:00`).toISOString(),
+    )
+  })
 })

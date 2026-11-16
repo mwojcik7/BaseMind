@@ -5,6 +5,7 @@ import { X } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
+import { CUSTOM_REMINDER, CustomReminderForm } from '@/components/CustomReminderForm'
 import { FormField } from '@/components/FormField'
 import { MarkdownField } from '@/components/MarkdownField'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
@@ -22,16 +23,19 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { toast } from '@/components/ui/toaster'
 import { useRecord } from '@/db/hooks'
+import { timingOfReminder } from '@/db/reminders'
 import { pl } from '@/i18n/pl'
 import { deleteWithUndo } from '@/lib/delete-with-undo'
 import { errorMessage } from '@/lib/form-errors'
+import { reminderLabel } from '@/lib/reminder-label'
+import { compareTimings, parseTimingKey, timingKey } from '@/lib/reminder-moment'
 import { EVENT_COLOR_CLASS } from '@/modules/calendar/colors'
 import { defaultSpan, endsAfterStart, moveStart, repeatOf, rruleOf } from '@/modules/calendar/form'
 import {
   DEFAULT_EVENT_REMINDERS,
   findEventReminders,
-  offsetsAfterSwitch,
   reminderOffsetsFor,
+  timingsAfterSwitch,
 } from '@/modules/calendar/reminder'
 import {
   createEvent,
@@ -62,7 +66,8 @@ const eventFormSchema = z
       repeat_from: z.enum(['due', 'completion']),
       repeat_remaining: z.number().int().min(1).max(999).nullable(),
     }),
-    reminders: z.array(z.number().int().min(0)),
+    // Timing keys (lib/reminder-moment), e.g. `1440` or `7200@09:00`.
+    reminders: z.array(z.string()),
     color: z.enum(EVENT_COLORS).nullable(),
     location: z.string().max(500, text.locationTooLong),
     description: z.string().max(10_000, text.descriptionTooLong),
@@ -81,21 +86,32 @@ function report(error: unknown) {
   toast.error(errorMessage(error))
 }
 
-/** Any number of reminders, each removable; the choice offers only what isn't set yet. */
+/**
+ * Any number of reminders, each removable; the choice offers only what isn't set yet,
+ * and "Własne…" opens a form for one made by hand.
+ */
 function EventReminders({
   value,
   allDay,
   onChange,
 }: {
-  value: number[]
+  value: string[]
   allDay: boolean
-  onChange: (value: number[]) => void
+  onChange: (value: string[]) => void
 }) {
   // Remounting the picker after each choice brings its placeholder back.
   const [pickerKey, setPickerKey] = useState(0)
-  const labels: Record<number, string> = allDay ? text.allDayReminderOffsets : text.reminderOffsets
-  const remaining = reminderOffsetsFor(allDay).filter((offset) => !value.includes(offset))
-  const sorted = [...value].sort((a, b) => b - a)
+  const [custom, setCustom] = useState(false)
+  const kind = allDay ? 'allDay' : 'timed'
+  const label = (key: string) => reminderLabel(parseTimingKey(key), kind)
+  const remaining = reminderOffsetsFor(allDay)
+    .map(timingKey)
+    .filter((key) => !value.includes(key))
+  const sorted = [...value].sort((a, b) => compareTimings(parseTimingKey(a), parseTimingKey(b)))
+
+  function add(key: string) {
+    if (!value.includes(key)) onChange([...value, key])
+  }
 
   return (
     <fieldset className="flex flex-col gap-2">
@@ -103,18 +119,18 @@ function EventReminders({
       {sorted.length === 0 && <p className="text-sm text-muted-foreground">{text.reminderNone}</p>}
       {sorted.length > 0 && (
         <ul className="flex flex-col gap-1">
-          {sorted.map((offset) => (
+          {sorted.map((key) => (
             <li
-              key={offset}
+              key={key}
               className="flex min-h-11 items-center justify-between gap-2 rounded-md bg-secondary pl-3"
             >
-              <span className="text-sm">{labels[offset]}</span>
+              <span className="text-sm">{label(key)}</span>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                aria-label={text.removeReminder(labels[offset])}
-                onClick={() => onChange(value.filter((other) => other !== offset))}
+                aria-label={text.removeReminder(label(key))}
+                onClick={() => onChange(value.filter((other) => other !== key))}
               >
                 <X aria-hidden />
               </Button>
@@ -122,11 +138,25 @@ function EventReminders({
           ))}
         </ul>
       )}
-      {remaining.length > 0 && (
+      {custom ? (
+        <CustomReminderForm
+          wholeDaysOnly={allDay}
+          sameDay={allDay}
+          onAdd={(timing) => {
+            add(timingKey(timing))
+            setCustom(false)
+          }}
+          onCancel={() => setCustom(false)}
+        />
+      ) : (
         <Select
           key={pickerKey}
           onValueChange={(next) => {
-            onChange([...value, Number(next)])
+            if (next === CUSTOM_REMINDER) {
+              setCustom(true)
+            } else {
+              add(next)
+            }
             setPickerKey((key) => key + 1)
           }}
         >
@@ -134,11 +164,12 @@ function EventReminders({
             <SelectValue placeholder={text.addReminder} />
           </SelectTrigger>
           <SelectContent>
-            {remaining.map((offset) => (
-              <SelectItem key={offset} value={String(offset)}>
-                {labels[offset]}
+            {remaining.map((key) => (
+              <SelectItem key={key} value={key}>
+                {label(key)}
               </SelectItem>
             ))}
+            <SelectItem value={CUSTOM_REMINDER}>{pl.reminders.custom}</SelectItem>
           </SelectContent>
         </Select>
       )}
@@ -242,7 +273,8 @@ function EventForm({
   onDone,
 }: {
   event: CalendarEvent | null
-  reminders: number[]
+  /** Timing keys of the event's reminders. */
+  reminders: string[]
   /** The occurrence it was opened from, for a series. */
   occurrence: string | undefined
   /** The day a new event goes on. */
@@ -295,7 +327,10 @@ function EventForm({
 
   function toggleAllDay(on: boolean) {
     setValue('all_day', on)
-    setValue('reminders', offsetsAfterSwitch(getValues('reminders'), on))
+    setValue(
+      'reminders',
+      timingsAfterSwitch(getValues('reminders').map(parseTimingKey), on).map(timingKey),
+    )
     if (!on && !getValues('start_time')) {
       const times = defaultSpan(new Date(), getValues('start_date'))
       setValue('start_time', times.start_time)
@@ -321,9 +356,9 @@ function EventForm({
 
     try {
       if (event) {
-        await updateEvent(event.id, fields, values.reminders)
+        await updateEvent(event.id, fields, values.reminders.map(parseTimingKey))
       } else {
-        await createEvent(fields, values.reminders)
+        await createEvent(fields, values.reminders.map(parseTimingKey))
         toast.success(text.created)
       }
       onDone()
@@ -495,7 +530,8 @@ export function EventDetail() {
   const { date } = useSearch({ strict: false }) as { date?: string }
   const event = useRecord(events, eventId)
   const reminders = useLiveQuery(
-    async () => (await findEventReminders(eventId)).map((reminder) => reminder.offset_minutes),
+    async () =>
+      (await findEventReminders(eventId)).map((reminder) => timingKey(timingOfReminder(reminder))),
     [eventId],
   )
   const close = useClose()
@@ -528,7 +564,7 @@ export function NewEvent() {
     <BottomSheet title={text.newEvent} open onOpenChange={(open) => !open && close()}>
       <EventForm
         event={null}
-        reminders={[...DEFAULT_EVENT_REMINDERS]}
+        reminders={DEFAULT_EVENT_REMINDERS.map(timingKey)}
         occurrence={undefined}
         initialDate={date}
         onDone={close}

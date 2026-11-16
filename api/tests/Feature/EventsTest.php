@@ -183,7 +183,7 @@ class EventsTest extends TestCase
     }
 
     /** A reminder as the app makes it: no rule of its own, pointing at the next occurrence. */
-    private function pushReminder(string $eventId, string $remindAt, int $offset): Reminder
+    private function pushReminder(string $eventId, string $remindAt, int $offset, ?string $time = null): Reminder
     {
         $id = (string) Str::uuid7();
         $this->actingAs($this->user)->postJson('/api/sync/push', ['ops' => [[
@@ -199,6 +199,7 @@ class EventsTest extends TestCase
                 'title' => 'Dentysta',
                 'remind_at' => $remindAt,
                 'offset_minutes' => $offset,
+                'remind_time' => $time,
                 'channels' => ['push', 'email'],
                 'status' => 'scheduled',
             ],
@@ -234,6 +235,51 @@ class EventsTest extends TestCase
         // Events go to the phone only, unless the user says otherwise.
         Queue::assertPushed(SendReminder::class, 1);
         Queue::assertPushed(SendReminder::class, fn (SendReminder $job) => $job->channel === 'push');
+    }
+
+    public function test_a_reminder_with_a_time_of_its_own_keeps_it_for_the_next_occurrence(): void
+    {
+        Queue::fake();
+        // Tuesdays at 18:00, reminded two days before at 20:00 (19:00 UTC in winter).
+        $event = $this->pushEvent([
+            'start_date' => '2026-11-17',
+            'end_date' => '2026-11-17',
+            'rrule' => 'FREQ=WEEKLY;BYDAY=TU',
+        ]);
+        $reminder = $this->pushReminder($event['id'], '2026-11-15T19:00:00.000Z', 2880, '20:00');
+
+        $this->assertSame(1, $this->runAt('2026-11-15 19:00:00'));
+
+        $reminder->refresh();
+        $this->assertSame('20:00', $reminder->remind_time);
+        $this->assertSame('2026-11-22 19:00', $reminder->remind_at->utc()->format('Y-m-d H:i'));
+    }
+
+    public function test_a_reminder_time_must_be_a_time(): void
+    {
+        $event = $this->pushEvent();
+        $id = (string) Str::uuid7();
+
+        $this->actingAs($this->user)->postJson('/api/sync/push', ['ops' => [[
+            'op_id' => (string) Str::uuid7(),
+            'entity' => 'reminders',
+            'record_id' => $id,
+            'op' => 'create',
+            'payload' => [
+                'id' => $id,
+                'space_id' => $this->user->spaces()->first()->id,
+                'entity_type' => 'events',
+                'entity_id' => $event['id'],
+                'title' => 'Dentysta',
+                'remind_at' => '2026-11-15T19:00:00.000Z',
+                'offset_minutes' => 2880,
+                'remind_time' => '25:00',
+                'channels' => ['push'],
+                'status' => 'scheduled',
+            ],
+            'base_version' => 0,
+            'client_ts' => '2026-11-16T09:00:00.000Z',
+        ]]])->assertOk()->assertJsonPath('results.0.reason', 'invalid');
     }
 
     public function test_a_reminder_about_a_single_event_or_a_deleted_one_ends_when_sent(): void

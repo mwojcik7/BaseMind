@@ -143,6 +143,7 @@ class TaskSeries
             $task->due_time,
             $reminder->offset_minutes,
             $user->timezone,
+            $reminder->remind_time,
         );
 
         $this->sync->recordServerChange($reminder, [

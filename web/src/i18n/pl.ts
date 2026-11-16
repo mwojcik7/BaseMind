@@ -110,6 +110,31 @@ export const pl = {
     noUpcoming: 'Brak wydarzeń w najbliższych 60 dniach.',
     allDayShort: 'cały dzień',
   },
+  reminders: {
+    custom: 'Własne…',
+    customTitle: 'Własne przypomnienie',
+    amount: 'Ile',
+    unit: 'Jednostka',
+    time: 'O godzinie',
+    add: 'Dodaj',
+    cancel: 'Anuluj',
+    units: {
+      minutes: 'min przed',
+      hours: 'godz. przed',
+      days: 'dni wcześniej',
+      weeks: 'tyg. wcześniej',
+    },
+    amountRange: (min: number, max: number) => `Wpisz liczbę od ${min} do ${max}.`,
+    minutesBefore: (n: number) => `${n} min przed`,
+    hoursBefore: (n: number) => `${n} godz. przed`,
+    sameDay: (time: string) => `W dniu, ${time}`,
+    daysBefore: (n: number, time: string) =>
+      n === 1 ? `Dzień wcześniej, ${time}` : `${n} dni wcześniej, ${time}`,
+    weeksBefore: (n: number, time: string) =>
+      n === 1
+        ? `Tydzień wcześniej, ${time}`
+        : `${n} ${plural(n, 'tydzień', 'tygodnie', 'tygodni')} wcześniej, ${time}`,
+  },
   markdown: {
     edit: 'Edytuj',
     preview: 'Podgląd',

@@ -33,6 +33,7 @@ class Reminder extends Model implements SyncableModel
             'remind_at' => ['required', 'date'],
             'rrule' => ['nullable', 'string', 'max:255', new ReminderRecurrence],
             'offset_minutes' => ['required', 'integer', 'min:0', 'max:527040'],
+            'remind_time' => ['nullable', 'date_format:H:i'],
             'channels' => ['present', 'array'],
             'channels.*' => [Rule::in(self::CHANNELS)],
             'status' => ['required', 'in:scheduled,sent,dismissed,snoozed'],

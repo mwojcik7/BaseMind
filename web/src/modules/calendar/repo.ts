@@ -1,5 +1,6 @@
 import { db } from '@/db/db'
 import { createRepository, type OwnFields, type SyncedRecord } from '@/db/repository'
+import type { ReminderChoice } from '@/lib/reminder-moment'
 import {
   dismissEventReminders,
   refreshEventReminders,
@@ -54,7 +55,7 @@ function withReminder<T>(work: () => Promise<T>) {
   return db.transaction('rw', db.table('events'), db.table('reminders'), db.outbox, work)
 }
 
-export function createEvent(fields: OwnFields<CalendarEvent>, offsets: readonly number[]) {
+export function createEvent(fields: OwnFields<CalendarEvent>, offsets: readonly ReminderChoice[]) {
   return withReminder(async () => {
     const event = await events.create(fields)
     await setEventReminders(event, offsets)
@@ -65,7 +66,7 @@ export function createEvent(fields: OwnFields<CalendarEvent>, offsets: readonly 
 export function updateEvent(
   id: string,
   patch: Partial<OwnFields<CalendarEvent>>,
-  offsets: readonly number[],
+  offsets: readonly ReminderChoice[],
 ) {
   return withReminder(async () => {
     const event = await events.update(id, patch)

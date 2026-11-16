@@ -1,4 +1,5 @@
 import { createRepository, type SyncedRecord } from '@/db/repository'
+import { timingOf, type ReminderTiming } from '@/lib/reminder-moment'
 
 export interface Reminder extends SyncedRecord {
   /** The record it belongs to, if any. */
@@ -11,6 +12,8 @@ export interface Reminder extends SyncedRecord {
   rrule: string | null
   /** How long before each occurrence it goes out. */
   offset_minutes: number
+  /** For whole days before: the time of day it goes out (HH:MM); empty means 7:00. */
+  remind_time?: string | null
   channels: ('push' | 'email')[]
   status: 'scheduled' | 'sent' | 'dismissed' | 'snoozed'
   snoozed_until: string | null
@@ -19,3 +22,7 @@ export interface Reminder extends SyncedRecord {
 }
 
 export const reminders = createRepository<Reminder>('reminders')
+
+/** When, relative to its date, a reminder about something dated goes out. */
+export const timingOfReminder = (reminder: Reminder): ReminderTiming =>
+  timingOf({ offset: reminder.offset_minutes, time: reminder.remind_time ?? null })

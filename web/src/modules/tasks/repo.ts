@@ -6,7 +6,7 @@ import {
   dismissTaskReminder,
   refreshTaskReminder,
   setTaskReminder,
-  type ReminderOffset,
+  type ReminderSetting,
 } from '@/modules/tasks/reminder'
 
 export interface TaskList extends SyncedRecord {
@@ -52,7 +52,7 @@ function withReminder<T>(work: () => Promise<T>) {
   return db.transaction('rw', db.table('tasks'), db.table('reminders'), db.outbox, work)
 }
 
-export function createTask(fields: OwnFields<Task>, offset: ReminderOffset = null) {
+export function createTask(fields: OwnFields<Task>, offset: ReminderSetting = null) {
   return withReminder(async () => {
     const task = await tasks.create(fields)
     await setTaskReminder(task, offset)
@@ -60,7 +60,7 @@ export function createTask(fields: OwnFields<Task>, offset: ReminderOffset = nul
   })
 }
 
-export function updateTask(id: string, patch: Partial<OwnFields<Task>>, offset: ReminderOffset) {
+export function updateTask(id: string, patch: Partial<OwnFields<Task>>, offset: ReminderSetting) {
   return withReminder(async () => setTaskReminder(await tasks.update(id, patch), offset))
 }
 

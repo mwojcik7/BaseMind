@@ -2,7 +2,7 @@ import { addDays, format } from 'date-fns'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { reminders } from '@/db/reminders'
 import { useAuth, type Account } from '@/lib/auth'
-import { findEventReminders, offsetsAfterSwitch } from '@/modules/calendar/reminder'
+import { findEventReminders, timingsAfterSwitch } from '@/modules/calendar/reminder'
 import {
   createEvent,
   removableEvents,
@@ -112,10 +112,41 @@ describe('event reminders', () => {
     expect(await statuses()).toEqual(['scheduled', 'scheduled'])
   })
 
-  it('keep what the other kind of event offers when switching', () => {
-    expect(offsetsAfterSwitch([60, 1440], true)).toEqual([1440])
-    expect(offsetsAfterSwitch([10080, 0], false)).toEqual([0])
-    expect(offsetsAfterSwitch([10080], false)).toEqual([1440])
-    expect(offsetsAfterSwitch([], true)).toEqual([])
+  it('may have a time of their own, kept for the next occurrence', async () => {
+    const event = await createEvent(
+      fields({ start_date: day(3), end_date: day(3), rrule: 'FREQ=WEEKLY' }),
+      [{ offset: 2880, time: '20:30' }, 1440],
+    )
+
+    expect(await findEventReminders(event.id)).toMatchObject([
+      { offset_minutes: 2880, remind_time: '20:30', remind_at: at(day(1), '20:30') },
+      { offset_minutes: 1440, remind_time: null, remind_at: at(day(2), '07:00') },
+    ])
+
+    // The same days at another time is another reminder; 7:00 is the same as none.
+    await updateEvent(event.id, {}, [
+      { offset: 2880, time: '09:00' },
+      { offset: 1440, time: '07:00' },
+    ])
+    expect(await findEventReminders(event.id)).toMatchObject([
+      { offset_minutes: 2880, remind_time: '09:00', remind_at: at(day(1), '09:00') },
+      { offset_minutes: 1440, remind_time: null },
+    ])
+  })
+
+  it('keep what suits the other kind of event when switching', () => {
+    expect(timingsAfterSwitch([60, 1440], true)).toEqual([{ offset: 1440, time: null }])
+    expect(timingsAfterSwitch([10080, 0], false)).toEqual([
+      { offset: 10080, time: null },
+      { offset: 0, time: null },
+    ])
+    // On the very day at its own time could come after a timed event has started.
+    expect(timingsAfterSwitch([{ offset: 0, time: '09:00' }], false)).toEqual([
+      { offset: 1440, time: null },
+    ])
+    expect(timingsAfterSwitch([{ offset: 2880, time: '20:00' }], true)).toEqual([
+      { offset: 2880, time: '20:00' },
+    ])
+    expect(timingsAfterSwitch([], true)).toEqual([])
   })
 })

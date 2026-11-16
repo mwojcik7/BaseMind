@@ -75,5 +75,45 @@
     "time": "10:00",
     "offset": 60,
     "moment": "2026-03-29 09:00"
+  },
+  {
+    "name": "whole days before at a time of its own",
+    "date": "2026-11-20",
+    "time": "18:00",
+    "offset": 7200,
+    "at": "09:00",
+    "moment": "2026-11-15 09:00"
+  },
+  {
+    "name": "on the day at a time of its own, no time",
+    "date": "2026-11-20",
+    "time": null,
+    "offset": 0,
+    "at": "09:30",
+    "moment": "2026-11-20 09:30"
+  },
+  {
+    "name": "a week before at a time of its own, across the clock change",
+    "date": "2026-10-30",
+    "time": null,
+    "offset": 10080,
+    "at": "20:00",
+    "moment": "2026-10-23 20:00"
+  },
+  {
+    "name": "a day before at a time of its own, across the clock change",
+    "date": "2026-10-26",
+    "time": "08:00",
+    "offset": 1440,
+    "at": "20:00",
+    "moment": "2026-10-25 20:00"
+  },
+  {
+    "name": "a time of its own counts only for whole days",
+    "date": "2026-11-20",
+    "time": "14:30",
+    "offset": 90,
+    "at": "09:00",
+    "moment": "2026-11-20 13:00"
   }
 ]

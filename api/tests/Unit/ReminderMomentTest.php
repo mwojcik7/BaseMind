@@ -26,7 +26,7 @@ class ReminderMomentTest extends TestCase
     #[DataProvider('cases')]
     public function test_the_moment(array $case): void
     {
-        $moment = ReminderMoment::for($case['date'], $case['time'], $case['offset'], 'Europe/Warsaw');
+        $moment = ReminderMoment::for($case['date'], $case['time'], $case['offset'], 'Europe/Warsaw', $case['at'] ?? null);
 
         $this->assertSame($case['moment'], $moment->setTimezone('Europe/Warsaw')->format('Y-m-d H:i'));
     }

@@ -71,8 +71,17 @@ test('an all-day event hides the times and offers morning reminders', async ({ p
     '3 dni wcześniej, 7:00',
     'Tydzień wcześniej, 7:00',
     'Miesiąc wcześniej, 7:00',
+    'Własne…',
   ])
   await page.getByRole('option', { name: 'Tydzień wcześniej, 7:00' }).click()
+
+  // One made by hand: two days before, in the evening.
+  await sheet(page).getByLabel('Dodaj przypomnienie').click()
+  await page.getByRole('option', { name: 'Własne…' }).click()
+  await sheet(page).getByLabel('Ile').fill('2')
+  await sheet(page).getByLabel('O godzinie').fill('20:30')
+  await sheet(page).getByRole('button', { name: 'Dodaj', exact: true }).click()
+  await expect(sheet(page).getByText('2 dni wcześniej, 20:30')).toBeVisible()
 
   await sheet(page).getByRole('button', { name: 'Zapisz' }).click()
   await expect(rows(page, 'Urodziny mamy')).toContainText('cały dzień')

@@ -1,17 +1,18 @@
-import { reminders } from '@/db/reminders'
-import { reminderMoment as momentFor } from '@/lib/reminder-moment'
+import { reminders, timingOfReminder } from '@/db/reminders'
+import { reminderMoment as momentFor, timingOf, type ReminderChoice } from '@/lib/reminder-moment'
 import type { Task } from '@/modules/tasks/repo'
 
-/** Minutes before the due moment; null means no reminder. */
-export type ReminderOffset = number | null
+/** The task's reminder: minutes before the due moment, maybe with a time of day; null is none. */
+export type ReminderSetting = ReminderChoice | null
 
 export const REMINDER_OFFSETS: readonly number[] = [0, 30, 60, 1440]
 
 export function reminderMoment(
   task: { due_date: string; due_time: string | null },
-  offset: number,
+  choice: ReminderChoice,
 ) {
-  return momentFor(task.due_date, task.due_time, offset)
+  const { offset, time } = timingOf(choice)
+  return momentFor(task.due_date, task.due_time, offset, time)
 }
 
 export async function findTaskReminder(taskId: string) {
@@ -21,21 +22,23 @@ export async function findTaskReminder(taskId: string) {
 }
 
 /** Must be called inside a transaction covering tasks, reminders and the outbox. */
-export async function setTaskReminder(task: Task, offset: ReminderOffset) {
+export async function setTaskReminder(task: Task, choice: ReminderSetting) {
   const existing = await findTaskReminder(task.id)
 
-  if (offset === null || !task.due_date) {
+  if (choice === null || !task.due_date) {
     if (existing) {
       await reminders.softDelete(existing.id)
     }
     return
   }
 
-  const moment = reminderMoment({ due_date: task.due_date, due_time: task.due_time }, offset)
+  const timing = timingOf(choice)
+  const moment = reminderMoment({ due_date: task.due_date, due_time: task.due_time }, timing)
   const fields = {
     title: task.title,
     remind_at: moment.toISOString(),
-    offset_minutes: offset,
+    offset_minutes: timing.offset,
+    remind_time: timing.time,
     // A moment already gone must not fire at once; the choice is still remembered.
     status: moment.getTime() > Date.now() ? ('scheduled' as const) : ('dismissed' as const),
     snoozed_until: null,
@@ -62,7 +65,7 @@ export async function refreshTaskReminder(task: Task) {
   }
 
   if (task.status === 'todo') {
-    await setTaskReminder(task, existing.offset_minutes)
+    await setTaskReminder(task, timingOfReminder(existing))
   } else {
     await reminders.update(existing.id, { status: 'dismissed', snoozed_until: null })
   }

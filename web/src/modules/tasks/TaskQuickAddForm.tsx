@@ -12,7 +12,7 @@ import { parseQuickText } from '@/lib/quick-parser'
 import { taskRules } from '@/modules/tasks/parse'
 import { describeRecurrence, firstDueDate, pinToDate } from '@/modules/tasks/recurrence'
 import { useActiveTaskList } from '@/modules/tasks/activeList'
-import type { ReminderOffset } from '@/modules/tasks/reminder'
+import type { ReminderSetting } from '@/modules/tasks/reminder'
 import { createTask, DEFAULT_PRIORITY, taskLists } from '@/modules/tasks/repo'
 import { ListSelect, PrioritySelect, ReminderSelect } from '@/modules/tasks/TaskFields'
 
@@ -25,7 +25,7 @@ export function TaskQuickAddForm({ onDone }: { onDone: () => void }) {
   const [pickedDate, setPickedDate] = useState<string | null>()
   const [pickedPriority, setPickedPriority] = useState<number>()
   const [pickedTime, setPickedTime] = useState<string>()
-  const [pickedOffset, setPickedOffset] = useState<ReminderOffset>()
+  const [pickedOffset, setPickedOffset] = useState<ReminderSetting>()
   // undefined: not picked; null: the inbox picked on purpose.
   const [pickedList, setPickedList] = useState<string | null>()
   // Read once: the sheet adds to the list that was open when it was opened.
