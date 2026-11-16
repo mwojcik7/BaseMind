@@ -10,7 +10,7 @@ import { CUSTOM_REMINDER, CustomReminderForm } from '@/components/CustomReminder
 import { pl } from '@/i18n/pl'
 import { reminderLabel } from '@/lib/reminder-label'
 import { parseTimingKey, timingKey } from '@/lib/reminder-moment'
-import { REMINDER_OFFSETS, type ReminderSetting } from '@/modules/tasks/reminder'
+import { fitTaskTiming, REMINDER_OFFSETS, type ReminderSetting } from '@/modules/tasks/reminder'
 
 // Radix's Select can't have an empty value.
 const NONE = 'none'
@@ -18,15 +18,18 @@ const NONE = 'none'
 /**
  * No reminder, a ready-made one, or one made by hand ("Własne…"); a hand-made one shows
  * as one more choice. The form takes both grid columns where the select sits in a grid.
+ * `hasTime`: the task has a time, so a time of day of its own starts a day before.
  */
 export function ReminderSelect({
   id,
   value,
+  hasTime,
   disabled,
   onChange,
 }: {
   id?: string
   value: ReminderSetting
+  hasTime: boolean
   disabled?: boolean
   onChange: (value: ReminderSetting) => void
 }) {
@@ -36,6 +39,7 @@ export function ReminderSelect({
     return (
       <div className="col-span-2">
         <CustomReminderForm
+          sameDay={!hasTime}
           onAdd={(timing) => {
             onChange(timing)
             setCustom(false)
@@ -46,7 +50,8 @@ export function ReminderSelect({
     )
   }
 
-  const current = value === null ? NONE : timingKey(value)
+  // Shown as it will be saved: with a time set, "on the day at 9:30" reads "at the due moment".
+  const current = value === null ? NONE : timingKey(fitTaskTiming(value, hasTime))
   const keys = REMINDER_OFFSETS.map(timingKey)
   if (current !== NONE && !keys.includes(current)) keys.push(current)
 

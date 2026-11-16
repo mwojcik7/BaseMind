@@ -2,7 +2,7 @@ import { addDays, format, subDays } from 'date-fns'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { reminders } from '@/db/reminders'
 import { useAuth, type Account } from '@/lib/auth'
-import { findTaskReminder, reminderMoment } from '@/modules/tasks/reminder'
+import { findTaskReminder, fitTaskTiming, reminderMoment } from '@/modules/tasks/reminder'
 import {
   completeTask,
   createTask,
@@ -148,5 +148,38 @@ describe('task reminders', () => {
     expect((await findTaskReminder(task.id))?.remind_at).toBe(
       new Date(`${format(addDays(new Date(), 4), 'yyyy-MM-dd')}T20:00:00`).toISOString(),
     )
+  })
+
+  it('may go out on the day at a time of its own when the task has no time', async () => {
+    const task = await createTask(fields({ due_time: null }), { offset: 0, time: '09:30' })
+
+    expect(await findTaskReminder(task.id)).toMatchObject({
+      offset_minutes: 0,
+      remind_time: '09:30',
+      remind_at: new Date(`${tomorrow}T09:30:00`).toISOString(),
+    })
+  })
+
+  it('goes out at the due moment instead once the task gets a time', async () => {
+    const task = await createTask(fields({ due_time: null }), { offset: 0, time: '09:30' })
+
+    await updateTask(task.id, { due_time: '08:00' }, { offset: 0, time: '09:30' })
+
+    expect(await findTaskReminder(task.id)).toMatchObject({
+      offset_minutes: 0,
+      remind_time: null,
+      remind_at: new Date(`${tomorrow}T08:00:00`).toISOString(),
+    })
+  })
+
+  it('fits a time of its own on the day only to a task without a time', () => {
+    const onTheDay = { offset: 0, time: '09:30' }
+
+    expect(fitTaskTiming(onTheDay, false)).toEqual(onTheDay)
+    expect(fitTaskTiming(onTheDay, true)).toEqual({ offset: 0, time: null })
+    expect(fitTaskTiming({ offset: 1440, time: '20:00' }, true)).toEqual({
+      offset: 1440,
+      time: '20:00',
+    })
   })
 })

@@ -31,7 +31,8 @@ const takesTime = (unit: Unit) => unit === 'days' || unit === 'weeks'
 /**
  * A reminder made by hand: a number and a unit, and for days and weeks a time of day.
  * `wholeDaysOnly` leaves out minutes and hours (all-day events have no hour to count
- * from); `sameDay` lets days start at 0, which only all-day things can use safely.
+ * from); `sameDay` lets days start at 0, which only things without a time (all-day
+ * events, tasks without a time) can use safely.
  */
 export function CustomReminderForm({
   wholeDaysOnly = false,

@@ -131,6 +131,7 @@ export function TaskQuickAddForm({ onDone }: { onDone: () => void }) {
         <PrioritySelect value={priority} onChange={setPickedPriority} />
         <ReminderSelect
           value={dueDate ? offset : null}
+          hasTime={time !== ''}
           disabled={!dueDate}
           onChange={setPickedOffset}
         />

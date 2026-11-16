@@ -7,6 +7,15 @@ export type ReminderSetting = ReminderChoice | null
 
 export const REMINDER_OFFSETS: readonly number[] = [0, 30, 60, 1440]
 
+/**
+ * A task without a time is a whole day, so "on the day at 9:30" fits it; with a time
+ * that could land after the task is due, so it becomes "at the due moment" instead.
+ */
+export function fitTaskTiming(choice: ReminderChoice, hasTime: boolean): ReminderChoice {
+  const timing = timingOf(choice)
+  return hasTime && timing.offset === 0 && timing.time ? { offset: 0, time: null } : timing
+}
+
 export function reminderMoment(
   task: { due_date: string; due_time: string | null },
   choice: ReminderChoice,
@@ -32,7 +41,7 @@ export async function setTaskReminder(task: Task, choice: ReminderSetting) {
     return
   }
 
-  const timing = timingOf(choice)
+  const timing = timingOf(fitTaskTiming(choice, task.due_time !== null))
   const moment = reminderMoment({ due_date: task.due_date, due_time: task.due_time }, timing)
   const fields = {
     title: task.title,

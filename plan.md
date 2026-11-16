@@ -28,7 +28,7 @@
 > 2026-11-16 rozstrzygnięte: test kroków 1–4 kalendarza na telefonie zaliczony, „miesiąc wcześniej” = 30 dni, dwie decyzje Claude potwierdzone, przypomnienie „Własne…” zrobione i sprawdzone na telefonie. Decyzje w `projekt.md`, pkt 13.
 
 **Na start następnej sesji**
-1. Potwierdzić decyzję Claude z 2026-11-16 (`projekt.md`, pkt 13): własna godzina w wydarzeniu z godziną i w zadaniu dopiero od 1 dnia wcześniej (zadanie bez godziny nie dostanie „w dniu terminu o 9:30”).
+1. Sprawdzić na telefonie: zadanie bez godziny → „Własne…” → 0 dni, 9:30 (rozstrzygnięte 2026-11-16, wariant B, zrobione).
 2. Następny krok: **krok 5 części 1 kalendarza — widoki Agenda i Miesiąc z warstwami** (opis w 2.2; tymczasową listę z `CalendarPage.tsx` zastąpić). Przed kodem pokazać propozycję wyglądu (szkic jak przy oknie wydarzenia).
 3. Przy okazji przypomnieć o sprawach z „Otwartych spraw” (np. test porannego podsumowania na żywo).
 
@@ -44,7 +44,7 @@
 - **Telefon:** BaseMind jest zainstalowany jako aplikacja, powiadomienia są włączone.
 - **Klucz szyfrowania:** lokalny `SODIUM_KEY` (identyfikator `2ca17bb1`) jest w `api/.env`, a użytkownik ma jego kopię w menedżerze haseł. Są nim już zaszyfrowane tytuły przypomnień, tytuły i notatki zadań oraz tytuły, miejsca i notatki wydarzeń, więc utrata klucza oznacza ich utratę. Produkcja dostanie własny klucz.
 - **Klucze VAPID** są w `api/.env` (tylko lokalne). Nowe klucze odłączają wszystkie urządzenia od powiadomień; `basemind:vapid` nie nadpisuje istniejących.
-- **Czeka na użytkownika:** potwierdzenie decyzji Claude o własnej godzinie od 1 dnia wcześniej („Pytania na start”).
+- **Czeka na użytkownika:** test na telefonie przypomnienia „W dniu, o godzinie” w zadaniu bez godziny (wariant B, zrobiony 2026-11-16, niezacommitowany do zgody).
 - **Uwaga:** ta sama instalacja MariaDB trzyma bazy innego projektu użytkownika (np. `syslead_test`). Nie używać `migrate:fresh` na bazie `basemind` ani poleceń obejmujących cały serwer; testy PHPUnit działają na `basemind_test`, testy e2e na `basemind_e2e` (czyszczona przy każdym uruchomieniu, ze sprawdzeniem nazwy bazy).
 - **Uwaga:** MariaDB/Apache uruchamia użytkownik (panel XAMPP). Claude uruchamia je tylko na czas pracy (testy, migracje) i zatrzymuje. Przed uruchomieniem sprawdzić, czy już nie działają. Harmonogram jest zatrzymany; MariaDB i Apache uruchomione przez Claude 2026-11-16 (sprawdzić przy wznowieniu, czy nadal działają). Polecenia (każde jako proces w tle): `C:\xampp\mysql\bin\mysqld.exe --defaults-file=C:\xampp\mysql\bin\my.ini --standalone`, `C:\xampp\apache\bin\httpd.exe`, harmonogram z katalogu `api/` z ustawionym `OPENSSL_CONF` (`projekt.md`, pkt 14, 7c). Zatrzymanie MariaDB: `mysqladmin --protocol=tcp -h 127.0.0.1 -u root shutdown`, Apache: zakończyć procesy `httpd`.
 

@@ -190,6 +190,7 @@ function TaskForm({
   })
   const dueDate = useWatch({ control, name: 'due_date' })
   const notes = useWatch({ control, name: 'notes' })
+  const dueTime = useWatch({ control, name: 'due_time' })
 
   const today = format(new Date(), 'yyyy-MM-dd')
 
@@ -328,7 +329,12 @@ function TaskForm({
             control={control}
             name="reminder"
             render={({ field }) => (
-              <ReminderSelect id="task-reminder" value={field.value} onChange={field.onChange} />
+              <ReminderSelect
+                id="task-reminder"
+                value={field.value}
+                hasTime={dueTime !== ''}
+                onChange={field.onChange}
+              />
             )}
           />
         </div>
