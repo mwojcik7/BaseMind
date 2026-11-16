@@ -238,7 +238,7 @@ Kluczowe cechy:
 - `item_shares` (przyszłość) — udostępnienie pojedynczego rekordu: entity_type, entity_id, user_id, permission.
 - **Zasada:** każde zapytanie API i każdy rekord synchronizacji przechodzi przez Laravel Policy/Gate „czy użytkownik jest członkiem `space_id` z odpowiednią rolą”. CRM i bank prezentów zawsze w przestrzeni prywatnej.
 - `push_subscriptions` — user_id, session_id (koniec sesji zatrzymuje powiadomienia), endpoint, endpoint_hash, p256dh, auth, device_name, created_at.
-- `user_settings` — user_id, JSON ustawień (motyw, widżety dashboardu, godzina digestu, kanały powiadomień, waluta domyślna, start tygodnia).
+- `user_settings` — user_id, JSON ustawień (motyw, widżety dashboardu, godzina digestu, kanały powiadomień, ustawienia kalendarza `calendar`: `hidden_layers` i `show_done` (od 2026-11-16), waluta domyślna, start tygodnia).
 - `sync_counter` — jeden wiersz z globalnym licznikiem `rev` i `purge_horizon` (najnowszy `rev` wśród zapomnianych informacji o usunięciu).
 - `sync_purges` — entity, record_id, space_id, rev, purged_at: informacja o rekordzie usuniętym na zawsze (bez treści), trzymana rok (`config/trash.php`).
 
@@ -287,7 +287,7 @@ Kluczowe cechy:
 **Kalendarz**
 - `events` — title 🔐, location 🔐, description 🔐 (Markdown), start_date, start_time, end_date, end_time (czas „na zegarze” użytkownika jak w zadaniach; bez godzin = całodniowe, `end_date` włącznie), rrule (bez `DTSTART`, seria od `start_date`; `COUNT` dozwolone), exdates (JSON: daty pominiętych wystąpień), color (`blue` | `cyan` | `green` | `yellow` | `orange` | `red` | `purple` | `gray`; puste = akcent; 2026-11-16 `teal`→`cyan`, `pink` zastąpiony `gray` po uwadze użytkownika). Migracja `2026_11_15_220000_create_events_table`. Serwer sprawdza, że koniec nie wypada przed początkiem, tylko gdy obie daty przychodzą w tej samej zmianie (synchronizacja wysyła tylko zmienione pola, a scalanie per pole i tak nie gwarantuje spójności); pilnuje tego formularz w aplikacji. Przypomnienie o wydarzeniu nie ma własnej reguły (`rrule` puste): wskazuje najbliższe wystąpienie, a po wysłaniu serwer wylicza następne z samego wydarzenia (`EventSeries`, z pominięciem `exdates`); wystąpienia i przypomnienia liczą `EventSeries` (serwer) i `modules/calendar/series.ts` (aplikacja) według wspólnych przypadków `series.cases.json`.
   - Wystąpienia serii wyliczane z `rrule` w strefie użytkownika (godzina stała przy zmianie czasu). Przypomnienia: domyślnie „1 dzień przed” = dzień wcześniej o 7:00 (także dla wydarzeń z godziną); całodniowe liczone od 7:00.
-- Widok łączy `events` + wirtualne zdarzenia z innych modułów (rejestr „dostawców dat”).
+- Widok łączy `events` + wirtualne zdarzenia z innych modułów (rejestr „dostawców dat”, czyli warstwy: od 2026-11-16 wydarzenia, zadania z terminem i polskie święta; `web/src/modules/calendar/days.ts` + `settings.ts`). Widoki Agenda i Miesiąc w części 1, Dzień i Tydzień w części 2.
 
 **Notatki**
 - `notes` — title, content 🔐 (markdown), folder_id, pinned, archived.
