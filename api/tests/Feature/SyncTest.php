@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -308,6 +309,20 @@ class SyncTest extends TestCase
         $this->assertStatus($response, 'applied', 1);
         $this->assertNull(SyncItemFixture::withTrashed()->find($bad));
         $this->assertNotNull(SyncItemFixture::find($good));
+    }
+
+    public function test_a_rejection_is_logged_with_field_names_but_not_values(): void
+    {
+        Log::spy();
+        $id = (string) Str::uuid7();
+
+        $this->push([$this->createOp($id, ['title' => str_repeat('secret', 10)])]);
+
+        Log::shouldHaveReceived('warning')->once()->withArgs(fn (string $message, array $context) => $message === 'Sync operation rejected'
+            && $context['record_id'] === $id
+            && $context['reason'] === 'invalid'
+            && $context['fields'] === ['title']
+            && ! str_contains(json_encode($context, JSON_THROW_ON_ERROR), 'secret'));
     }
 
     public function test_a_rejected_operation_is_not_remembered_as_applied(): void

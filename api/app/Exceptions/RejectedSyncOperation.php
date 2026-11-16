@@ -10,7 +10,10 @@ use RuntimeException;
  */
 class RejectedSyncOperation extends RuntimeException
 {
-    public function __construct(public readonly string $reason)
+    /**
+     * @param  list<string>  $fields  Names of the fields at fault, for the log; never their values.
+     */
+    public function __construct(public readonly string $reason, public readonly array $fields = [])
     {
         parent::__construct($reason);
     }

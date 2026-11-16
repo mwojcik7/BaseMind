@@ -1,4 +1,5 @@
-import Dexie, { type EntityTable, type Table } from 'dexie'
+import Dexie, { type EntityTable, type Table, type Transaction } from 'dexie'
+import { renameEventColors } from './upgrades'
 
 /** One local change waiting to be sent to the server. Sent in `seq` order. */
 export interface OutboxEntry {
@@ -39,7 +40,17 @@ export const SCHEMA_VERSIONS: SchemaVersion[] = [
   { task_lists: 'id', tasks: 'id, status, due_date, list_id' },
   { tasks: 'id, status, due_date, list_id, parent_id' },
   { events: 'id, start_date, end_date' },
+  // Data only: see SCHEMA_UPGRADES.
+  {},
 ]
+
+/**
+ * One-off data fixes, keyed by the schema version (position in SCHEMA_VERSIONS, from 1)
+ * that runs them. They run once, on devices upgrading from an older version.
+ */
+export const SCHEMA_UPGRADES: Record<number, (tx: Transaction) => Promise<void>> = {
+  7: renameEventColors,
+}
 
 export class LocalDatabase extends Dexie {
   outbox!: EntityTable<OutboxEntry, 'seq'>
@@ -47,7 +58,11 @@ export class LocalDatabase extends Dexie {
 
   constructor(name: string, versions: SchemaVersion[]) {
     super(name)
-    versions.forEach((stores, index) => this.version(index + 1).stores(stores))
+    versions.forEach((stores, index) => {
+      const version = this.version(index + 1).stores(stores)
+      const upgrade = SCHEMA_UPGRADES[index + 1]
+      if (upgrade) version.upgrade(upgrade)
+    })
   }
 }
 

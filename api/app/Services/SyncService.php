@@ -9,6 +9,7 @@ use App\Policies\SpaceItemPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -91,6 +92,16 @@ class SyncService
                 return $isNew ? $this->perform($user, $op) : 'applied';
             }, 3);
         } catch (RejectedSyncOperation $rejection) {
+            // The device keeps the change and stops sending it, so the log is the only trace here.
+            Log::warning('Sync operation rejected', [
+                'user_id' => $user->id,
+                'entity' => $op['entity'],
+                'op' => $op['op'],
+                'record_id' => $op['record_id'],
+                'reason' => $rejection->reason,
+                'fields' => $rejection->fields,
+            ]);
+
             return ['op_id' => $op['op_id'], 'status' => 'rejected', 'reason' => $rejection->reason];
         }
 
@@ -342,8 +353,9 @@ class SyncService
      */
     private function validated(Model&SyncableModel $record, array $payload, array $allowed, bool $partial): array
     {
-        if (array_diff(array_keys($payload), $allowed) !== []) {
-            throw new RejectedSyncOperation('unknown_field');
+        $unknown = array_values(array_diff(array_keys($payload), $allowed));
+        if ($unknown !== []) {
+            throw new RejectedSyncOperation('unknown_field', $unknown);
         }
 
         $rules = $record->syncRules();
@@ -353,7 +365,7 @@ class SyncService
 
         $validator = Validator::make($payload, $rules);
         if ($validator->fails()) {
-            throw new RejectedSyncOperation('invalid');
+            throw new RejectedSyncOperation('invalid', $validator->errors()->keys());
         }
 
         return $validator->validated();
