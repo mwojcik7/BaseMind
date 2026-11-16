@@ -37,6 +37,11 @@ class UserSettingsController
             'dashboard.order.*' => ['string', 'max:40', 'regex:/^[a-z][a-z0-9_-]*$/', 'distinct'],
             'dashboard.hidden' => ['present_with:dashboard', 'array', 'max:50'],
             'dashboard.hidden.*' => ['string', 'max:40', 'regex:/^[a-z][a-z0-9_-]*$/', 'distinct'],
+            // Layer ids, like widget ids, belong to the app's registry.
+            'calendar' => ['sometimes', 'array:hidden_layers,show_done'],
+            'calendar.hidden_layers' => ['present_with:calendar', 'array', 'max:50'],
+            'calendar.hidden_layers.*' => ['string', 'max:40', 'regex:/^[a-z][a-z0-9_-]*$/', 'distinct'],
+            'calendar.show_done' => ['required_with:calendar', 'boolean'],
         ]);
 
         $settings = $request->user()->settings;

@@ -99,3 +99,32 @@ test('a weekly event shows every week and one week can be skipped', async ({ pag
   await expect(toast(page, 'Pominięto wystąpienie')).toBeVisible()
   await expect(rows(page, 'Trening')).toHaveCount(count - 1)
 })
+
+test('agenda and month show holidays, and the layers sheet hides them', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-09T10:00:00'))
+  await page.goto('/calendar')
+
+  await page.getByRole('tab', { name: 'Agenda' }).click()
+  await expect(page.getByRole('region', { name: 'Dziś · poniedziałek 9 listopada' })).toContainText(
+    'Nic zaplanowanego',
+  )
+  await expect(
+    page.getByRole('region', { name: 'środa 11 listopada' }).getByText('Święto Niepodległości'),
+  ).toBeVisible()
+
+  await page.getByRole('tab', { name: 'Miesiąc' }).click()
+  await expect(page.getByRole('heading', { name: 'listopad 2026' })).toBeVisible()
+  await page.getByRole('button', { name: /^środa 11 listopada/ }).click()
+  const day = page.getByRole('region', { name: 'środa 11 listopada' })
+  await expect(day.getByText('Święto Niepodległości')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Następny miesiąc' }).click()
+  await expect(page.getByRole('heading', { name: 'grudzień 2026' })).toBeVisible()
+  await page.getByRole('button', { name: 'Poprzedni miesiąc' }).click()
+
+  await page.getByRole('button', { name: 'Warstwy' }).click()
+  await sheet(page).getByLabel('Polskie święta').click()
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: /^środa 11 listopada/ }).click()
+  await expect(day).toContainText('Nic zaplanowanego')
+})

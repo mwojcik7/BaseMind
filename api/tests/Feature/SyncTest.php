@@ -472,6 +472,27 @@ class SyncTest extends TestCase
             ->assertJsonPath('settings.theme', 'dark');
     }
 
+    public function test_calendar_settings_are_saved_and_returned_by_pull(): void
+    {
+        $this->actingAs($this->user)->getJson('/api/sync/pull')->assertJsonPath('settings.calendar', null);
+
+        $calendar = ['hidden_layers' => ['holidays'], 'show_done' => true];
+        $this->actingAs($this->user)->postJson('/api/settings', ['calendar' => $calendar])->assertNoContent();
+
+        $this->actingAs($this->user)->getJson('/api/sync/pull')->assertJsonPath('settings.calendar', $calendar);
+    }
+
+    public function test_invalid_calendar_settings_are_refused(): void
+    {
+        foreach ([
+            ['hidden_layers' => ['events']],
+            ['hidden_layers' => ['Events!'], 'show_done' => false],
+            ['hidden_layers' => [], 'show_done' => false, 'extra' => 1],
+        ] as $calendar) {
+            $this->actingAs($this->user)->postJson('/api/settings', ['calendar' => $calendar])->assertUnprocessable();
+        }
+    }
+
     #[DataProvider('invalidDashboardLayouts')]
     public function test_invalid_dashboard_layout_is_refused(array $layout): void
     {

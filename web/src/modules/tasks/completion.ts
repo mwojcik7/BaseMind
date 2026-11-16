@@ -31,9 +31,10 @@ function report(error: unknown) {
 
 /**
  * The one way the app completes a task: with open subtasks the user is asked first
- * (CompleteTaskPrompt), otherwise the task is completed at once.
+ * (CompleteTaskPrompt), otherwise the task is completed at once. `undo` offers "Cofnij"
+ * where the task disappears once done (the calendar), so a slip of the finger is not lost.
  */
-export async function requestCompleteTask(task: Task) {
+export async function requestCompleteTask(task: Task, { undo = false } = {}) {
   try {
     // Nothing to ask: the subtasks come back open with the next occurrence anyway.
     if (task.rrule) {
@@ -44,6 +45,14 @@ export async function requestCompleteTask(task: Task) {
     const open = await openSubtasksOf(task.id)
     if (open.length === 0) {
       await completeTask(task.id)
+      if (undo) {
+        toast.success(pl.tasks.completed, {
+          action: {
+            label: pl.common.undo,
+            onClick: () => void reopenTasks([task.id]).catch(report),
+          },
+        })
+      }
       return
     }
     useCompletionPrompt.setState({ task, openSubtasks: open.length })

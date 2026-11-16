@@ -36,6 +36,7 @@ class SyncController
             'settings' => [
                 'theme' => $request->user()->settings?->settings['theme'] ?? null,
                 'dashboard' => $request->user()->settings?->settings['dashboard'] ?? null,
+                'calendar' => $request->user()->settings?->settings['calendar'] ?? null,
             ],
         ]);
     }

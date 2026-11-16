@@ -6,6 +6,7 @@ import { api, ApiError, NetworkError } from '@/lib/api'
 import { ACCOUNT_KEY, useAuth, type Account } from '@/lib/auth'
 import { DASHBOARD_LAYOUT_KEY, type DashboardLayout } from '@/lib/dashboard'
 import { getTheme, setTheme, THEMES, type Theme } from '@/lib/theme'
+import { CALENDAR_SETTINGS_KEY, type CalendarSettings } from '@/modules/calendar/settings'
 import {
   BACKGROUND_SYNC_TAG,
   pushOutbox,
@@ -39,19 +40,25 @@ interface PullPage {
   has_more: boolean
   /** The server no longer knows everything this device missed: download it all again. */
   reset?: true
-  settings: { theme: string | null; dashboard: DashboardLayout | null }
+  settings: {
+    theme: string | null
+    dashboard: DashboardLayout | null
+    /** Missing from servers older than the calendar views. */
+    calendar?: CalendarSettings | null
+  }
 }
 
 const CURSOR_KEY = 'sync_cursor'
 const PENDING_THEME_KEY = 'pending_theme'
 const PENDING_DASHBOARD_KEY = 'pending_dashboard_layout'
+const PENDING_CALENDAR_KEY = 'pending_calendar_settings'
 const PULL_PAGE_SIZE = 500
 
 function postOperations(ops: OutgoingOperation[]) {
   return api.post<{ results: PushResult[] }>('/api/sync/push', { ops })
 }
 
-async function pushPendingSetting(key: string, field: 'theme' | 'dashboard') {
+async function pushPendingSetting(key: string, field: 'theme' | 'dashboard' | 'calendar') {
   const pending = (await db.meta.get(key))?.value
   if (!pending) {
     return
@@ -128,6 +135,9 @@ async function applyPage(page: PullPage, userId: number): Promise<boolean> {
     if (page.settings.dashboard && !(await db.meta.get(PENDING_DASHBOARD_KEY))) {
       await db.meta.put({ key: DASHBOARD_LAYOUT_KEY, value: page.settings.dashboard })
     }
+    if (page.settings.calendar && !(await db.meta.get(PENDING_CALENDAR_KEY))) {
+      await db.meta.put({ key: CALENDAR_SETTINGS_KEY, value: page.settings.calendar })
+    }
 
     return true
   })
@@ -178,6 +188,7 @@ async function runCycle() {
   try {
     await pushPendingSetting(PENDING_THEME_KEY, 'theme')
     await pushPendingSetting(PENDING_DASHBOARD_KEY, 'dashboard')
+    await pushPendingSetting(PENDING_CALENDAR_KEY, 'calendar')
     await pushOutbox(postOperations)
     await pull(userId)
     useSyncStatus.setState({ connection: 'ok' })
@@ -243,6 +254,15 @@ export async function saveDashboardLayout(layout: DashboardLayout) {
   await db.meta.bulkPut([
     { key: DASHBOARD_LAYOUT_KEY, value: layout },
     { key: PENDING_DASHBOARD_KEY, value: layout },
+  ])
+  void runSync()
+}
+
+/** Saved on this device at once; the server hears about it whenever it can be reached. */
+export async function saveCalendarSettings(settings: CalendarSettings) {
+  await db.meta.bulkPut([
+    { key: CALENDAR_SETTINGS_KEY, value: settings },
+    { key: PENDING_CALENDAR_KEY, value: settings },
   ])
   void runSync()
 }
