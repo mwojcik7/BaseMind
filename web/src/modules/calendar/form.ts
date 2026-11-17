@@ -9,11 +9,10 @@ import {
 } from 'date-fns'
 import type { RepeatValue } from '@/modules/tasks/RepeatField'
 
-/** Where a new event starts: the next full hour, lasting an hour. */
-export function defaultSpan(now: Date, date?: string) {
-  const start = date
-    ? parseISO(`${date}T${format(addHours(startOfHour(now), 1), 'HH:mm')}`)
-    : addHours(startOfHour(now), 1)
+/** Where a new event starts: at `time` when given, else the next full hour; lasting an hour. */
+export function defaultSpan(now: Date, date?: string, time?: string) {
+  const at = time ?? format(addHours(startOfHour(now), 1), 'HH:mm')
+  const start = date ? parseISO(`${date}T${at}`) : addHours(startOfHour(now), 1)
   const end = addHours(start, 1)
 
   return {

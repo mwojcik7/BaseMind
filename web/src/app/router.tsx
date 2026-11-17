@@ -97,10 +97,18 @@ const validateDate = (search: Record<string, unknown>): { date?: string } =>
     ? { date: search.date }
     : {}
 
+/** For a new event also ?time=HH:mm, e.g. the hour tapped in the Day or Week view. */
+const validateNewEvent = (search: Record<string, unknown>): { date?: string; time?: string } => ({
+  ...validateDate(search),
+  ...(typeof search.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(search.time)
+    ? { time: search.time }
+    : {}),
+})
+
 const newEventRoute = createRoute({
   getParentRoute: () => calendarRoute,
   path: 'new',
-  validateSearch: validateDate,
+  validateSearch: validateNewEvent,
   component: lazyRouteComponent(() => import('@/modules/calendar/EventDetail'), 'NewEvent'),
 })
 

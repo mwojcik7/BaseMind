@@ -12,6 +12,8 @@ import { pl } from '@/i18n/pl'
 import { useToday } from '@/lib/use-today'
 import { AgendaView } from '@/modules/calendar/AgendaView'
 import { MonthView } from '@/modules/calendar/MonthView'
+import { weekDays } from '@/modules/calendar/timeline'
+import { TimelineView } from '@/modules/calendar/TimelineView'
 import { events } from '@/modules/calendar/repo'
 import {
   CALENDAR_LAYERS,
@@ -21,9 +23,11 @@ import {
   type CalendarSettings,
 } from '@/modules/calendar/settings'
 import {
+  CALENDAR_VIEWS,
   goToToday,
   setCalendarView,
   useCalendarView,
+  useWideScreen,
   type CalendarView,
 } from '@/modules/calendar/view'
 import { tasks } from '@/modules/tasks/repo'
@@ -68,7 +72,7 @@ function LayersSheet({ settings }: { settings: CalendarSettings }) {
   )
 }
 
-/** Agenda and Month, with the layers (date providers) chosen by the user. */
+/** Agenda, Day, Week and Month, with the layers (date providers) chosen by the user. */
 export function CalendarPage() {
   const allEvents = useRecords(events)
   const allTasks = useRecords(tasks)
@@ -79,8 +83,10 @@ export function CalendarPage() {
     () => (allEvents && allTasks ? { events: allEvents, tasks: allTasks } : null),
     [allEvents, allTasks],
   )
-  // A new event goes on the day picked in the month.
-  const newOn = view === 'month' && selected ? { date: selected } : {}
+  const wide = useWideScreen()
+  const day = selected ?? today
+  // A new event goes on the day picked in the month, or the one shown in Day and Week.
+  const newOn = view !== 'agenda' && selected ? { date: selected } : {}
 
   return (
     <div className="flex flex-col gap-4">
@@ -101,18 +107,38 @@ export function CalendarPage() {
 
       <Tabs value={view} onValueChange={(next) => setCalendarView(next as CalendarView)}>
         <TabsList aria-label={text.view} className="w-full">
-          <TabsTrigger value="agenda">{text.views.agenda}</TabsTrigger>
-          <TabsTrigger value="month">{text.views.month}</TabsTrigger>
+          {CALENDAR_VIEWS.map((name) => (
+            <TabsTrigger key={name} value={name}>
+              {name === 'week' && !wide ? text.threeDays : text.views[name]}
+            </TabsTrigger>
+          ))}
         </TabsList>
       </Tabs>
 
-      {sources &&
-        settings &&
-        (view === 'agenda' ? (
-          <AgendaView sources={sources} settings={settings} today={today} />
-        ) : (
-          <MonthView sources={sources} settings={settings} today={today} />
-        ))}
+      {sources && settings && (
+        <>
+          {view === 'agenda' && <AgendaView sources={sources} settings={settings} today={today} />}
+          {view === 'day' && (
+            <TimelineView
+              sources={sources}
+              settings={settings}
+              today={today}
+              days={[day]}
+              step={1}
+            />
+          )}
+          {view === 'week' && (
+            <TimelineView
+              sources={sources}
+              settings={settings}
+              today={today}
+              days={weekDays(day, wide)}
+              step={wide ? 7 : 3}
+            />
+          )}
+          {view === 'month' && <MonthView sources={sources} settings={settings} today={today} />}
+        </>
+      )}
 
       <Outlet />
     </div>

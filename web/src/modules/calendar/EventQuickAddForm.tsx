@@ -38,17 +38,17 @@ const NONE = 'none'
 export function EventQuickAddForm({ onDone }: { onDone: () => void }) {
   const navigate = useNavigate()
   const path = useRouterState({ select: (state) => state.location.pathname })
-  // Read once: opened over the month view, a new event goes on the day picked there.
-  const [pickedInMonth] = useState(() => {
+  // Read once: opened over Day, Week or Month, a new event goes on the day picked there.
+  const [pickedDay] = useState(() => {
     const { view, selected } = useCalendarView.getState()
-    return path === '/calendar' && view === 'month' ? selected : null
+    return path === '/calendar' && view !== 'agenda' ? selected : null
   })
   const [input, setInput] = useState('')
   const [picks, setPicks] = useState<QuickEventPicks>({})
   const [saving, setSaving] = useState(false)
 
   const now = new Date()
-  const day = pickedInMonth ?? format(now, 'yyyy-MM-dd')
+  const day = pickedDay ?? format(now, 'yyyy-MM-dd')
   const { text: title, fields } = parseQuickText(input, eventRules, { now })
   const draft = quickEventDraft(fields, picks, { now, day })
   const repeat = draft.rrule ? describeRecurrence(repeatOf(draft.rrule)) : null

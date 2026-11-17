@@ -55,7 +55,7 @@ export function eventTime({ event, day, days }: EventItem) {
 }
 
 /** Ends on the stroke of midnight, so the day it "ends" on has none of it. */
-const endsAtMidnight = (event: CalendarEvent) =>
+export const endsAtMidnight = (event: CalendarEvent) =>
   event.start_time !== null && event.end_time === '00:00' && event.end_date > event.start_date
 
 /** How many days the event shows on: an end at midnight leaves its last day out. */

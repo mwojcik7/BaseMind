@@ -204,3 +204,88 @@ test('the dashboard widget shows today and tomorrow, with past events greyed out
   await tomorrow.getByRole('link', { name: /dentysta/ }).click()
   await expect(sheet(page).getByLabel('Tytuł')).toHaveValue('dentysta')
 })
+
+test('day and week views lay events on the hour axis and open a new one on a tapped hour', async ({
+  page,
+}) => {
+  await quickEvent(page, 'dziś 9-11 warsztat')
+  await quickEvent(page, 'dziś 9:30-10 telefon')
+  await quickEvent(page, 'dziś urlop')
+  await quickEvent(page, 'jutro 15-16 dentysta')
+  await navigation(page).getByRole('button', { name: 'Dodaj' }).click()
+  await quickAdd(page).getByRole('button', { name: 'Zadanie' }).click()
+  await quickAdd(page)
+    .getByRole('textbox', { name: 'Np. kupić mleko jutro !1' })
+    .fill('dziś 12:00 zadzwonić')
+  await quickAdd(page).getByRole('button', { name: 'Dodaj', exact: true }).click()
+  await expect(quickAdd(page)).toBeHidden()
+
+  await page.getByRole('tab', { name: 'Dzień', exact: true }).click()
+  const today = page.getByRole('region', { name: 'Dziś · poniedziałek 7 grudnia' })
+  await expect(today.getByRole('link', { name: /warsztat/ })).toBeVisible()
+  await expect(today.getByRole('link', { name: /telefon/ })).toBeVisible()
+  await expect(page.getByRole('group', { name: 'Cały dzień' })).toContainText('urlop')
+  const call12 = today.getByRole('checkbox', { name: /zadzwonić/ })
+  await expect(call12).toBeVisible()
+  await page.screenshot({
+    path: process.env.SHOT_DIR ? `${process.env.SHOT_DIR}/day.png` : undefined,
+  })
+
+  await call12.click()
+  // Done tasks are hidden unless the layers sheet says otherwise.
+  await expect(call12).toBeHidden()
+
+  // Side by side: the two overlapping blocks share the width.
+  const workshop = await today.getByRole('link', { name: /warsztat/ }).boundingBox()
+  const call = await today.getByRole('link', { name: /telefon/ }).boundingBox()
+  expect(call!.x).toBeGreaterThan(workshop!.x + workshop!.width - 2)
+
+  await page.getByRole('button', { name: 'Następny dzień' }).click()
+  await expect(
+    page.getByRole('region', { name: 'wtorek 8 grudnia' }).getByRole('link', { name: /dentysta/ }),
+  ).toBeVisible()
+
+  await page.getByRole('tab', { name: '3 dni', exact: true }).click()
+  // A phone shows three days from the day picked.
+  await expect(page.getByRole('heading', { name: '8 grudnia – 10 grudnia 2026' })).toBeVisible()
+  await page.getByRole('button', { name: 'Poprzednie dni' }).click()
+  await expect(page.getByRole('heading', { name: '5 grudnia – 7 grudnia 2026' })).toBeVisible()
+  await page.screenshot({
+    path: process.env.SHOT_DIR ? `${process.env.SHOT_DIR}/week.png` : undefined,
+  })
+
+  // An empty hour: 14:00 on Sunday 6 December.
+  const sunday = page.getByTestId('hours-2026-12-06')
+  await sunday.scrollIntoViewIfNeeded()
+  await sunday.click({ position: { x: 10, y: 14 * 48 + 10 } })
+  await expect(sheet(page).getByLabel('Godzina początku')).toHaveValue('14:00')
+  await expect(sheet(page).getByLabel('Godzina końca')).toHaveValue('15:00')
+  await expect(sheet(page).getByLabel('Data początku')).toContainText('6')
+})
+
+/** A real touch swipe (through CDP), so the browser applies touch-action as on a phone. */
+async function swipeLeft(page: Page, x: number, y: number) {
+  const cdp = await page.context().newCDPSession(page)
+  const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', px: number) =>
+    cdp.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: type === 'touchEnd' ? [] : [{ x: px, y }],
+    })
+  await touch('touchStart', x)
+  for (let step = 1; step <= 10; step++) await touch('touchMove', x - step * 20)
+  await touch('touchEnd', x - 200)
+}
+
+test('a swipe on the hour axis turns the day', async ({ page }) => {
+  await page.getByRole('tab', { name: 'Dzień', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Dziś · poniedziałek 7 grudnia' })).toBeVisible()
+
+  // Somewhere on the visible part of the axis, under the strip and headings.
+  const axis = await page.getByTestId('hours-2026-12-07').boundingBox()
+  const title = await page
+    .getByRole('heading', { name: 'Dziś · poniedziałek 7 grudnia' })
+    .boundingBox()
+  await swipeLeft(page, axis!.x + axis!.width - 20, title!.y + 250)
+
+  await expect(page.getByRole('heading', { name: 'wtorek 8 grudnia' })).toBeVisible()
+})

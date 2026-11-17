@@ -270,6 +270,7 @@ function EventForm({
   reminders,
   occurrence,
   initialDate,
+  initialTime,
   onDone,
 }: {
   event: CalendarEvent | null
@@ -279,6 +280,8 @@ function EventForm({
   occurrence: string | undefined
   /** The day a new event goes on. */
   initialDate: string | undefined
+  /** The hour a new event starts at (tapped on the hour axis). */
+  initialTime?: string
   onDone: () => void
 }) {
   const span = event
@@ -288,7 +291,7 @@ function EventForm({
         end_date: event.end_date,
         end_time: event.end_time ?? '',
       }
-    : defaultSpan(new Date(), initialDate)
+    : defaultSpan(new Date(), initialDate, initialTime)
 
   const {
     register,
@@ -557,7 +560,7 @@ export function EventDetail() {
 }
 
 export function NewEvent() {
-  const { date } = useSearch({ strict: false }) as { date?: string }
+  const { date, time } = useSearch({ strict: false }) as { date?: string; time?: string }
   const close = useClose()
 
   return (
@@ -567,6 +570,7 @@ export function NewEvent() {
         reminders={DEFAULT_EVENT_REMINDERS.map(timingKey)}
         occurrence={undefined}
         initialDate={date}
+        initialTime={time}
         onDone={close}
       />
     </BottomSheet>
