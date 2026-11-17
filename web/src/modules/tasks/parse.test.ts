@@ -38,11 +38,11 @@ describe('task rules', () => {
     ['mleko 3 pazdziernika', '2027-10-03'],
     ['mleko 1 stycznia 2028', '2028-01-01'],
   ])('reads the date in "%s"', (text, date) => {
-    expect(parse(text)).toEqual({ text: 'mleko', fields: { due_date: date } })
+    expect(parse(text)).toEqual({ text: 'mleko', fields: { date } })
   })
 
   it('means next week when the weekday is today', () => {
-    expect(parse('w poniedziałek').fields.due_date).toBe('2026-11-16')
+    expect(parse('w poniedziałek').fields.date).toBe('2026-11-16')
   })
 
   it('leaves a day that does not exist in the text', () => {
@@ -58,7 +58,7 @@ describe('task rules', () => {
     ['o 8 wieczorem', '20:00'],
     ['o 3 po południu', '15:00'],
   ])('reads the time in "%s"', (phrase, time) => {
-    expect(parse(`mleko ${phrase}`)).toEqual({ text: 'mleko', fields: { due_time: time } })
+    expect(parse(`mleko ${phrase}`)).toEqual({ text: 'mleko', fields: { time } })
   })
 
   it('leaves a time that does not exist alone', () => {
@@ -99,12 +99,12 @@ describe('task rules', () => {
   it('reads a weekly repeat with its day as a date', () => {
     expect(parse('basen co tydzień w piątek o 18')).toEqual({
       text: 'basen',
-      fields: { rrule: 'FREQ=WEEKLY', due_date: '2026-11-13', due_time: '18:00' },
+      fields: { rrule: 'FREQ=WEEKLY', date: '2026-11-13', time: '18:00' },
     })
   })
 
   it('does not take "w każdy piątek" for a single date', () => {
-    expect(parse('basen w każdy piątek').fields.due_date).toBeUndefined()
+    expect(parse('basen w każdy piątek').fields.date).toBeUndefined()
   })
 
   it.each([
@@ -145,8 +145,8 @@ describe('task rules', () => {
     expect(parse('!1 kupić jutro mleko o 9 #Dom przypomnij 30 min')).toEqual({
       text: 'kupić mleko',
       fields: {
-        due_date: '2026-11-10',
-        due_time: '09:00',
+        date: '2026-11-10',
+        time: '09:00',
         priority: 1,
         list_id: 'dom',
         reminder_offset: 30,

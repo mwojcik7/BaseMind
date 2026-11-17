@@ -40,9 +40,9 @@ export function TaskQuickAddForm({ onDone }: { onDone: () => void }) {
   const dueDate =
     pickedDate !== undefined
       ? pickedDate
-      : (fields.due_date ??
-        (rrule ? (firstDueDate(rrule, today) ?? today) : fields.due_time ? today : null))
-  const time = pickedTime ?? fields.due_time ?? ''
+      : (fields.date ??
+        (rrule ? (firstDueDate(rrule, today) ?? today) : fields.time ? today : null))
+  const time = pickedTime ?? fields.time ?? ''
   const offset = pickedOffset !== undefined ? pickedOffset : (fields.reminder_offset ?? null)
   const priority = pickedPriority ?? fields.priority ?? DEFAULT_PRIORITY
   const repeat = rrule && dueDate ? pinToDate(rrule, dueDate) : null

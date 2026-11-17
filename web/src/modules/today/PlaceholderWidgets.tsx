@@ -6,10 +6,6 @@ function Empty({ text }: { text: string }) {
   return <p className="text-sm text-muted-foreground">{text}</p>
 }
 
-export function EventsWidget() {
-  return <Empty text={pl.today.eventsEmpty} />
-}
-
 export function ExpensesWidget() {
   return <Empty text={pl.today.expensesEmpty} />
 }

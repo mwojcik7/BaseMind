@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   daysBetween,
+  eventOverAt,
+  eventsAhead,
+  eventTime,
   itemsByDay,
   monthGrid,
   overdueTasks,
@@ -183,5 +186,83 @@ describe('calendar days', () => {
     expect(shiftMonth('2026-12', 1)).toBe('2027-01')
     expect(shiftMonth('2026-01', -1)).toBe('2025-12')
     expect(daysBetween('2026-12-30', '2027-01-02')).toHaveLength(4)
+  })
+
+  it('gives the widget the events of today and tomorrow, whatever the layers', () => {
+    const days = eventsAhead(
+      [
+        event('today', { start_date: '2026-11-16', end_date: '2026-11-16' }),
+        event('tomorrow', {
+          start_date: '2026-11-17',
+          end_date: '2026-11-17',
+          start_time: null,
+          end_time: null,
+        }),
+        event('later', { start_date: '2026-11-18', end_date: '2026-11-18' }),
+        event('weekly', { start_date: '2026-11-03', end_date: '2026-11-03', rrule: 'FREQ=WEEKLY' }),
+      ],
+      '2026-11-16',
+    )
+
+    expect(days.map(({ day, items }) => [day, keys(items)])).toEqual([
+      ['2026-11-16', ['today:2026-11-16']],
+      ['2026-11-17', ['tomorrow:2026-11-17', 'weekly:2026-11-17']],
+    ])
+    expect(eventsAhead([], '2026-11-16')).toEqual([])
+  })
+
+  it('tells when an event is over and how its time reads on each day', () => {
+    const [today] = eventsAhead(
+      [
+        event('short', { start_time: '09:00', end_time: '10:00' }),
+        event('long', {
+          start_date: '2026-11-15',
+          end_date: '2026-11-17',
+          start_time: '18:00',
+          end_time: '12:00',
+        }),
+        event('allDay', { start_time: null, end_time: null }),
+      ],
+      '2026-11-16',
+    ).map(({ items }) => items)
+    const byId = (id: string) => today.find((item) => item.event.id === id)!
+
+    expect(eventOverAt(byId('short'), '09:59')).toBe(false)
+    expect(eventOverAt(byId('short'), '10:00')).toBe(true)
+    // An inner day of a long event and an all-day one last until midnight.
+    expect(eventOverAt(byId('long'), '23:59')).toBe(false)
+    expect(eventOverAt(byId('allDay'), '23:59')).toBe(false)
+    expect(eventTime(byId('short'))).toBe('09:00–10:00')
+    expect(eventTime(byId('long'))).toBe('cały dzień (dzień 2/3)')
+  })
+
+  it('does not show an event ending at midnight on the next day', () => {
+    const late = event('late', {
+      start_date: '2026-11-16',
+      end_date: '2026-11-17',
+      start_time: '23:00',
+      end_time: '00:00',
+    })
+    const long = event('long', {
+      start_date: '2026-11-15',
+      end_date: '2026-11-17',
+      start_time: '18:00',
+      end_time: '00:00',
+    })
+    const days = itemsByDay(
+      { events: [late, long], tasks: [] },
+      settings(),
+      '2026-11-15',
+      '2026-11-17',
+    )
+
+    expect(keys(days.get('2026-11-16'))).toEqual(['long:2026-11-15', 'late:2026-11-16'])
+    expect(days.get('2026-11-17')).toBeUndefined()
+    const [, today] = eventsAhead([late, long], '2026-11-15').map(({ items }) => items)
+    const byId = (id: string) => today.find((item) => item.event.id === id)!
+    expect(eventTime(byId('late'))).toBe('23:00–00:00')
+    expect(eventTime(byId('long'))).toBe('do 24:00 (dzień 2/2)')
+    // Lasts until midnight, so it is never over during its day.
+    expect(eventOverAt(byId('late'), '23:59')).toBe(false)
   })
 })

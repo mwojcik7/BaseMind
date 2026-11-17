@@ -1,9 +1,10 @@
+import { useRouterState } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { Button } from '@/components/ui/button'
 import { pl } from '@/i18n/pl'
-import { quickAddTypes } from '@/modules/quickAddRegistry'
+import { quickAddTypeFor, quickAddTypes } from '@/modules/quickAddRegistry'
 
 interface QuickAddDialogProps {
   /** Round FAB in the bottom navigation, or a full-width button in the sidebar. */
@@ -30,7 +31,8 @@ function shortcutAllowed(event: KeyboardEvent) {
 
 /** Mounted only while the sheet is open, so every use starts empty. */
 function QuickAddContent({ onDone }: { onDone: () => void }) {
-  const [typeId, setTypeId] = useState(quickAddTypes[0].id)
+  const path = useRouterState({ select: (state) => state.location.pathname })
+  const [typeId, setTypeId] = useState(() => quickAddTypeFor(path).id)
   const type = quickAddTypes.find((candidate) => candidate.id === typeId) ?? quickAddTypes[0]
 
   return (

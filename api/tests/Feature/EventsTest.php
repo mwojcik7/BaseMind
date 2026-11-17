@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Digest\TodayEventsSection;
 use App\Jobs\SendReminder;
 use App\Models\Event;
 use App\Models\Reminder;
@@ -337,5 +338,29 @@ class EventsTest extends TestCase
 
         $this->assertNull(Event::withTrashed()->find($event['id']));
         $this->assertNull(Reminder::withTrashed()->find($reminderId));
+    }
+
+    public function test_the_digest_lists_todays_events_all_day_first_then_by_time(): void
+    {
+        $this->pushEvent(['title' => 'Kino', 'start_date' => '2026-11-20', 'end_date' => '2026-11-20', 'start_time' => '20:00', 'end_time' => '22:00']);
+        $this->pushEvent(['title' => 'Dentysta', 'start_date' => '2026-11-20', 'end_date' => '2026-11-20', 'start_time' => '09:30', 'end_time' => '10:00']);
+        $this->pushEvent(['title' => 'Urodziny', 'start_date' => '2026-11-20', 'end_date' => '2026-11-20', 'start_time' => null, 'end_time' => null]);
+        // The second day of a long event reads as all-day.
+        $this->pushEvent(['title' => 'Wyjazd', 'start_date' => '2026-11-19', 'end_date' => '2026-11-21', 'start_time' => '18:00', 'end_time' => '12:00']);
+        // A series started long ago, with one occurrence skipped and one falling today.
+        $this->pushEvent(['title' => 'Basen', 'start_date' => '2026-10-02', 'end_date' => '2026-10-02', 'start_time' => '07:00', 'end_time' => '08:00', 'rrule' => 'FREQ=WEEKLY']);
+        $this->pushEvent(['title' => 'Joga', 'start_date' => '2026-10-02', 'end_date' => '2026-10-02', 'start_time' => '17:00', 'end_time' => '18:00', 'rrule' => 'FREQ=WEEKLY', 'exdates' => ['2026-11-20']]);
+        $this->pushEvent(['title' => 'Jutro', 'start_date' => '2026-11-21', 'end_date' => '2026-11-21']);
+        $this->pushEvent(['title' => 'Wczoraj', 'start_date' => '2026-11-19', 'end_date' => '2026-11-19']);
+        // Ends on the stroke of midnight, so today has none of it.
+        $this->pushEvent(['title' => 'Do północy', 'start_date' => '2026-11-19', 'end_date' => '2026-11-20', 'start_time' => '23:00', 'end_time' => '00:00']);
+        $this->pushEvent(['title' => 'Cudze', 'start_date' => '2026-11-20', 'end_date' => '2026-11-20'], User::factory()->create());
+        $deleted = $this->pushEvent(['title' => 'Usunięte', 'start_date' => '2026-11-20', 'end_date' => '2026-11-20']);
+        Event::findOrFail($deleted['id'])->delete();
+
+        $section = app(TodayEventsSection::class)->forUser($this->user, CarbonImmutable::parse('2026-11-20', 'Europe/Warsaw'));
+
+        $this->assertSame('Wydarzenia dziś', $section['title']);
+        $this->assertSame(['Urodziny', 'Wyjazd', '07:00 Basen', '09:30 Dentysta', '20:00 Kino'], $section['items']);
     }
 }

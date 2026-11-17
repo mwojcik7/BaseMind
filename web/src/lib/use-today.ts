@@ -17,3 +17,10 @@ const todayKey = () => format(new Date(), 'yyyy-MM-dd')
 export function useToday() {
   return useSyncExternalStore(subscribe, todayKey)
 }
+
+const timeKey = () => format(new Date(), 'HH:mm')
+
+/** The time now as 'HH:mm', updated every minute. */
+export function useTimeNow() {
+  return useSyncExternalStore(subscribe, timeKey)
+}

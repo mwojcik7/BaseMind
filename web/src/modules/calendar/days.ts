@@ -36,6 +36,38 @@ export type CalendarItem =
     }
   | { kind: 'task'; key: string; task: Task }
 
+export type EventItem = Extract<CalendarItem, { kind: 'event' }>
+
+/** The times as they read on this day of the event. */
+export function eventTime({ event, day, days }: EventItem) {
+  const text = pl.calendar
+  let time: string
+  if (days === 1) {
+    time = event.start_time ? `${event.start_time}–${event.end_time}` : text.allDayShort
+  } else if (day === 1 && event.start_time) {
+    time = text.from(event.start_time)
+  } else if (day === days && event.end_time) {
+    time = text.until(endsAtMidnight(event) ? '24:00' : event.end_time)
+  } else {
+    time = text.allDayShort
+  }
+  return days > 1 ? `${time} (${text.dayOf(day, days)})` : time
+}
+
+/** Ends on the stroke of midnight, so the day it "ends" on has none of it. */
+const endsAtMidnight = (event: CalendarEvent) =>
+  event.start_time !== null && event.end_time === '00:00' && event.end_date > event.start_date
+
+/** How many days the event shows on: an end at midnight leaves its last day out. */
+export function eventDays(event: CalendarEvent) {
+  const span = differenceInCalendarDays(parseISO(event.end_date), parseISO(event.start_date)) + 1
+  return endsAtMidnight(event) ? span - 1 : span
+}
+
+/** Whether the event is over by `time` ('HH:mm') on this day; all-day ones last the day. */
+export const eventOverAt = ({ event, day, days }: EventItem, time: string) =>
+  day === days && !endsAtMidnight(event) && event.end_time !== null && event.end_time <= time
+
 export interface CalendarSources {
   events: readonly CalendarEvent[]
   tasks: readonly Task[]
@@ -92,8 +124,7 @@ export function itemsByDay(
 
   if (layerShown(settings, 'events')) {
     for (const event of sources.events) {
-      const length =
-        differenceInCalendarDays(parseISO(event.end_date), parseISO(event.start_date)) + 1
+      const length = eventDays(event)
       for (const start of occurrenceStarts(event, from, to)) {
         for (let index = 0; index < length; index++) {
           add(shiftDay(start, index), {
@@ -151,4 +182,19 @@ export const shiftMonth = (month: string, by: number) => {
 export function dayHeading(date: string, today: string) {
   const full = format(parseISO(date), 'EEEE d MMMM', { locale: dateLocale })
   return date === today ? `${pl.tasks.today} · ${full}` : full
+}
+
+/** Events only, whatever the calendar's layers: the widget on "Dziś" has its own setting. */
+const EVENTS_ONLY: CalendarSettings = { hidden_layers: ['tasks', 'holidays'], show_done: false }
+
+/** The events of today and tomorrow for the "Dziś" widget; a day without any is left out. */
+export function eventsAhead(events: readonly CalendarEvent[], today: string) {
+  const tomorrow = shiftDay(today, 1)
+  const byDay = itemsByDay({ events, tasks: [] }, EVENTS_ONLY, today, tomorrow)
+  return [today, tomorrow]
+    .map((day) => ({
+      day,
+      items: (byDay.get(day) ?? []).filter((item): item is EventItem => item.kind === 'event'),
+    }))
+    .filter(({ items }) => items.length > 0)
 }

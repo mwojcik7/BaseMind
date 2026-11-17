@@ -5,28 +5,11 @@ import { toast } from '@/components/ui/toaster'
 import { pl } from '@/i18n/pl'
 import { errorMessage } from '@/lib/form-errors'
 import { colorClassOf } from '@/modules/calendar/colors'
-import type { CalendarItem } from '@/modules/calendar/days'
+import { eventTime, type CalendarItem, type EventItem } from '@/modules/calendar/days'
 import { requestCompleteTask } from '@/modules/tasks/completion'
 import { reopenTask, type Task } from '@/modules/tasks/repo'
 
 const text = pl.calendar
-
-type EventItem = Extract<CalendarItem, { kind: 'event' }>
-
-/** The times as they read on this day of the event. */
-function eventTime({ event, day, days }: EventItem) {
-  let time: string
-  if (days === 1) {
-    time = event.start_time ? `${event.start_time}–${event.end_time}` : text.allDayShort
-  } else if (day === 1 && event.start_time) {
-    time = text.from(event.start_time)
-  } else if (day === days && event.end_time) {
-    time = text.until(event.end_time)
-  } else {
-    time = text.allDayShort
-  }
-  return days > 1 ? `${time} (${text.dayOf(day, days)})` : time
-}
 
 function EventRow({ item }: { item: EventItem }) {
   const { event, start } = item
