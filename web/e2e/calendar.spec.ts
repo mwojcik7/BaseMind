@@ -12,8 +12,21 @@ test.beforeEach(async ({ page, request }) => {
   await register(request, account)
   await logInThroughForm(page, account)
   await expect(navigation(page)).toBeVisible()
+  // A Monday morning: late in the evening a new event would run past midnight and show twice.
+  await page.clock.setFixedTime(new Date('2026-12-07T10:00:00'))
   await page.goto('/calendar')
 })
+
+const quickAdd = (page: Page) => page.getByRole('dialog', { name: 'Szybkie dodawanie' })
+
+/** Types into the [+] sheet's event tab and saves. */
+async function quickEvent(page: Page, input: string) {
+  await navigation(page).getByRole('button', { name: 'Dodaj' }).click()
+  await quickAdd(page).getByRole('button', { name: 'Wydarzenie' }).click()
+  await quickAdd(page).getByRole('textbox', { name: 'Np. jutro 18:00 dentysta' }).fill(input)
+  await quickAdd(page).getByRole('button', { name: 'Dodaj', exact: true }).click()
+  await expect(quickAdd(page)).toBeHidden()
+}
 
 async function addEvent(page: Page, title: string, repeat?: RegExp) {
   await page.getByRole('link', { name: 'Nowe wydarzenie' }).click()
@@ -127,4 +140,67 @@ test('agenda and month show holidays, and the layers sheet hides them', async ({
   await page.keyboard.press('Escape')
   await page.getByRole('button', { name: /^środa 11 listopada/ }).click()
   await expect(day).toContainText('Nic zaplanowanego')
+})
+
+test('the [+] sheet reads an event from text and starts on the event tab here', async ({
+  page,
+}) => {
+  await navigation(page).getByRole('button', { name: 'Dodaj' }).click()
+  await expect(quickAdd(page).getByRole('button', { name: 'Wydarzenie' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  const input = quickAdd(page).getByRole('textbox', { name: 'Np. jutro 18:00 dentysta' })
+
+  await input.fill('w piątek 10-12 przegląd auta')
+  await expect(quickAdd(page).getByLabel('Godzina początku')).toHaveValue('10:00')
+  await expect(quickAdd(page).getByLabel('Godzina końca')).toHaveValue('12:00')
+  await expect(quickAdd(page).getByLabel('Cały dzień')).not.toBeChecked()
+
+  await input.fill('co wtorek 18:00 basen')
+  await expect(quickAdd(page).getByTestId('quick-add-summary')).toHaveText('Co tydzień: wt.')
+
+  await input.fill('jutro 18:00 dentysta')
+  await quickAdd(page).getByRole('button', { name: 'Dodaj', exact: true }).click()
+  await toast(page, 'Dodano wydarzenie').getByRole('button', { name: 'Otwórz' }).click()
+  await expect(sheet(page).getByLabel('Tytuł')).toHaveValue('dentysta')
+  await expect(sheet(page).getByLabel('Godzina początku')).toHaveValue('18:00')
+  const reminders = sheet(page).getByRole('group', { name: 'Przypomnienia' }).getByRole('listitem')
+  await expect(reminders).toHaveText(['Dzień wcześniej, 7:00'])
+})
+
+test('a quick event goes on the day picked in the month', async ({ page }) => {
+  await page.getByRole('tab', { name: 'Miesiąc' }).click()
+  await page.getByRole('button', { name: /^czwartek 17 grudnia/ }).click()
+
+  await quickEvent(page, 'Kino')
+
+  await expect(page.getByRole('region', { name: 'czwartek 17 grudnia' })).toContainText('Kino')
+})
+
+test('an event until midnight shows on its own day only', async ({ page }) => {
+  await page.getByRole('tab', { name: 'Agenda' }).click()
+  await quickEvent(page, 'dziś 23-0 koncert')
+
+  await expect(rows(page, 'koncert')).toHaveCount(1)
+  await expect(rows(page, 'koncert')).toContainText('23:00–00:00')
+})
+
+test('the dashboard widget shows today and tomorrow, with past events greyed out', async ({
+  page,
+}) => {
+  await quickEvent(page, 'dziś 8-9 basen')
+  await quickEvent(page, 'jutro 18:00 dentysta')
+  await quickEvent(page, 'pojutrze kino')
+
+  await navigation(page).getByRole('link', { name: 'Dziś' }).click()
+  const today = page.getByRole('region', { name: 'Dziś', exact: true })
+  const tomorrow = page.getByRole('region', { name: 'Jutro', exact: true })
+  await expect(today.getByRole('link', { name: /basen/ })).toHaveAttribute('data-over', 'true')
+  await expect(tomorrow.getByRole('link', { name: /dentysta/ })).toContainText('18:00–19:00')
+  await expect(tomorrow.getByRole('link', { name: /dentysta/ })).not.toHaveAttribute('data-over')
+  await expect(page.getByText('kino')).toBeHidden()
+
+  await tomorrow.getByRole('link', { name: /dentysta/ }).click()
+  await expect(sheet(page).getByLabel('Tytuł')).toHaveValue('dentysta')
 })

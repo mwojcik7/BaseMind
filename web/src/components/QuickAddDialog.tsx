@@ -45,6 +45,7 @@ function QuickAddContent({ onDone }: { onDone: () => void }) {
               key={id}
               type="button"
               variant={id === type.id ? 'default' : 'secondary'}
+              aria-pressed={id === type.id}
               onClick={() => setTypeId(id)}
             >
               <Icon aria-hidden />
