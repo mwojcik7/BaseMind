@@ -6,6 +6,8 @@ use App\Casts\SodiumEncrypted;
 use App\Models\Concerns\Syncable;
 use App\Models\Contracts\SyncableModel;
 use App\Rules\EventSpan;
+use App\Rules\SeriesEvent;
+use App\Rules\SyncedRecordInSpace;
 use App\Rules\TaskRecurrence;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
@@ -13,7 +15,9 @@ use Illuminate\Validation\Rule;
 /**
  * A calendar event. Times are wall time on the user's clock; an event without times
  * lasts whole days. A repeating event shows every occurrence its rule gives, from
- * start_date on, except the skipped ones in exdates.
+ * start_date on, except the skipped ones in exdates. An occurrence changed on its own is
+ * a separate event pointing at its series (series_id) and the occurrence it replaces
+ * (series_date), whose date the series skips.
  */
 class Event extends Model implements SyncableModel
 {
@@ -37,6 +41,14 @@ class Event extends Model implements SyncableModel
             'exdates' => ['nullable', 'array', 'max:1000'],
             'exdates.*' => ['date_format:Y-m-d'],
             'color' => ['nullable', 'string', Rule::in(self::COLORS)],
+            'series_id' => [
+                'nullable',
+                'uuid',
+                new SyncedRecordInSpace($this->space_id, entity: 'events'),
+                new SeriesEvent($this->space_id, $this->id),
+            ],
+            'series_date' => ['nullable', 'date_format:Y-m-d', 'required_with:series_id'],
+            'deleted_with_series' => ['boolean'],
         ];
     }
 
@@ -54,6 +66,8 @@ class Event extends Model implements SyncableModel
             'start_date' => 'date:Y-m-d',
             'end_date' => 'date:Y-m-d',
             'exdates' => 'array',
+            'series_date' => 'date:Y-m-d',
+            'deleted_with_series' => 'boolean',
         ];
     }
 }

@@ -96,15 +96,25 @@ const eventSource: TrashSource = {
   id: 'events',
   label: pl.trash.event,
   icon: CalendarDays,
-  entries: async () =>
-    (await events.listDeleted()).map((event) => ({
-      id: event.id,
-      title: event.title,
-      detail: [event.start_date.split('-').reverse().join('.'), event.start_time]
-        .filter(Boolean)
-        .join(' '),
-      deletedAt: event.deleted_at!,
-    })),
+  entries: async () => {
+    const deleted = await events.listDeleted()
+    const deletedIds = new Set(deleted.map((event) => event.id))
+
+    // Occurrences that went with their series come back with it, so it stands for them.
+    return deleted
+      .filter(
+        (event) =>
+          !(event.deleted_with_series && event.series_id && deletedIds.has(event.series_id)),
+      )
+      .map((event) => ({
+        id: event.id,
+        title: event.title,
+        detail: [event.start_date.split('-').reverse().join('.'), event.start_time]
+          .filter(Boolean)
+          .join(' '),
+        deletedAt: event.deleted_at!,
+      }))
+  },
   restore: removableEvents.restore,
   purge: removableEvents.purge,
 }

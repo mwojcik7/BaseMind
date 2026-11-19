@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\EntityLink;
 use App\Models\EntityTag;
+use App\Models\Event;
 use App\Models\Reminder;
 use App\Models\Task;
 use App\Models\TaskList;
@@ -193,6 +194,48 @@ class TrashTest extends TestCase
         $this->assertNull(Task::find($task)->list_id);
         $this->actingAs($this->user)->getJson('/api/sync/pull')
             ->assertJsonFragment(['id' => $task, 'list_id' => null]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $fields
+     */
+    private function event(array $fields = []): string
+    {
+        return $this->create('events', [
+            'title' => 'Basen',
+            'location' => null,
+            'description' => null,
+            'start_date' => '2026-11-03',
+            'start_time' => '18:00',
+            'end_date' => '2026-11-03',
+            'end_time' => '19:00',
+            'rrule' => null,
+            'exdates' => null,
+            'color' => null,
+            ...$fields,
+        ]);
+    }
+
+    public function test_removing_a_series_removes_its_changed_occurrences(): void
+    {
+        $series = $this->event(['rrule' => 'FREQ=WEEKLY;BYDAY=TU', 'exdates' => ['2026-11-10', '2026-11-17']]);
+        $withSeries = $this->event(['start_date' => '2026-11-10', 'end_date' => '2026-11-10', 'series_id' => $series, 'series_date' => '2026-11-10', 'deleted_with_series' => true]);
+        $broughtBack = $this->event(['start_date' => '2026-11-18', 'end_date' => '2026-11-18', 'series_id' => $series, 'series_date' => '2026-11-17']);
+        $other = $this->event(['title' => 'Inne']);
+        $this->trash('events', $withSeries);
+        $this->trash('events', $series);
+
+        $this->purge('events', $series);
+
+        $this->assertNull(Event::withTrashed()->find($series));
+        $this->assertNull(Event::withTrashed()->find($withSeries));
+        // One restored on its own stays, as a plain event.
+        $kept = Event::find($broughtBack);
+        $this->assertNull($kept->series_id);
+        $this->assertNull($kept->series_date);
+        $this->assertNotNull(Event::find($other));
+        $this->actingAs($this->user)->getJson('/api/sync/pull')
+            ->assertJsonFragment(['id' => $broughtBack, 'series_id' => null]);
     }
 
     public function test_the_subtask_flag_is_synchronised(): void

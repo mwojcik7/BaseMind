@@ -42,6 +42,7 @@ export const SCHEMA_VERSIONS: SchemaVersion[] = [
   { events: 'id, start_date, end_date' },
   // Data only: see SCHEMA_UPGRADES.
   {},
+  { events: 'id, start_date, end_date, series_id' },
 ]
 
 /**

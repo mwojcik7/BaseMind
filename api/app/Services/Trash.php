@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Contracts\SyncableModel;
 use App\Models\EntityLink;
 use App\Models\EntityTag;
+use App\Models\Event;
 use App\Models\Reminder;
 use App\Models\Tag;
 use App\Models\Task;
@@ -39,6 +40,15 @@ class Trash
         if ($record instanceof TaskList) {
             Task::withTrashed()->where('list_id', $record->id)->lockForUpdate()->get()
                 ->each(fn (Task $task) => $this->sync->recordServerChange($task, ['list_id' => null]));
+        }
+
+        // Changed occurrences go with their series; one brought back on its own stays as a
+        // plain event.
+        if ($record instanceof Event) {
+            Event::withTrashed()->where('series_id', $record->id)->lockForUpdate()->get()
+                ->each(fn (Event $occurrence) => $occurrence->trashed()
+                    ? $this->purge($occurrence)
+                    : $this->sync->recordServerChange($occurrence, ['series_id' => null, 'series_date' => null]));
         }
 
         if ($record instanceof Tag) {

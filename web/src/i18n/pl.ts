@@ -107,8 +107,16 @@ export const pl = {
     created: 'Dodano wydarzenie',
     delete: 'Usuń',
     deleted: 'Usunięto wydarzenie',
-    skipOccurrence: 'Pomiń to wystąpienie',
-    skipped: 'Pominięto wystąpienie',
+    partOfSeries: 'Należy do serii',
+    openSeries: 'Otwórz serię',
+    seriesPrompt: {
+      saveTitle: 'Zmienić wydarzenie cykliczne?',
+      deleteTitle: 'Usunąć wydarzenie cykliczne?',
+      occurrence: (day: string) => `Wystąpienie: ${day}`,
+      this: 'Tylko to wydarzenie',
+      following: 'To i następne',
+      all: 'Wszystkie',
+    },
     allDayShort: 'cały dzień',
     views: { agenda: 'Agenda', day: 'Dzień', week: 'Tydzień', month: 'Miesiąc' },
     /** The week view on a phone shows three days, so it says so. */

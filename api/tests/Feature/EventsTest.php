@@ -156,7 +156,40 @@ class EventsTest extends TestCase
             'count and until together' => [['rrule' => 'FREQ=DAILY;COUNT=3;UNTIL=20261231']],
             'zero count' => [['rrule' => 'FREQ=DAILY;COUNT=0']],
             'skipped date with time' => [['exdates' => ['2026-11-27T18:00']]],
+            'series that does not exist' => [['series_id' => '019a0000-0000-7000-8000-000000000000', 'series_date' => '2026-11-20']],
+            'series without the occurrence' => [['series_id' => '019a0000-0000-7000-8000-000000000000']],
+            'series flag not a flag' => [['deleted_with_series' => 'yes']],
         ];
+    }
+
+    public function test_a_changed_occurrence_points_at_its_series(): void
+    {
+        $series = $this->pushEvent(['start_date' => '2026-11-03', 'end_date' => '2026-11-03', 'rrule' => 'FREQ=WEEKLY;BYDAY=TU']);
+
+        $occurrence = $this->pushEvent([
+            'start_date' => '2026-11-11',
+            'end_date' => '2026-11-11',
+            'series_id' => $series['id'],
+            'series_date' => '2026-11-10',
+        ]);
+
+        $this->assertSame('applied', $occurrence['status']);
+        $stored = Event::find($occurrence['id']);
+        $this->assertSame($series['id'], $stored->series_id);
+        $this->assertSame('2026-11-10', $stored->series_date->format('Y-m-d'));
+        $this->actingAs($this->user)->getJson('/api/sync/pull')
+            ->assertJsonFragment(['id' => $occurrence['id'], 'series_id' => $series['id'], 'series_date' => '2026-11-10']);
+    }
+
+    public function test_a_series_belongs_to_the_same_space_and_is_not_a_changed_occurrence(): void
+    {
+        $stranger = $this->pushEvent(['rrule' => 'FREQ=DAILY'], User::factory()->create());
+        $series = $this->pushEvent(['rrule' => 'FREQ=DAILY']);
+        $occurrence = $this->pushEvent(['series_id' => $series['id'], 'series_date' => '2026-11-21']);
+
+        $this->assertSame('rejected', $this->pushEvent(['series_id' => $stranger['id'], 'series_date' => '2026-11-20'])['status']);
+        $this->assertSame('rejected', $this->pushEvent(['series_id' => $occurrence['id'], 'series_date' => '2026-11-20'])['status']);
+        $this->assertSame('rejected', $this->op('update', $series['id'], ['series_id' => $series['id'], 'series_date' => '2026-11-20'], 1)['status']);
     }
 
     public function test_an_event_may_end_when_it_starts(): void

@@ -44,6 +44,14 @@ export interface CalendarEvent extends SyncedRecord {
   exdates: string[] | null
   /** Null means the accent colour. */
   color: EventColor | null
+  /**
+   * An occurrence changed on its own: the series it belongs to, and the start date of the
+   * occurrence it stands in for (the series skips that date).
+   */
+  series_id?: string | null
+  series_date?: string | null
+  /** Went to the trash together with its series, and comes back with it. */
+  deleted_with_series?: boolean
 }
 
 export const events = createRepository<CalendarEvent>('events')
@@ -51,8 +59,29 @@ export const events = createRepository<CalendarEvent>('events')
 export const isAllDay = (event: Pick<CalendarEvent, 'start_time'>) => event.start_time === null
 
 // Everything below changes an event and its reminder together, or neither.
-function withReminder<T>(work: () => Promise<T>) {
+export function withReminder<T>(work: () => Promise<T>) {
   return db.transaction('rw', db.table('events'), db.table('reminders'), db.outbox, work)
+}
+
+/** Deleted ones too, which the trash and undo need. */
+export function anyEvent(id: string) {
+  return db.table<CalendarEvent, string>('events').get(id)
+}
+
+/** Occurrences of the series changed on their own, deleted ones too. */
+export function changedOccurrences(seriesId: string) {
+  return db.table<CalendarEvent, string>('events').where('series_id').equals(seriesId).toArray()
+}
+
+async function restoreOne(id: string) {
+  await events.restore(id)
+  let event = await events.get(id)
+  if (event?.deleted_with_series) {
+    event = await events.update(id, { deleted_with_series: false })
+  }
+  if (event) {
+    await refreshEventReminders(event)
+  }
 }
 
 export function createEvent(fields: OwnFields<CalendarEvent>, offsets: readonly ReminderChoice[]) {
@@ -101,20 +130,45 @@ export function unskipOccurrence(id: string, start: string) {
   })
 }
 
-/** Deleting and restoring (by undo or from the trash), with the reminder following. */
+/**
+ * Deleting and restoring (by undo or from the trash), with reminders following. A series
+ * takes its changed occurrences along, and brings back just those when restored.
+ */
 export const removableEvents = {
   softDelete: (id: string) =>
     withReminder(async () => {
+      for (const occurrence of await changedOccurrences(id)) {
+        if (occurrence.deleted_at === null) {
+          await events.update(occurrence.id, { deleted_with_series: true })
+          await events.softDelete(occurrence.id)
+          await dismissEventReminders(occurrence.id)
+        }
+      }
       await events.softDelete(id)
       await dismissEventReminders(id)
     }),
   restore: (id: string) =>
     withReminder(async () => {
-      await events.restore(id)
-      const event = await events.get(id)
-      if (event) {
-        await refreshEventReminders(event)
+      await restoreOne(id)
+      for (const occurrence of await changedOccurrences(id)) {
+        if (occurrence.deleted_at !== null && occurrence.deleted_with_series) {
+          await restoreOne(occurrence.id)
+        }
       }
     }),
-  purge: (id: string) => events.purge(id),
+  /**
+   * Removes it for good, with its changed occurrences in the trash; one brought back on
+   * its own stays as a plain event (the server does the same).
+   */
+  purge: (id: string) =>
+    withReminder(async () => {
+      for (const occurrence of await changedOccurrences(id)) {
+        if (occurrence.deleted_at !== null) {
+          await events.purge(occurrence.id)
+        } else {
+          await events.update(occurrence.id, { series_id: null, series_date: null })
+        }
+      }
+      await events.purge(id)
+    }),
 }

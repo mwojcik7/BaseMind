@@ -143,6 +143,30 @@
       "from": "2026-01-01",
       "to": "2026-12-31",
       "starts": ["2026-03-14"]
+    },
+    {
+      "name": "a series cut short ends the day before the cut",
+      "event": {
+        "start_date": "2026-11-03",
+        "end_date": "2026-11-03",
+        "rrule": "FREQ=WEEKLY;BYDAY=TU;UNTIL=20261123",
+        "exdates": null
+      },
+      "from": "2026-11-01",
+      "to": "2026-12-31",
+      "starts": ["2026-11-03", "2026-11-10", "2026-11-17"]
+    },
+    {
+      "name": "the rest of a cut series counts on from the cut",
+      "event": {
+        "start_date": "2026-11-24",
+        "end_date": "2026-11-24",
+        "rrule": "FREQ=WEEKLY;BYDAY=TU;COUNT=3",
+        "exdates": ["2026-12-01"]
+      },
+      "from": "2026-11-01",
+      "to": "2026-12-31",
+      "starts": ["2026-11-24", "2026-12-08"]
     }
   ],
   "reminders": [
@@ -172,7 +196,12 @@
     },
     {
       "name": "an all-day event, on the day",
-      "event": { "start_date": "2026-11-20", "start_time": null, "rrule": null, "exdates": null },
+      "event": {
+        "start_date": "2026-11-20",
+        "start_time": null,
+        "rrule": null,
+        "exdates": null
+      },
       "offset": 0,
       "after": "2026-11-16 12:00",
       "next": "2026-11-20 07:00"

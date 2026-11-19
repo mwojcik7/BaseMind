@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router'
+import { Link, useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { X } from 'lucide-react'
 import { useState } from 'react'
@@ -42,13 +42,20 @@ import {
   EVENT_COLORS,
   events,
   removableEvents,
-  skipOccurrence,
-  unskipOccurrence,
   updateEvent,
   type CalendarEvent,
   type EventColor,
 } from '@/modules/calendar/repo'
+import {
+  deleteSeries,
+  saveSeries,
+  type EventFields,
+  type SeriesScope,
+  type Undo,
+} from '@/modules/calendar/occurrence'
+import { SeriesScopePrompt } from '@/modules/calendar/SeriesScopePrompt'
 import { occurrenceStarts } from '@/modules/calendar/series'
+import { daysBetween, shiftDate } from '@/modules/calendar/series-edit'
 import { RepeatField } from '@/modules/tasks/RepeatField'
 
 const text = pl.calendar
@@ -84,6 +91,19 @@ type EventFormValues = z.infer<typeof eventFormSchema>
 
 function report(error: unknown) {
   toast.error(errorMessage(error))
+}
+
+function offerUndo(message: string, undo: Undo) {
+  toast.success(message, {
+    action: { label: pl.common.undo, onClick: () => void undo().catch(report) },
+  })
+}
+
+/** The occurrence of a series the form was opened at, if it is one the series has. */
+function openedOccurrence(event: CalendarEvent | null, date: string | undefined) {
+  return event?.rrule && date && occurrenceStarts(event, date, date).includes(date)
+    ? date
+    : undefined
 }
 
 /**
@@ -284,14 +304,24 @@ function EventForm({
   initialTime?: string
   onDone: () => void
 }) {
+  const opened = openedOccurrence(event, occurrence)
+  // A series opened at an occurrence shows that occurrence's dates.
   const span = event
     ? {
-        start_date: event.start_date,
+        start_date: opened ?? event.start_date,
         start_time: event.start_time ?? '',
-        end_date: event.end_date,
+        end_date: opened
+          ? shiftDate(event.end_date, daysBetween(event.start_date, opened))
+          : event.end_date,
         end_time: event.end_time ?? '',
       }
     : defaultSpan(new Date(), initialDate, initialTime)
+  const [asked, setAsked] = useState<{
+    action: 'save' | 'delete'
+    fields?: EventFields
+    reminders?: string[]
+    scopes: SeriesScope[]
+  } | null>(null)
 
   const {
     register,
@@ -299,7 +329,7 @@ function EventForm({
     handleSubmit,
     getValues,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, defaultValues },
   } = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
     defaultValues: {
@@ -358,7 +388,26 @@ function EventForm({
     }
 
     try {
-      if (event) {
+      if (event?.rrule) {
+        if (JSON.stringify(values) === JSON.stringify(defaultValues)) {
+          onDone()
+          return
+        }
+        if (opened) {
+          // A new rule can't apply to one occurrence on its own.
+          const scopes: SeriesScope[] =
+            rrule === event.rrule ? ['this', 'following', 'all'] : ['following', 'all']
+          setAsked({ action: 'save', fields, reminders: values.reminders, scopes })
+          return
+        }
+        await saveSeries(
+          'all',
+          event,
+          event.start_date,
+          fields,
+          values.reminders.map(parseTimingKey),
+        )
+      } else if (event) {
         await updateEvent(event.id, fields, values.reminders.map(parseTimingKey))
       } else {
         await createEvent(fields, values.reminders.map(parseTimingKey))
@@ -370,18 +419,26 @@ function EventForm({
     }
   })
 
-  async function handleSkip(start: string) {
-    if (!event) {
+  async function answer(scope: SeriesScope) {
+    if (!event || !opened || !asked) {
       return
     }
+    setAsked(null)
     try {
-      await skipOccurrence(event.id, start)
-      toast.success(text.skipped, {
-        action: {
-          label: pl.common.undo,
-          onClick: () => void unskipOccurrence(event.id, start).catch(report),
-        },
-      })
+      if (asked.action === 'delete') {
+        offerUndo(text.deleted, await deleteSeries(scope, event, opened))
+      } else {
+        const { undo } = await saveSeries(
+          scope,
+          event,
+          opened,
+          asked.fields!,
+          asked.reminders!.map(parseTimingKey),
+        )
+        if (undo) {
+          offerUndo(text.saved, undo)
+        }
+      }
       onDone()
     } catch (error) {
       report(error)
@@ -392,6 +449,10 @@ function EventForm({
     if (!event) {
       return
     }
+    if (opened) {
+      setAsked({ action: 'delete', scopes: ['this', 'following', 'all'] })
+      return
+    }
     try {
       await deleteWithUndo(removableEvents, event.id, text.deleted)
       onDone()
@@ -399,11 +460,6 @@ function EventForm({
       report(error)
     }
   }
-
-  const canSkip =
-    event?.rrule &&
-    occurrence &&
-    occurrenceStarts(event, occurrence, occurrence).includes(occurrence)
 
   return (
     <form onSubmit={(submit) => void onSubmit(submit)} className="flex flex-col gap-4">
@@ -495,20 +551,39 @@ function EventForm({
         error={errors.description?.message}
       />
 
-      {event?.rrule && <p className="text-sm text-muted-foreground">{text.seriesHint}</p>}
+      {event?.rrule && !opened && (
+        <p className="text-sm text-muted-foreground">{text.seriesHint}</p>
+      )}
+      {event?.series_id && (
+        <p className="text-sm text-muted-foreground">
+          {text.partOfSeries} ·{' '}
+          <Link
+            to="/calendar/events/$eventId"
+            params={{ eventId: event.series_id }}
+            replace
+            className="text-primary underline underline-offset-4"
+          >
+            {text.openSeries}
+          </Link>
+        </p>
+      )}
 
       <Button type="submit" disabled={isSubmitting}>
         {text.save}
       </Button>
-      {canSkip && (
-        <Button type="button" variant="secondary" onClick={() => void handleSkip(occurrence)}>
-          {text.skipOccurrence}
-        </Button>
-      )}
       {event && (
         <Button type="button" variant="ghost" onClick={() => void handleDelete()}>
           {text.delete}
         </Button>
+      )}
+      {opened && (
+        <SeriesScopePrompt
+          action={asked?.action ?? null}
+          date={opened}
+          scopes={asked?.scopes ?? []}
+          onChoose={(scope) => void answer(scope)}
+          onCancel={() => setAsked(null)}
+        />
       )}
     </form>
   )

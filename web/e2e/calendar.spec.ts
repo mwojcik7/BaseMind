@@ -107,9 +107,12 @@ test('a weekly event shows every week and one week can be skipped', async ({ pag
   expect(count).toBeGreaterThanOrEqual(8)
 
   await rows(page, 'Trening').nth(1).click()
-  await expect(sheet(page).getByText('Zmiany dotyczą całej serii.')).toBeVisible()
-  await sheet(page).getByRole('button', { name: 'Pomiń to wystąpienie' }).click()
-  await expect(toast(page, 'Pominięto wystąpienie')).toBeVisible()
+  await sheet(page).getByRole('button', { name: 'Usuń', exact: true }).click()
+  await page
+    .getByRole('dialog', { name: 'Usunąć wydarzenie cykliczne?' })
+    .getByRole('button', { name: 'Tylko to wydarzenie' })
+    .click()
+  await expect(toast(page, 'Usunięto wydarzenie')).toBeVisible()
   await expect(rows(page, 'Trening')).toHaveCount(count - 1)
 })
 
