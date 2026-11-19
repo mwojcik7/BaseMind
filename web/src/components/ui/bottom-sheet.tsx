@@ -12,6 +12,8 @@ interface BottomSheetProps {
   description?: string
   /** Element that opens the sheet. Leave it out when controlling `open` from outside. */
   trigger?: ReactNode
+  /** Buttons in the top right corner, next to the title. */
+  actions?: ReactNode
   open?: boolean
   onOpenChange?: (open: boolean) => void
   children?: ReactNode
@@ -22,6 +24,7 @@ export function BottomSheet({
   title,
   description,
   trigger,
+  actions,
   open: controlledOpen,
   onOpenChange,
   children,
@@ -94,7 +97,10 @@ export function BottomSheet({
                   <div className="h-1 w-10 rounded-full bg-border" />
                 </div>
                 <div className="overflow-y-auto px-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
-                  <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
+                  <div className="flex items-center justify-between gap-2">
+                    <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
+                    {actions && <div className="-mr-2 flex shrink-0 gap-1">{actions}</div>}
+                  </div>
                   {description && (
                     <Dialog.Description className="mt-1 text-sm text-muted-foreground">
                       {description}

@@ -1,8 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { X } from 'lucide-react'
-import { useState } from 'react'
+import { Copy, X } from 'lucide-react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { CUSTOM_REMINDER, CustomReminderForm } from '@/components/CustomReminderForm'
@@ -30,7 +30,14 @@ import { errorMessage } from '@/lib/form-errors'
 import { reminderLabel } from '@/lib/reminder-label'
 import { compareTimings, parseTimingKey, timingKey } from '@/lib/reminder-moment'
 import { EVENT_COLOR_CLASS } from '@/modules/calendar/colors'
-import { defaultSpan, endsAfterStart, moveStart, repeatOf, rruleOf } from '@/modules/calendar/form'
+import {
+  copyOf,
+  defaultSpan,
+  endsAfterStart,
+  moveStart,
+  repeatOf,
+  rruleOf,
+} from '@/modules/calendar/form'
 import {
   DEFAULT_EVENT_REMINDERS,
   findEventReminders,
@@ -88,6 +95,21 @@ const eventFormSchema = z
   })
 
 type EventFormValues = z.infer<typeof eventFormSchema>
+
+/**
+ * The form of the latest duplicate, until its own form takes it. Kept in memory only: it
+ * holds what was on screen, notes included, which doesn't belong in an address.
+ */
+let pendingCopy: { token: string; values: EventFormValues } | null = null
+
+function keepCopy(values: EventFormValues) {
+  const token = Date.now().toString(36)
+  pendingCopy = { token, values }
+  return token
+}
+
+const copyFor = (token: string | undefined) =>
+  token && pendingCopy?.token === token ? pendingCopy.values : undefined
 
 function report(error: unknown) {
   toast.error(errorMessage(error))
@@ -291,6 +313,8 @@ function EventForm({
   occurrence,
   initialDate,
   initialTime,
+  draft,
+  duplicateRef,
   onDone,
 }: {
   event: CalendarEvent | null
@@ -302,8 +326,13 @@ function EventForm({
   initialDate: string | undefined
   /** The hour a new event starts at (tapped on the hour axis). */
   initialTime?: string
+  /** What a duplicate starts with, instead of the event's own values. */
+  draft?: EventFormValues
+  /** Set to what the sheet's "Duplikuj" button does with this form. */
+  duplicateRef?: RefObject<(() => void) | null>
   onDone: () => void
 }) {
+  const navigate = useNavigate()
   const opened = openedOccurrence(event, occurrence)
   // A series opened at an occurrence shows that occurrence's dates.
   const span = event
@@ -332,7 +361,7 @@ function EventForm({
     formState: { errors, isSubmitting, defaultValues },
   } = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
-    defaultValues: {
+    defaultValues: draft ?? {
       title: event?.title ?? '',
       all_day: event ? event.start_time === null : false,
       ...span,
@@ -347,6 +376,20 @@ function EventForm({
     control,
     name: ['all_day', 'start_date', 'start_time', 'end_date', 'end_time', 'description'],
   })
+
+  // Copies what the form shows; the original stays as it was saved.
+  useEffect(() => {
+    if (!duplicateRef) return
+    duplicateRef.current = () =>
+      void navigate({
+        to: '/calendar/new',
+        search: { copy: keepCopy(copyOf(getValues())) },
+        replace: true,
+      })
+    return () => {
+      duplicateRef.current = null
+    }
+  }, [duplicateRef, navigate, getValues])
 
   function setSpan(next: ReturnType<typeof moveStart>) {
     for (const [field, value] of Object.entries(next)) {
@@ -614,12 +657,25 @@ export function EventDetail() {
     [eventId],
   )
   const close = useClose()
+  const duplicate = useRef<(() => void) | null>(null)
 
   return (
     <BottomSheet
       title={text.editEvent}
       open={event !== undefined}
       onOpenChange={(open) => !open && close()}
+      actions={
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={text.duplicate}
+          title={text.duplicate}
+          onClick={() => duplicate.current?.()}
+        >
+          <Copy aria-hidden />
+        </Button>
+      }
     >
       {event && reminders !== undefined && (
         <EventForm
@@ -628,6 +684,7 @@ export function EventDetail() {
           reminders={reminders}
           occurrence={date}
           initialDate={undefined}
+          duplicateRef={duplicate}
           onDone={close}
         />
       )}
@@ -636,13 +693,21 @@ export function EventDetail() {
 }
 
 export function NewEvent() {
-  const { date, time } = useSearch({ strict: false }) as { date?: string; time?: string }
+  const { date, time, copy } = useSearch({ strict: false }) as {
+    date?: string
+    time?: string
+    copy?: string
+  }
   const close = useClose()
+  // Gone after a reload: the form then starts empty, as for any new event.
+  const draft = copyFor(copy)
 
   return (
     <BottomSheet title={text.newEvent} open onOpenChange={(open) => !open && close()}>
       <EventForm
+        key={copy}
         event={null}
+        draft={draft}
         reminders={DEFAULT_EVENT_REMINDERS.map(timingKey)}
         occurrence={undefined}
         initialDate={date}

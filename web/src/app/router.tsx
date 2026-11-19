@@ -97,11 +97,19 @@ const validateDate = (search: Record<string, unknown>): { date?: string } =>
     ? { date: search.date }
     : {}
 
-/** For a new event also ?time=HH:mm, e.g. the hour tapped in the Day or Week view. */
-const validateNewEvent = (search: Record<string, unknown>): { date?: string; time?: string } => ({
+/**
+ * For a new event also ?time=HH:mm, e.g. the hour tapped in the Day or Week view, or
+ * ?copy=<token>: a duplicate of what another event's form showed.
+ */
+const validateNewEvent = (
+  search: Record<string, unknown>,
+): { date?: string; time?: string; copy?: string } => ({
   ...validateDate(search),
   ...(typeof search.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(search.time)
     ? { time: search.time }
+    : {}),
+  ...(typeof search.copy === 'string' && /^[a-z0-9]{1,32}$/.test(search.copy)
+    ? { copy: search.copy }
     : {}),
 })
 

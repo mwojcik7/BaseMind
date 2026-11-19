@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { defaultSpan, endsAfterStart, moveStart, repeatOf, rruleOf } from '@/modules/calendar/form'
+import {
+  copyOf,
+  copyTitle,
+  defaultSpan,
+  endsAfterStart,
+  moveStart,
+  repeatOf,
+  rruleOf,
+} from '@/modules/calendar/form'
 
 const span = {
   start_date: '2026-11-20',
@@ -68,5 +76,29 @@ describe('event form', () => {
     expect(rruleOf(repeatOf('FREQ=WEEKLY;BYDAY=TU;COUNT=10'))).toBe('FREQ=WEEKLY;BYDAY=TU;COUNT=10')
     expect(rruleOf(repeatOf('FREQ=DAILY;UNTIL=20261231'))).toBe('FREQ=DAILY;UNTIL=20261231')
     expect(rruleOf(repeatOf(null))).toBeNull()
+  })
+})
+
+describe('a duplicate', () => {
+  it('is marked as a copy, within the title limit', () => {
+    expect(copyTitle('Basen ')).toBe('Basen (kopia)')
+    expect(copyTitle('a'.repeat(500))).toHaveLength(500)
+    expect(copyTitle('a'.repeat(500)).endsWith(' (kopia)')).toBe(true)
+  })
+
+  it('keeps what the form shows, but not the repeat', () => {
+    const values = {
+      title: 'Basen',
+      start_date: '2026-11-24',
+      reminders: ['1440', '60'],
+      repeat: { rrule: 'FREQ=WEEKLY;BYDAY=TU', repeat_from: 'due' as const, repeat_remaining: 5 },
+    }
+
+    expect(copyOf(values)).toEqual({
+      title: 'Basen (kopia)',
+      start_date: '2026-11-24',
+      reminders: ['1440', '60'],
+      repeat: { rrule: null, repeat_from: 'due', repeat_remaining: null },
+    })
   })
 })

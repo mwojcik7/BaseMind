@@ -116,6 +116,27 @@ test('a weekly event shows every week and one week can be skipped', async ({ pag
   await expect(rows(page, 'Trening')).toHaveCount(count - 1)
 })
 
+test('an occurrence of a series is duplicated as a single event, with what the form shows', async ({
+  page,
+}) => {
+  await addEvent(page, 'Trening', /^Co tydzień w/)
+  const count = await rows(page, 'Trening').count()
+
+  await rows(page, 'Trening').nth(1).click()
+  // Changed on screen but not saved: the copy takes it, the original doesn't.
+  await sheet(page).getByLabel('Miejsce').fill('Hala B')
+  await sheet(page).getByRole('button', { name: 'Duplikuj' }).click()
+  await expect(sheet(page).getByRole('heading', { name: 'Nowe wydarzenie' })).toBeVisible()
+  await expect(sheet(page).getByLabel('Tytuł')).toHaveValue('Trening (kopia)')
+  await expect(sheet(page).getByLabel('Miejsce')).toHaveValue('Hala B')
+  await sheet(page).getByRole('button', { name: 'Zapisz' }).click()
+  await expect(toast(page, 'Dodano wydarzenie').last()).toBeVisible()
+
+  await expect(rows(page, 'Trening (kopia)')).toHaveCount(1)
+  await expect(rows(page, 'Trening')).toHaveCount(count + 1)
+  await expect(rows(page, 'Hala B')).toHaveCount(1)
+})
+
 test('agenda and month show holidays, and the layers sheet hides them', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-11-09T10:00:00'))
   await page.goto('/calendar')

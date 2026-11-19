@@ -96,3 +96,24 @@ export function rruleOf(repeat: RepeatValue): string | null {
   }
   return repeat.repeat_remaining ? `${repeat.rrule};COUNT=${repeat.repeat_remaining}` : repeat.rrule
 }
+
+const COPY_SUFFIX = ' (kopia)'
+const TITLE_LIMIT = 500
+
+/** The title of a duplicate: marked as a copy, still within the limit. */
+export function copyTitle(title: string) {
+  const base = title.trim()
+  return `${base.slice(0, TITLE_LIMIT - COPY_SUFFIX.length)}${COPY_SUFFIX}`
+}
+
+/**
+ * What the form of a duplicate starts with: what the original's form shows, under a
+ * title marked as a copy, as a single event (a series copies just the occurrence shown).
+ */
+export function copyOf<T extends { title: string; repeat: RepeatValue }>(values: T): T {
+  return {
+    ...values,
+    title: copyTitle(values.title),
+    repeat: { rrule: null, repeat_from: 'due', repeat_remaining: null },
+  }
+}

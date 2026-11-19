@@ -107,6 +107,7 @@ export const pl = {
     created: 'Dodano wydarzenie',
     delete: 'Usuń',
     deleted: 'Usunięto wydarzenie',
+    duplicate: 'Duplikuj',
     moved: 'Przeniesiono wydarzenie',
     taskMoved: 'Przeniesiono zadanie',
     partOfSeries: 'Należy do serii',
