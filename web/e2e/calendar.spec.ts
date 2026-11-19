@@ -381,3 +381,214 @@ test('a swipe on the hour axis turns the day', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'wtorek 8 grudnia' })).toBeVisible()
 })
+
+// Part 2 of the calendar: one occurrence of a series, dragging, and what comes with them.
+
+/** A day in the agenda; Mondays of the series below are 7, 14, 21 and 28 December. */
+const agendaDay = (page: Page, name: string) => page.getByRole('region', { name })
+const seriesPrompt = (page: Page, action: 'Zmienić' | 'Usunąć') =>
+  page.getByRole('dialog', { name: `${action} wydarzenie cykliczne?` })
+
+async function openInAgenda(page: Page, day: string, title: RegExp) {
+  await page.getByRole('tab', { name: 'Agenda' }).click()
+  await agendaDay(page, day).getByRole('link', { name: title }).click()
+  await expect(sheet(page).getByRole('heading', { name: 'Wydarzenie', exact: true })).toBeVisible()
+}
+
+/** Drags with the mouse from a point by (dx, dy), in small steps. */
+async function mouseDrag(page: Page, x: number, y: number, dx: number, dy: number) {
+  await page.mouse.move(x, y)
+  await page.mouse.down()
+  await page.mouse.move(x + dx / 2, y + dy / 2, { steps: 4 })
+  await page.mouse.move(x + dx, y + dy, { steps: 4 })
+  await page.mouse.up()
+}
+
+test('one occurrence changed in the form stands apart, belongs to its series, and undo works', async ({
+  page,
+}) => {
+  await quickEvent(page, 'co poniedziałek 12-13 trening')
+  await openInAgenda(page, 'poniedziałek 14 grudnia', /trening/)
+  // The form shows the occurrence, not the start of the series.
+  await expect(sheet(page).getByLabel('Data początku')).toContainText('14')
+  await sheet(page).getByLabel('Godzina początku').fill('15:00')
+  await sheet(page).getByRole('button', { name: 'Zapisz' }).click()
+  await seriesPrompt(page, 'Zmienić').getByRole('button', { name: 'Tylko to wydarzenie' }).click()
+
+  const the14th = agendaDay(page, 'poniedziałek 14 grudnia')
+  await expect(the14th.getByRole('link', { name: /trening/ })).toContainText('15:00–16:00')
+  await expect(agendaDay(page, 'poniedziałek 21 grudnia')).toContainText('12:00–13:00')
+
+  await toast(page, 'Zapisano wydarzenie').getByRole('button', { name: 'Cofnij' }).click()
+  await expect(the14th.getByRole('link', { name: /trening/ })).toContainText('12:00–13:00')
+
+  await openInAgenda(page, 'poniedziałek 14 grudnia', /trening/)
+  await sheet(page).getByLabel('Godzina początku').fill('15:00')
+  await sheet(page).getByRole('button', { name: 'Zapisz' }).click()
+  await seriesPrompt(page, 'Zmienić').getByRole('button', { name: 'Tylko to wydarzenie' }).click()
+  await openInAgenda(page, 'poniedziałek 14 grudnia', /trening/)
+  await expect(sheet(page).getByText('Należy do serii')).toBeVisible()
+  await sheet(page).getByRole('link', { name: 'Otwórz serię' }).click()
+  // The series itself, opened without a day: it starts on the 7th.
+  await expect(sheet(page).getByText('Zmiany dotyczą całej serii.')).toBeVisible()
+  await expect(sheet(page).getByLabel('Data początku')).toContainText('7')
+})
+
+test('"this and following" changes the series from the occurrence on', async ({ page }) => {
+  await quickEvent(page, 'co poniedziałek 12-13 trening')
+  await openInAgenda(page, 'poniedziałek 21 grudnia', /trening/)
+  await sheet(page).getByLabel('Tytuł').fill('trening B')
+  await sheet(page).getByRole('button', { name: 'Zapisz' }).click()
+  await seriesPrompt(page, 'Zmienić').getByRole('button', { name: 'To i następne' }).click()
+
+  await expect(agendaDay(page, 'poniedziałek 14 grudnia')).not.toContainText('trening B')
+  await expect(agendaDay(page, 'poniedziałek 14 grudnia')).toContainText('trening')
+  await expect(agendaDay(page, 'poniedziałek 21 grudnia')).toContainText('trening B')
+  await expect(agendaDay(page, 'poniedziałek 28 grudnia')).toContainText('trening B')
+})
+
+test('"all" with a new date moves the whole series to another weekday', async ({ page }) => {
+  await quickEvent(page, 'co poniedziałek 12-13 basen')
+  await openInAgenda(page, 'poniedziałek 14 grudnia', /basen/)
+  await sheet(page)
+    .getByLabel(/^Data początku/)
+    .click()
+  await page
+    .getByRole('dialog', { name: 'Wybierz datę' })
+    .getByRole('button', { name: /15 grudnia/ })
+    .click()
+  await sheet(page).getByRole('button', { name: 'Zapisz' }).click()
+  await seriesPrompt(page, 'Zmienić').getByRole('button', { name: 'Wszystkie' }).click()
+
+  for (const day of ['wtorek 8 grudnia', 'wtorek 15 grudnia', 'wtorek 22 grudnia']) {
+    await expect(agendaDay(page, day)).toContainText('basen')
+  }
+  await expect(agendaDay(page, 'poniedziałek 14 grudnia')).toHaveCount(0)
+})
+
+test('saving a series unchanged asks nothing, and a new rule leaves out "only this one"', async ({
+  page,
+}) => {
+  await quickEvent(page, 'co poniedziałek 12-13 trening')
+  await openInAgenda(page, 'poniedziałek 14 grudnia', /trening/)
+  await sheet(page).getByRole('button', { name: 'Zapisz' }).click()
+  await expect(sheet(page)).toBeHidden()
+
+  await openInAgenda(page, 'poniedziałek 14 grudnia', /trening/)
+  await sheet(page).getByLabel('Powtarzaj').click()
+  await page.getByRole('option', { name: /^Codziennie/ }).click()
+  await sheet(page).getByRole('button', { name: 'Zapisz' }).click()
+  const prompt = seriesPrompt(page, 'Zmienić')
+  await expect(prompt.getByRole('button', { name: 'To i następne' })).toBeVisible()
+  await expect(prompt.getByRole('button', { name: 'Wszystkie' })).toBeVisible()
+  await expect(prompt.getByRole('button', { name: 'Tylko to wydarzenie' })).toHaveCount(0)
+  await prompt.getByRole('button', { name: 'Anuluj' }).click()
+  await expect(prompt).toBeHidden()
+})
+
+test('"this and following" deletes the rest of a series, and undo brings it back', async ({
+  page,
+}) => {
+  await quickEvent(page, 'co poniedziałek 12-13 joga')
+  await openInAgenda(page, 'poniedziałek 21 grudnia', /joga/)
+  await sheet(page).getByRole('button', { name: 'Usuń', exact: true }).click()
+  await seriesPrompt(page, 'Usunąć').getByRole('button', { name: 'To i następne' }).click()
+
+  await expect(agendaDay(page, 'poniedziałek 14 grudnia')).toContainText('joga')
+  await expect(agendaDay(page, 'poniedziałek 21 grudnia')).toHaveCount(0)
+  await expect(agendaDay(page, 'poniedziałek 28 grudnia')).toHaveCount(0)
+
+  await toast(page, 'Usunięto wydarzenie').getByRole('button', { name: 'Cofnij' }).click()
+  await expect(agendaDay(page, 'poniedziałek 28 grudnia')).toContainText('joga')
+})
+
+test('"all" deletes a series with its changed occurrence, which come back from the trash together', async ({
+  page,
+}) => {
+  await quickEvent(page, 'co poniedziałek 12-13 chór')
+  await openInAgenda(page, 'poniedziałek 14 grudnia', /chór/)
+  await sheet(page).getByLabel('Tytuł').fill('chór próba')
+  await sheet(page).getByRole('button', { name: 'Zapisz' }).click()
+  await seriesPrompt(page, 'Zmienić').getByRole('button', { name: 'Tylko to wydarzenie' }).click()
+  await expect(agendaDay(page, 'poniedziałek 14 grudnia')).toContainText('chór próba')
+
+  await openInAgenda(page, 'poniedziałek 21 grudnia', /chór/)
+  await sheet(page).getByRole('button', { name: 'Usuń', exact: true }).click()
+  await seriesPrompt(page, 'Usunąć').getByRole('button', { name: 'Wszystkie' }).click()
+  await expect(page.getByRole('link', { name: /chór/ })).toHaveCount(0)
+  // The sheet closes by going back: wait for it before leaving the page.
+  await expect(sheet(page)).toBeHidden()
+
+  await page.goto('/more')
+  await page.getByRole('link', { name: 'Kosz' }).click()
+  // One entry: the changed occurrence comes back with its series.
+  await expect(page.getByText('chór', { exact: true })).toBeVisible()
+  await expect(page.getByText('chór próba')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Przywróć' }).click()
+  await expect(page.getByText('Kosz jest pusty')).toBeVisible()
+
+  await page.goto('/calendar')
+  await page.getByRole('tab', { name: 'Agenda' }).click()
+  await expect(agendaDay(page, 'poniedziałek 14 grudnia')).toContainText('chór próba')
+  await expect(agendaDay(page, 'poniedziałek 21 grudnia')).toContainText('chór')
+})
+
+test('in three days an event is dragged to the next day, and undo puts it back', async ({
+  page,
+}) => {
+  await quickEvent(page, 'dziś 9-10 basen')
+  await page.getByRole('tab', { name: '3 dni', exact: true }).click()
+  const today = page.getByRole('region', { name: 'Dziś · poniedziałek 7 grudnia' })
+  const tuesday = page.getByRole('region', { name: 'wtorek 8 grudnia' })
+  const box = (await today.getByRole('link', { name: /basen/ }).boundingBox())!
+  const column = (await today.boundingBox())!.width
+
+  await mouseDrag(page, box.x + 10, box.y + 10, column, 0)
+
+  await expect(toast(page, 'Przeniesiono wydarzenie')).toBeVisible()
+  await expect(tuesday.getByRole('link', { name: /basen/ })).toContainText('09:00')
+  await expect(today.getByRole('link', { name: /basen/ })).toHaveCount(0)
+  await toast(page, 'Przeniesiono wydarzenie').getByRole('button', { name: 'Cofnij' }).click()
+  await expect(today.getByRole('link', { name: /basen/ })).toBeVisible()
+})
+
+test('a repeating task dragged to another day moves only this term', async ({ page }) => {
+  await navigation(page).getByRole('button', { name: 'Dodaj' }).click()
+  await quickAdd(page).getByRole('button', { name: 'Zadanie' }).click()
+  await quickAdd(page)
+    .getByRole('textbox', { name: 'Np. kupić mleko jutro !1' })
+    .fill('co poniedziałek 12:00 zadzwonić')
+  await quickAdd(page).getByRole('button', { name: 'Dodaj', exact: true }).click()
+  await expect(quickAdd(page)).toBeHidden()
+
+  await page.getByRole('tab', { name: '3 dni', exact: true }).click()
+  const today = page.getByRole('region', { name: 'Dziś · poniedziałek 7 grudnia' })
+  const tuesday = page.getByRole('region', { name: 'wtorek 8 grudnia' })
+  const call = today.getByRole('link', { name: 'zadzwonić' })
+  await call.scrollIntoViewIfNeeded()
+  const box = (await call.boundingBox())!
+  const column = (await today.boundingBox())!.width
+  // Picked up by its title, beside the checkbox, so that it isn't ticked.
+  await mouseDrag(page, box.x + 5, box.y + box.height / 2, column, 0)
+
+  await expect(toast(page, 'Przeniesiono zadanie')).toBeVisible()
+  await expect(tuesday.getByRole('checkbox', { name: /zadzwonić/ })).toBeVisible()
+
+  // Done on Tuesday, the next term still follows the Mondays.
+  await tuesday.getByRole('checkbox', { name: /zadzwonić/ }).click()
+  await expect(
+    page.locator('[data-sonner-toast]').filter({ hasText: /Następny termin: .*14/ }),
+  ).toBeVisible()
+})
+
+test('a short tap on a block opens the event', async ({ page }) => {
+  await quickEvent(page, 'dziś 9-10 basen')
+  await page.getByRole('tab', { name: 'Dzień', exact: true }).click()
+  const box = (await page.getByRole('link', { name: /basen/ }).boundingBox())!
+  const cdp = await page.context().newCDPSession(page)
+  const point = [{ x: box.x + box.width / 2, y: box.y + 10 }]
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: point })
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+
+  await expect(sheet(page).getByRole('heading', { name: 'Wydarzenie', exact: true })).toBeVisible()
+})

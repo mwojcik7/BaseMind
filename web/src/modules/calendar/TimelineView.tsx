@@ -106,6 +106,8 @@ function TaskChip({ task }: { task: Task }) {
       <Link
         to="/tasks/$taskId"
         params={{ taskId: task.id }}
+        // The browser's own dragging of a link would cancel moving the block with a mouse.
+        draggable={false}
         className={cn('min-w-0 flex-1 truncate', done && 'text-muted-foreground line-through')}
       >
         {task.title}
