@@ -279,6 +279,74 @@ async function swipeLeft(page: Page, x: number, y: number) {
   await touch('touchEnd', x - 200)
 }
 
+/** Holds a finger on a point, then drags it down by `dy` pixels (a real touch through CDP). */
+async function holdAndDrag(page: Page, x: number, y: number, dy: number) {
+  const cdp = await page.context().newCDPSession(page)
+  const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', py: number) =>
+    cdp.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: type === 'touchEnd' ? [] : [{ x, y: py }],
+    })
+  await touch('touchStart', y)
+  await page.waitForTimeout(600)
+  for (let step = 1; step <= 10; step++) await touch('touchMove', y + (step * dy) / 10)
+  await touch('touchEnd', y + dy)
+}
+
+test('a block on the hour axis is held and dragged to a new time, with undo', async ({ page }) => {
+  await quickEvent(page, 'dziś 9-10 basen')
+  await page.getByRole('tab', { name: 'Dzień', exact: true }).click()
+  const swim = page.getByRole('link', { name: /basen/ })
+  await expect(swim).toContainText('09:00–10:00')
+
+  const box = (await swim.boundingBox())!
+  await holdAndDrag(page, box.x + box.width / 2, box.y + 10, 48)
+
+  await expect(toast(page, 'Przeniesiono wydarzenie')).toBeVisible()
+  await expect(swim).toContainText('10:00–11:00')
+  // The drag scrolled nothing and opened nothing.
+  await expect(sheet(page)).toBeHidden()
+
+  await toast(page, 'Przeniesiono wydarzenie').getByRole('button', { name: 'Cofnij' }).click()
+  await expect(swim).toContainText('09:00–10:00')
+})
+
+test('a mouse drags the length of an event and moves one occurrence of a series', async ({
+  page,
+}) => {
+  await quickEvent(page, 'dziś 9-10 basen')
+  await quickEvent(page, 'co poniedziałek 12-13 trening')
+  await page.getByRole('tab', { name: 'Dzień', exact: true }).click()
+
+  const swim = page.getByRole('link', { name: /basen/ })
+  const box = (await swim.boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height - 3)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height + 10, { steps: 3 })
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height + 21, { steps: 3 })
+  await page.mouse.up()
+  await expect(swim).toContainText('09:00–10:30')
+  await expect(sheet(page)).toBeHidden()
+
+  const training = page.getByRole('link', { name: /trening/ })
+  await training.scrollIntoViewIfNeeded()
+  const start = (await training.boundingBox())!
+  await page.mouse.move(start.x + 20, start.y + 10)
+  await page.mouse.down()
+  await page.mouse.move(start.x + 20, start.y + 34, { steps: 5 })
+  await page.mouse.up()
+  const prompt = page.getByRole('dialog', { name: 'Zmienić wydarzenie cykliczne?' })
+  await prompt.getByRole('button', { name: 'Tylko to wydarzenie' }).click()
+  await expect(training).toContainText('12:30–13:30')
+
+  // Next Monday keeps the series' time.
+  await page.getByRole('button', { name: 'Następny dzień' }).click()
+  for (let day = 0; day < 6; day++) {
+    await page.getByRole('button', { name: 'Następny dzień' }).click()
+  }
+  await expect(page.getByRole('link', { name: /trening/ })).toContainText('12:00–13:00')
+})
+
 test('a swipe on the hour axis turns the day', async ({ page }) => {
   await page.getByRole('tab', { name: 'Dzień', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Dziś · poniedziałek 7 grudnia' })).toBeVisible()

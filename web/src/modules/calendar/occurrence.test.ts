@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useAuth, type Account } from '@/lib/auth'
-import { deleteSeries, saveSeries, type EventFields } from '@/modules/calendar/occurrence'
+import {
+  deleteSeries,
+  moveEvent,
+  moveOccurrence,
+  saveSeries,
+  type EventFields,
+} from '@/modules/calendar/occurrence'
 import { findEventReminders } from '@/modules/calendar/reminder'
 import {
   anyEvent,
@@ -162,7 +168,6 @@ describe('changing one occurrence of a series', () => {
       [1440],
     )
 
-    expect(undo).toBeNull()
     expect(event).toMatchObject({
       start_date: '2027-01-06',
       end_date: '2027-01-06',
@@ -176,6 +181,41 @@ describe('changing one occurrence of a series', () => {
       start_date: '2027-01-20',
       series_date: '2027-01-20',
     })
+
+    // Undo (offered when dragging) puts the dates back.
+    await undo()
+    expect(await live(series.id)).toMatchObject({
+      start_date: '2027-01-05',
+      start_time: '18:00',
+      rrule: WEEKLY,
+      exdates: ['2027-01-12', '2027-01-19'],
+    })
+    expect((await live(changed.id)).series_date).toBe('2027-01-19')
+  })
+
+  it('moves a single event and a whole series by drag, each with undo', async () => {
+    const single = await createEvent(on('2027-01-07', { rrule: null }), [60])
+    const undoSingle = await moveEvent(single, {
+      start_date: '2027-01-08',
+      start_time: '09:00',
+      end_date: '2027-01-08',
+      end_time: '10:30',
+    })
+    expect(await live(single.id)).toMatchObject({ start_date: '2027-01-08', end_time: '10:30' })
+    await undoSingle()
+    expect(await live(single.id)).toMatchObject({ start_date: '2027-01-07', end_time: '19:00' })
+
+    const series = await createEvent(fields(), [60, 1440])
+    await moveOccurrence('this', series, '2027-01-12', {
+      start_date: '2027-01-12',
+      start_time: '20:00',
+      end_date: '2027-01-12',
+      end_time: '21:00',
+    })
+    const [changed] = (await events.list()).filter((event) => event.series_id === series.id)
+    expect(changed).toMatchObject({ title: 'Basen', start_time: '20:00', rrule: null })
+    // The occurrence keeps the series' reminders.
+    expect((await findEventReminders(changed.id)).map((r) => r.offset_minutes)).toEqual([1440, 60])
   })
 })
 

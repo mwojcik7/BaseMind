@@ -4,7 +4,7 @@ import { cn } from 'cn'
 import { format, parseISO } from 'date-fns'
 import { pl as dateLocale } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Flag } from 'lucide-react'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from '@/components/ui/toaster'
@@ -18,12 +18,22 @@ import {
   itemsByDay,
   type CalendarItem,
   type CalendarSources,
+  type EventItem,
 } from '@/modules/calendar/days'
+import { droppedEvent, droppedTask, snapMinutes, type Drop } from '@/modules/calendar/drag'
+import type { Span } from '@/modules/calendar/form'
+import {
+  moveEvent,
+  moveOccurrence,
+  type SeriesScope,
+  type Undo,
+} from '@/modules/calendar/occurrence'
+import { SeriesScopePrompt } from '@/modules/calendar/SeriesScopePrompt'
 import type { CalendarSettings } from '@/modules/calendar/settings'
-import { minutesOf, splitDay, type TimedBlock } from '@/modules/calendar/timeline'
+import { minutesOf, splitDay, type TimedBlock, type TimedItem } from '@/modules/calendar/timeline'
 import { openDay, shiftSelected } from '@/modules/calendar/view'
 import { requestCompleteTask } from '@/modules/tasks/completion'
-import { reopenTask, type Task } from '@/modules/tasks/repo'
+import { reopenTask, rescheduleTask, type Task } from '@/modules/tasks/repo'
 
 const text = pl.calendar
 
@@ -33,6 +43,43 @@ const HOURS = Array.from({ length: 24 }, (_, hour) => hour)
 /** Where a day other than today opens. */
 const MORNING_HOUR = 7
 const SWIPE_DISTANCE = 50
+/** Holding a block this long picks it up on a touch screen. */
+const HOLD_MS = 400
+/** A finger moving further while held is scrolling, not picking up. */
+const HOLD_SLOP = 8
+/** A mouse drags as soon as it moves this far. */
+const MOUSE_SLOP = 4
+/** Near the top or bottom of the axis, a dragged block scrolls it. */
+const EDGE = 40
+const EDGE_SPEED = 8
+/** A block needs this many minutes to show the handle for its length. */
+const RESIZABLE_MINUTES = 30
+
+function report(error: unknown) {
+  toast.error(errorMessage(error))
+}
+
+function offerUndo(message: string, undo: Undo) {
+  toast.success(message, {
+    action: { label: pl.common.undo, onClick: () => void undo().catch(report) },
+  })
+}
+
+/** Where a block is dragged to, as it is being drawn. */
+interface Moving extends Drop {
+  key: string
+  /** Width of a day's column, for drawing a move to another day. */
+  columnWidth: number
+}
+
+/** The times a dragged block reads while moving. */
+function movingLabel(item: TimedItem, drop: Drop) {
+  if (item.kind === 'task') {
+    return droppedTask(item.task, drop)?.due_time ?? item.task.due_time
+  }
+  const span = droppedEvent(item, drop)
+  return span ? `${span.start_time}–${span.end_time}` : eventTime(item)
+}
 
 const shortDay = (date: string) => format(parseISO(date), 'EEEEEE d', { locale: dateLocale })
 const longDay = (date: string) => format(parseISO(date), 'd MMMM', { locale: dateLocale })
@@ -105,24 +152,57 @@ function StripItem({ item }: { item: CalendarItem }) {
   )
 }
 
-function Block({ block }: { block: TimedBlock }) {
+/** Whether a block can be picked up: timed events, and tasks with a time still to do. */
+const draggable = (item: TimedItem) => item.kind === 'event' || item.task.status === 'todo'
+
+/** Whether the block's bottom edge is the event's end, so it can change the length. */
+const resizable = ({ item, start, end }: TimedBlock) =>
+  item.kind === 'event' && item.day === item.days && end - start >= RESIZABLE_MINUTES
+
+function Block({
+  block,
+  moving,
+  onPickUp,
+  onClickCapture,
+}: {
+  block: TimedBlock
+  /** Where it is being dragged, while it is. */
+  moving: Moving | null
+  onPickUp: (event: React.PointerEvent<HTMLElement>, block: TimedBlock) => void
+  onClickCapture: (event: React.MouseEvent) => void
+}) {
   const { item, start, end, column, columns } = block
-  const style = {
+  const grow = moving?.mode === 'resize' ? (moving.minutes / 60) * HOUR : 0
+  const style: React.CSSProperties = {
     top: (start / 60) * HOUR,
-    height: ((end - start) / 60) * HOUR - 2,
+    height: Math.max(((end - start) / 60) * HOUR - 2 + grow, HOUR / 4 - 2),
     left: `${(column / columns) * 100}%`,
     width: `${100 / columns}%`,
+    ...(moving?.mode === 'move' && {
+      transform: `translate(${moving.days * moving.columnWidth}px, ${(moving.minutes / 60) * HOUR}px)`,
+    }),
   }
   // Room for a second line with the time.
   const tall = end - start >= 45
+  const handlers = draggable(item)
+    ? {
+        onPointerDown: (event: React.PointerEvent<HTMLElement>) => onPickUp(event, block),
+        onClickCapture,
+        // A long press would otherwise open the browser's menu for the link.
+        onContextMenu: (event: React.MouseEvent) => event.preventDefault(),
+      }
+    : {}
+  const className = cn(
+    'absolute overflow-hidden rounded-md border bg-card text-xs shadow-sm [-webkit-touch-callout:none]',
+    moving && 'z-20 shadow-raised ring-2 ring-ring',
+  )
+  const label = moving && movingLabel(item, moving)
 
   if (item.kind === 'task') {
     return (
-      <div
-        style={style}
-        className="absolute overflow-hidden rounded-md border bg-card px-1 text-xs shadow-sm"
-      >
+      <div style={style} className={cn(className, 'px-1')} {...handlers}>
         <TaskChip task={item.task} />
+        {label && <span className="block truncate font-medium tabular-nums">{label}</span>}
       </div>
     )
   }
@@ -132,14 +212,34 @@ function Block({ block }: { block: TimedBlock }) {
       to="/calendar/events/$eventId"
       params={{ eventId: item.event.id }}
       search={{ date: item.start }}
+      draggable={false}
       style={style}
-      className="absolute flex overflow-hidden rounded-md border bg-card text-xs shadow-sm"
+      className={cn(className, 'flex')}
+      {...handlers}
     >
       <span aria-hidden className={`w-1 shrink-0 ${colorClassOf(item.event.color)}`} />
       <span className="min-w-0 flex-1 px-1 py-0.5">
         <span className="block truncate font-medium">{item.event.title}</span>
-        {tall && <span className="block truncate text-muted-foreground">{eventTime(item)}</span>}
+        {(tall || label) && (
+          <span
+            className={cn(
+              'block truncate tabular-nums',
+              label ? 'font-medium text-foreground' : 'text-muted-foreground',
+            )}
+          >
+            {label || eventTime(item)}
+          </span>
+        )}
       </span>
+      {resizable(block) && (
+        <span
+          aria-hidden
+          data-resize
+          className="absolute inset-x-0 bottom-0 flex h-2.5 cursor-ns-resize items-end justify-center pb-0.5"
+        >
+          <span className="h-0.5 w-6 rounded-full bg-muted-foreground/60" />
+        </span>
+      )}
     </Link>
   )
 }
@@ -179,6 +279,26 @@ export function TimelineView({
   const scroller = useRef<HTMLDivElement>(null)
   const touch = useRef<{ x: number; y: number } | null>(null)
   const showsToday = days.includes(today)
+  const [moving, setMoving] = useState<Moving | null>(null)
+  const [asked, setAsked] = useState<{ item: EventItem; span: Span } | null>(null)
+  const drag = useRef<{
+    block: TimedBlock
+    mode: Drop['mode']
+    pointerId: number
+    mouse: boolean
+    startX: number
+    startY: number
+    startScroll: number
+    x: number
+    y: number
+    columnWidth: number
+    dayIndex: number
+    lifted: boolean
+    timer: number | undefined
+    frame: number | undefined
+    stop: () => void
+  } | null>(null)
+  const suppressClick = useRef(false)
   const single = days.length === 1
   const title = single
     ? dayHeading(first, today)
@@ -193,10 +313,186 @@ export function TimelineView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [first, showsToday])
 
+  // Once a block is picked up, the finger moves it instead of scrolling the axis.
+  useEffect(() => {
+    const element = scroller.current
+    if (!element) return
+    const hold = (event: TouchEvent) => {
+      if (drag.current?.lifted) event.preventDefault()
+    }
+    element.addEventListener('touchmove', hold, { passive: false })
+    return () => element.removeEventListener('touchmove', hold)
+  }, [])
+
+  // Leaving the view mid-drag ends the drag.
+  useEffect(() => () => drag.current?.stop(), [])
+
+  function dropOf(): Drop {
+    const state = drag.current!
+    const dy = state.y - state.startY + (scroller.current?.scrollTop ?? 0) - state.startScroll
+    const moved = Math.round((state.x - state.startX) / state.columnWidth)
+    return {
+      mode: state.mode,
+      minutes: snapMinutes((dy / HOUR) * 60),
+      days:
+        single || state.mode === 'resize'
+          ? 0
+          : Math.min(days.length - 1 - state.dayIndex, Math.max(-state.dayIndex, moved)),
+    }
+  }
+
+  function redraw() {
+    const state = drag.current
+    if (!state?.lifted) return
+    const drop = dropOf()
+    setMoving((current) =>
+      current &&
+      current.minutes === drop.minutes &&
+      current.days === drop.days &&
+      current.key === state.block.item.key
+        ? current
+        : { ...drop, key: state.block.item.key, columnWidth: state.columnWidth },
+    )
+  }
+
+  /** Scrolls the axis while the block is held near its top or bottom. */
+  function scrollNearEdges() {
+    const state = drag.current
+    const element = scroller.current
+    if (!state?.lifted || !element) return
+    const box = element.getBoundingClientRect()
+    // Only towards where the block is going: one picked up near an edge stays put.
+    if (state.y < box.top + EDGE && state.y < state.startY) element.scrollTop -= EDGE_SPEED
+    else if (state.y > box.bottom - EDGE && state.y > state.startY) {
+      element.scrollTop += EDGE_SPEED
+    }
+    redraw()
+    state.frame = requestAnimationFrame(scrollNearEdges)
+  }
+
+  function lift() {
+    const state = drag.current
+    if (!state) return
+    state.lifted = true
+    if (!state.mouse) navigator.vibrate?.(15)
+    redraw()
+    state.frame = requestAnimationFrame(scrollNearEdges)
+  }
+
+  function pickUp(event: React.PointerEvent<HTMLElement>, block: TimedBlock) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    drag.current?.stop()
+    const section = event.currentTarget.closest('section')
+    const resize = (event.target as HTMLElement).closest('[data-resize]') !== null
+    if (resize && !resizable(block)) return
+
+    const onMove = (move: PointerEvent) => {
+      const state = drag.current
+      if (!state || move.pointerId !== state.pointerId) return
+      state.x = move.clientX
+      state.y = move.clientY
+      if (state.lifted) return redraw()
+      const distance = Math.hypot(state.x - state.startX, state.y - state.startY)
+      if (state.mouse && distance > MOUSE_SLOP) lift()
+      // Moving before the hold is up: the finger is scrolling or swiping.
+      else if (!state.mouse && distance > HOLD_SLOP) state.stop()
+    }
+    const onUp = (up: PointerEvent) => {
+      const state = drag.current
+      if (!state || up.pointerId !== state.pointerId) return
+      const drop = state.lifted ? dropOf() : null
+      state.stop()
+      if (drop) {
+        // The click that follows a drag must not open the block.
+        suppressClick.current = true
+        window.setTimeout(() => (suppressClick.current = false), 300)
+        void place(block.item, drop)
+      }
+    }
+    const onCancel = (cancel: PointerEvent) => {
+      if (drag.current && cancel.pointerId === drag.current.pointerId) drag.current.stop()
+    }
+    const stop = () => {
+      const state = drag.current
+      if (!state) return
+      window.clearTimeout(state.timer)
+      if (state.frame !== undefined) cancelAnimationFrame(state.frame)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onCancel)
+      drag.current = null
+      setMoving(null)
+    }
+
+    drag.current = {
+      block,
+      mode: resize ? 'resize' : 'move',
+      pointerId: event.pointerId,
+      mouse: event.pointerType === 'mouse',
+      startX: event.clientX,
+      startY: event.clientY,
+      startScroll: scroller.current?.scrollTop ?? 0,
+      x: event.clientX,
+      y: event.clientY,
+      columnWidth: section?.getBoundingClientRect().width || 1,
+      dayIndex: Math.max(0, days.indexOf(section?.dataset.day ?? first)),
+      lifted: false,
+      timer: event.pointerType === 'mouse' ? undefined : window.setTimeout(lift, HOLD_MS),
+      frame: undefined,
+      stop,
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onCancel)
+  }
+
+  function swallowClickAfterDrag(event: React.MouseEvent) {
+    if (suppressClick.current) {
+      suppressClick.current = false
+      event.preventDefault()
+      event.stopPropagation()
+    }
+  }
+
+  /** Saves where a block was dropped; a series asks which of its occurrences move. */
+  async function place(item: TimedItem, drop: Drop) {
+    try {
+      if (item.kind === 'task') {
+        const term = droppedTask(item.task, drop)
+        if (!term) return
+        const before = { due_date: item.task.due_date!, due_time: item.task.due_time }
+        await rescheduleTask(item.task.id, term)
+        offerUndo(text.taskMoved, () => rescheduleTask(item.task.id, before))
+        return
+      }
+      const span = droppedEvent(item, drop)
+      if (!span) return
+      if (item.event.rrule) {
+        setAsked({ item, span })
+        return
+      }
+      offerUndo(text.moved, await moveEvent(item.event, span))
+    } catch (error) {
+      report(error)
+    }
+  }
+
+  async function answer(scope: SeriesScope) {
+    if (!asked) return
+    const { item, span } = asked
+    setAsked(null)
+    try {
+      offerUndo(text.moved, await moveOccurrence(scope, item.event, item.start, span))
+    } catch (error) {
+      report(error)
+    }
+  }
+
   function swipe(event: React.PointerEvent) {
     const start = touch.current
     touch.current = null
-    if (!start) return
+    // A block dragged sideways moves to another day; it doesn't turn the page.
+    if (!start || drag.current?.lifted) return
     const dx = event.clientX - start.x
     const dy = event.clientY - start.y
     if (Math.abs(dx) >= SWIPE_DISTANCE && Math.abs(dx) > Math.abs(dy)) {
@@ -297,6 +593,7 @@ export function TimelineView({
             {days.map((day) => (
               <section
                 key={day}
+                data-day={day}
                 aria-label={dayHeading(day, today)}
                 className="relative min-w-0 flex-1 border-l"
               >
@@ -309,7 +606,13 @@ export function TimelineView({
                 />
                 <div className="pointer-events-none absolute inset-0 *:pointer-events-auto">
                   {split.get(day)?.timed.map((block) => (
-                    <Block key={block.item.key} block={block} />
+                    <Block
+                      key={block.item.key}
+                      block={block}
+                      moving={moving?.key === block.item.key ? moving : null}
+                      onPickUp={pickUp}
+                      onClickCapture={swallowClickAfterDrag}
+                    />
                   ))}
                 </div>
                 {day === today && (
@@ -324,6 +627,13 @@ export function TimelineView({
           </div>
         </div>
       </div>
+      <SeriesScopePrompt
+        action={asked ? 'save' : null}
+        date={asked?.item.start ?? first}
+        scopes={['this', 'following', 'all']}
+        onChoose={(scope) => void answer(scope)}
+        onCancel={() => setAsked(null)}
+      />
     </div>
   )
 }

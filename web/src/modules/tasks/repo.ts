@@ -80,6 +80,14 @@ export function moveTask(id: string, dueDate: string) {
   return changeTask(id, { due_date: dueDate })
 }
 
+/**
+ * A new date and time for this term only, as when dragged in the calendar: a repeating
+ * task keeps its pattern, as with "na jutro".
+ */
+export function rescheduleTask(id: string, term: { due_date: string; due_time: string | null }) {
+  return changeTask(id, term)
+}
+
 type TaskState = Pick<
   Task,
   'status' | 'completed_at' | 'due_date' | 'repeat_anchor' | 'repeat_remaining'

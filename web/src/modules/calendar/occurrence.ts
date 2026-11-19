@@ -1,7 +1,10 @@
 import type { OwnFields } from '@/db/repository'
+import { timingOfReminder } from '@/db/reminders'
 import type { ReminderChoice } from '@/lib/reminder-moment'
+import type { Span } from '@/modules/calendar/form'
 import {
   dismissEventReminders,
+  findEventReminders,
   refreshEventReminders,
   setEventReminders,
 } from '@/modules/calendar/reminder'
@@ -143,7 +146,8 @@ async function changeAll(
         })
       }
     }
-    return { event, undo: null }
+    // Puts back the dates, not the reminders: dragging leaves them as they are.
+    return { event, undo: undoTo([series, ...occurrences], []) }
   })
 }
 
@@ -202,8 +206,8 @@ async function changeFollowing(
 
 /**
  * Saves the form of a series opened at the occurrence on `date` (or its start, when
- * opened without one). Gives back a way to undo, except for the whole series, which
- * saves as any event does.
+ * opened without one). Gives back a way to undo; for the whole series it puts back the
+ * dates but not the reminders, so the form doesn't offer it.
  */
 export function saveSeries(
   scope: SeriesScope,
@@ -211,7 +215,7 @@ export function saveSeries(
   date: string,
   fields: EventFields,
   reminders: readonly ReminderChoice[],
-): Promise<{ event: CalendarEvent; undo: Undo | null }> {
+): Promise<{ event: CalendarEvent; undo: Undo }> {
   switch (scope) {
     case 'this':
       return changeThis(series, date, fields, reminders)
@@ -259,4 +263,44 @@ export async function deleteSeries(
   }
   await removableEvents.softDelete(series.id)
   return () => removableEvents.restore(series.id)
+}
+
+/** The fields of an event that the form and the series operations work with. */
+function ownFields(event: CalendarEvent): EventFields {
+  return {
+    title: event.title,
+    location: event.location,
+    description: event.description,
+    start_date: event.start_date,
+    start_time: event.start_time,
+    end_date: event.end_date,
+    end_time: event.end_time,
+    rrule: event.rrule,
+    exdates: event.exdates,
+    color: event.color,
+  }
+}
+
+/** New times for a single event (or a changed occurrence), as when dragged; with undo. */
+export async function moveEvent(event: CalendarEvent, span: Span): Promise<Undo> {
+  await withReminder(async () => refreshEventReminders(await repo.update(event.id, span)))
+  return undoTo([event], [])
+}
+
+/** New times for the occurrence of a series on `date`, or more of it; with undo. */
+export async function moveOccurrence(
+  scope: SeriesScope,
+  series: CalendarEvent,
+  date: string,
+  span: Span,
+): Promise<Undo> {
+  const reminders = (await findEventReminders(series.id)).map(timingOfReminder)
+  const { undo } = await saveSeries(
+    scope,
+    series,
+    date,
+    { ...ownFields(series), ...span },
+    reminders,
+  )
+  return undo
 }

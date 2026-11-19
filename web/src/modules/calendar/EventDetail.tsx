@@ -435,7 +435,8 @@ function EventForm({
           asked.fields!,
           asked.reminders!.map(parseTimingKey),
         )
-        if (undo) {
+        // The form can change reminders, which the undo of the whole series doesn't cover.
+        if (scope !== 'all') {
           offerUndo(text.saved, undo)
         }
       }
