@@ -641,6 +641,7 @@ Hosting musi zapewniać:
 | 2026-11-19 | Przeciąganie: przytrzymanie 0,4 s na dotyku (z wibracją), mysz od razu; co 15 min; start bloku zostaje w dniu, na który go upuszczono, koniec najpóźniej o północy przy zmianie długości, najkrótsze 15 min; oś przewija się przy brzegu tylko w kierunku ruchu; nie przeciągają się całodniowe, święta, zadania bez godziny i zrobione | Claude (sprawdzone przez użytkownika na telefonie) |
 | 2026-11-20 | Krok 4 części 2 kalendarza („Duplikuj”): przycisk w prawym górnym rogu arkusza edycji; tytuł kopii z dopiskiem „(kopia)”; kopia zawsze pojedynczym wydarzeniem (także seria otwarta bez dnia); kopiowane to, co widać w formularzu, a oryginał nie jest zapisywany | Użytkownik |
 | 2026-11-20 | Kopia formularza trzymana tylko w pamięci (notatka nie trafia do adresu), po przeładowaniu formularz nowego wydarzenia startuje pusty; przycisk tylko przy istniejącym wydarzeniu; „Wstecz” z kopii wraca do kalendarza | Claude (sprawdzone przez użytkownika na telefonie) |
+| 2026-11-20 | Krok 5 części 2 kalendarza: zakres testów e2e według zaakceptowanej listy 9 scenariuszy (kosz i trwałe usuwanie serii z wyjątkami zostają w PHPUnit/Vitest, przeciąganie w Miesiącu poza zakresem); końcowy test na telefonie zaliczony — część 2 kalendarza zamknięta | Użytkownik |
 
 ---
 
