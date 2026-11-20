@@ -19,6 +19,8 @@ import { isEmptyNote } from '@/modules/notes/selectors'
 
 // Loaded only when the preview is opened: the Markdown parser is the biggest part.
 const MarkdownPreview = lazy(() => import('@/components/MarkdownPreview'))
+// CodeMirror is big too and only needed here, so it comes with the first note opened.
+const NoteCodeEditor = lazy(() => import('@/modules/notes/editor/NoteCodeEditor'))
 
 const route = getRouteApi('/_app/notes/$noteId')
 
@@ -225,16 +227,15 @@ function NoteEditor({
           )}
         </div>
       ) : (
-        <textarea
-          aria-label={pl.notes.content}
-          placeholder={pl.notes.contentPlaceholder}
-          maxLength={MAX_NOTE_CONTENT}
-          // A new note opens ready for typing.
-          autoFocus={note === null}
-          value={draft.content}
-          onChange={(event) => change({ content: event.target.value })}
-          className="mt-4 field-sizing-content min-h-[60vh] w-full resize-none bg-transparent text-base leading-relaxed outline-none placeholder:text-muted-foreground/60"
-        />
+        <Suspense fallback={<div className="mt-4 min-h-[60vh]" />}>
+          <NoteCodeEditor
+            initial={draft.content}
+            maxLength={MAX_NOTE_CONTENT}
+            // A new note opens ready for typing.
+            autoFocus={note === null}
+            onChange={(content) => change({ content })}
+          />
+        </Suspense>
       )}
 
       {note && (

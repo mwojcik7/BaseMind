@@ -1088,6 +1088,24 @@ describe('notes', () => {
     expect(await page().findByRole('button', { name: /^Zakupy/ })).toHaveTextContent('mleko')
   })
 
+  it('formats the text from the toolbar and saves it like typing', async () => {
+    const user = userEvent.setup()
+    await openNotes()
+
+    await user.click(page().getByRole('button', { name: pl.notes.newNote }))
+    // The editor comes in its own bundle: waits for it.
+    await page().findByLabelText(pl.notes.content)
+    const toolbar = page().getByRole('toolbar', { name: pl.notes.editor.toolbar })
+    expect(within(toolbar).getByRole('button', { name: pl.notes.editor.undo })).toBeDisabled()
+
+    await user.click(within(toolbar).getByRole('button', { name: pl.notes.editor.task }))
+    // Typing goes on where the cursor is: the button doesn't take it out of the text.
+    await user.keyboard('mleko')
+
+    await waitFor(async () => expect((await notes.list())[0]?.content).toBe('- [ ] mleko'))
+    expect(within(toolbar).getByRole('button', { name: pl.notes.editor.undo })).toBeEnabled()
+  })
+
   it('keeps nothing of a new note left empty', async () => {
     const user = userEvent.setup()
     await openNotes()

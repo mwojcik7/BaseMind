@@ -15,6 +15,11 @@ MotionGlobalConfig.skipAnimations = true
 // jsdom doesn't have it, and toasts call it when pressed.
 Element.prototype.setPointerCapture = () => {}
 
+// jsdom has no layout; CodeMirror (the notes editor) measures text ranges and finds nothing.
+const noRects = (): DOMRectList => Object.assign([], { item: () => null }) as unknown as DOMRectList
+Range.prototype.getClientRects = noRects
+Range.prototype.getBoundingClientRect = () => new DOMRect()
+
 afterEach(async () => {
   cleanup()
   localStorage.clear()

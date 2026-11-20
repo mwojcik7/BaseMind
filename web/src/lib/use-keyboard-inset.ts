@@ -25,3 +25,25 @@ function measure() {
 export function useKeyboardInset() {
   return useSyncExternalStore(subscribe, measure)
 }
+
+/** Smaller differences come from browser bars showing and hiding, not from a keyboard. */
+const KEYBOARD_MIN_HEIGHT = 120
+
+/** The keyboard's height; zooming in also makes the visible part smaller, so scale is taken out. */
+function keyboardHeight() {
+  const viewport = window.visualViewport
+  // Measured without the scroll position: at the very end of the page the browser moves the
+  // visible part down to the bottom, and the inset above drops to 0 with the keyboard still open.
+  const height = viewport ? Math.round(window.innerHeight - viewport.height * viewport.scale) : 0
+  return height > KEYBOARD_MIN_HEIGHT ? height : 0
+}
+
+/** Whether the on-screen keyboard is open, wherever the page is scrolled. */
+export function useKeyboardOpen() {
+  return useSyncExternalStore(subscribe, () => keyboardHeight() > 0)
+}
+
+/** How tall the on-screen keyboard is (0 when closed), wherever the page is scrolled. */
+export function useKeyboardHeight() {
+  return useSyncExternalStore(subscribe, keyboardHeight)
+}

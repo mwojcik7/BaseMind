@@ -1,8 +1,10 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { Calendar, CheckSquare, LayoutGrid, Sun, type LucideIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
+import { cn } from 'cn'
 import { QuickAddDialog } from '@/components/QuickAddDialog'
 import { pl } from '@/i18n/pl'
+import { useKeyboardOpen } from '@/lib/use-keyboard-inset'
 
 interface NavLinkProps {
   to: ComponentProps<typeof Link>['to']
@@ -40,11 +42,17 @@ export function BottomNav() {
   const inMoreTab = useRouterState({
     select: (state) => state.matches.some((match) => MORE_TAB_ROUTES.includes(match.routeId)),
   })
+  // The bar stays at the bottom of the page, behind the on-screen keyboard; scrolling while
+  // typing would bring it up over the text, so it is hidden until the keyboard closes.
+  const keyboardOpen = useKeyboardOpen()
 
   return (
     <nav
       aria-label={pl.nav.label}
-      className="fixed inset-x-0 bottom-0 z-40 border-t lg:hidden bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+      className={cn(
+        'fixed inset-x-0 bottom-0 z-40 border-t lg:hidden bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur',
+        keyboardOpen && 'hidden',
+      )}
     >
       <div className="mx-auto grid max-w-2xl grid-cols-5 items-center">
         <NavLink to="/" label={pl.nav.today} icon={Sun} exact />
