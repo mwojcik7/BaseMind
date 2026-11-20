@@ -3,6 +3,8 @@
 use App\Models\EntityLink;
 use App\Models\EntityTag;
 use App\Models\Event;
+use App\Models\Note;
+use App\Models\NoteFolder;
 use App\Models\Reminder;
 use App\Models\Tag;
 use App\Models\Task;
@@ -23,6 +25,8 @@ return [
         'task_lists' => TaskList::class,
         'tasks' => Task::class,
         'events' => Event::class,
+        'note_folders' => NoteFolder::class,
+        'notes' => Note::class,
     ],
 
 ];

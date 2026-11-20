@@ -6,6 +6,8 @@ use App\Models\Contracts\SyncableModel;
 use App\Models\EntityLink;
 use App\Models\EntityTag;
 use App\Models\Event;
+use App\Models\Note;
+use App\Models\NoteFolder;
 use App\Models\Reminder;
 use App\Models\Tag;
 use App\Models\Task;
@@ -40,6 +42,12 @@ class Trash
         if ($record instanceof TaskList) {
             Task::withTrashed()->where('list_id', $record->id)->lockForUpdate()->get()
                 ->each(fn (Task $task) => $this->sync->recordServerChange($task, ['list_id' => null]));
+        }
+
+        // The same for notes in a folder.
+        if ($record instanceof NoteFolder) {
+            Note::withTrashed()->where('folder_id', $record->id)->lockForUpdate()->get()
+                ->each(fn (Note $note) => $this->sync->recordServerChange($note, ['folder_id' => null]));
         }
 
         // Changed occurrences go with their series; one brought back on its own stays as a
