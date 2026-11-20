@@ -290,8 +290,8 @@ Kluczowe cechy:
 - Widok łączy `events` + wirtualne zdarzenia z innych modułów (rejestr „dostawców dat”, czyli warstwy: od 2026-11-16 wydarzenia, zadania z terminem i polskie święta; `web/src/modules/calendar/days.ts` + `settings.ts`). Widoki Agenda i Miesiąc w części 1, Dzień i Tydzień w części 2.
 
 **Notatki**
-- `notes` — title, content 🔐 (markdown), folder_id, pinned, archived.
-- `note_folders` — name, parent_id.
+- `notes` — title 🔐 (nieobowiązkowy), content 🔐 (markdown, `MEDIUMTEXT`, najwyżej 100 000 znaków), folder_id (puste = Skrzynka), pinned, archived.
+- `note_folders` — name, parent_id (na razie foldery jednopoziomowe, pole na przyszłość).
 
 **Schowek linków**
 - `bookmarks` — url, title, description, image_key, favicon_url, site_name, media_type (`article` | `video` | `other`), status (`inbox` | `read` | `archived`), favorite, note, preview_status (`pending` | `ok` | `failed`).
@@ -642,6 +642,9 @@ Hosting musi zapewniać:
 | 2026-11-20 | Krok 4 części 2 kalendarza („Duplikuj”): przycisk w prawym górnym rogu arkusza edycji; tytuł kopii z dopiskiem „(kopia)”; kopia zawsze pojedynczym wydarzeniem (także seria otwarta bez dnia); kopiowane to, co widać w formularzu, a oryginał nie jest zapisywany | Użytkownik |
 | 2026-11-20 | Kopia formularza trzymana tylko w pamięci (notatka nie trafia do adresu), po przeładowaniu formularz nowego wydarzenia startuje pusty; przycisk tylko przy istniejącym wydarzeniu; „Wstecz” z kopii wraca do kalendarza | Claude (sprawdzone przez użytkownika na telefonie) |
 | 2026-11-20 | Krok 5 części 2 kalendarza: zakres testów e2e według zaakceptowanej listy 9 scenariuszy (kosz i trwałe usuwanie serii z wyjątkami zostają w PHPUnit/Vitest, przeciąganie w Miesiącu poza zakresem); końcowy test na telefonie zaliczony — część 2 kalendarza zamknięta | Użytkownik |
+| 2026-11-20 | Następny moduł: 2.3 Notatki, w dwóch częściach. 1) encje i sync, ekran `/notes`, edytor CodeMirror 6 (pasek nad klawiaturą, podgląd, zapis automatyczny), kopia konfliktu jako osobna notatka, wyszukiwanie/kosz/[+]/widżet „Szybka notatka” (do Skrzynki)/skrót PWA; 2) tagi (wybór w notatkach, zadaniach i wydarzeniach, ekran tagów, kosz), autouzupełnianie `[[` i `#`, parser → `entity_links`, panel „Powiązania”, notatka z nieistniejącego linku, duplikaty. Tytuł notatki 🔐, osobnym nieobowiązkowym polem (pusty = pierwsza linijka treści); foldery jednopoziomowe (`parent_id` na przyszłość); `@osoba` odłożone do 5.4; `[[` wskazuje notatki, zadania i wydarzenia; zmiana tytułu poprawia `[[linki]]` w innych notatkach (po stronie aplikacji); pola wyboru w podglądzie odhaczane (także w notatce zadania); graf i notatki dzienne później | Claude (zaakceptowane przez użytkownika) |
+| 2026-11-20 | Duplikaty tagów i powiązań (z pracy offline na kilku urządzeniach) scalane automatycznie po synchronizacji: zostaje najstarszy rekord (ten sam wybór na każdym urządzeniu), przypięcia przenoszone na niego, podwójne wiersze usuwane; ukrywanie w interfejsie zostaje jako zabezpieczenie | Claude (zaakceptowane przez użytkownika) |
+| 2026-11-20 | Treść notatki najwyżej 100 000 znaków (ok. 50 stron): szyfrogram nawet przy 4-bajtowych znakach mieści się w `max_allowed_packet=1M`; użytkownik: wystarczy z zapasem | Claude (zaakceptowane przez użytkownika) |
 
 ---
 
