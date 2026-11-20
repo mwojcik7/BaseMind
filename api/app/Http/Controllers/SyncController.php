@@ -19,9 +19,11 @@ class SyncController
             'ops.*.payload' => ['present', 'array'],
             'ops.*.base_version' => ['required', 'integer', 'min:0'],
             'ops.*.client_ts' => ['required', 'date'],
+            // Each installation of the app has its own, so a device's own edits never conflict.
+            'device_id' => ['sometimes', 'nullable', 'uuid'],
         ]);
 
-        return response()->json(['results' => $sync->push($request->user(), $data['ops'])]);
+        return response()->json(['results' => $sync->push($request->user(), $data['ops'], $data['device_id'] ?? null)]);
     }
 
     public function pull(Request $request, SyncService $sync): JsonResponse

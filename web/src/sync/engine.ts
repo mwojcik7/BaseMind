@@ -54,8 +54,8 @@ const PENDING_DASHBOARD_KEY = 'pending_dashboard_layout'
 const PENDING_CALENDAR_KEY = 'pending_calendar_settings'
 const PULL_PAGE_SIZE = 500
 
-function postOperations(ops: OutgoingOperation[]) {
-  return api.post<{ results: PushResult[] }>('/api/sync/push', { ops })
+function postOperations(ops: OutgoingOperation[], deviceId: string) {
+  return api.post<{ results: PushResult[] }>('/api/sync/push', { ops, device_id: deviceId })
 }
 
 async function pushPendingSetting(key: string, field: 'theme' | 'dashboard' | 'calendar') {

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\RejectedSyncOperation;
 use App\Models\Contracts\SyncableModel;
+use App\Models\Note;
 use App\Models\User;
 use App\Policies\SpaceItemPolicy;
 use Carbon\CarbonImmutable;
@@ -22,11 +23,12 @@ class SyncService
      * Applies each operation independently: one rejected change doesn't block the others.
      *
      * @param  list<array<string, mixed>>  $ops
+     * @param  ?string  $device  The sending device's own id, for note conflicts.
      * @return list<array<string, string>>
      */
-    public function push(User $user, array $ops): array
+    public function push(User $user, array $ops, ?string $device = null): array
     {
-        return array_map(fn (array $op) => $this->applyOperation($user, $op), $ops);
+        return array_map(fn (array $op) => $this->applyOperation($user, $op, $device), $ops);
     }
 
     /**
@@ -77,11 +79,11 @@ class SyncService
      * @param  array<string, mixed>  $op
      * @return array<string, string>
      */
-    private function applyOperation(User $user, array $op): array
+    private function applyOperation(User $user, array $op, ?string $device): array
     {
         try {
             // Retries cover deadlocks between devices syncing at the same moment.
-            $status = DB::transaction(function () use ($user, $op) {
+            $status = DB::transaction(function () use ($user, $op, $device) {
                 // Waits for a concurrent copy of this operation to finish, then counts as a repeat.
                 $isNew = DB::table('sync_ops')->insertOrIgnore([
                     'user_id' => $user->id,
@@ -89,7 +91,7 @@ class SyncService
                     'created_at' => now(),
                 ]) === 1;
 
-                return $isNew ? $this->perform($user, $op) : 'applied';
+                return $isNew ? $this->perform($user, $op, $device) : 'applied';
             }, 3);
         } catch (RejectedSyncOperation $rejection) {
             // The device keeps the change and stops sending it, so the log is the only trace here.
@@ -112,7 +114,7 @@ class SyncService
      * @param  array<string, mixed>  $op
      * @return 'applied'|'merged'
      */
-    private function perform(User $user, array $op): string
+    private function perform(User $user, array $op, ?string $device): string
     {
         $model = config('sync.entities')[$op['entity']] ?? throw new RejectedSyncOperation('unknown_entity');
         $record = $model::withTrashed()->lockForUpdate()->find($op['record_id']);
@@ -121,8 +123,8 @@ class SyncService
         $changedAt = CarbonImmutable::parse($op['client_ts'])->utc()->min(CarbonImmutable::now('UTC'));
 
         return match ($op['op']) {
-            'create' => $this->create($user, $model, $record, $op, $changedAt),
-            'update' => $this->update($user, $record, $op, $changedAt),
+            'create' => $this->create($user, $model, $record, $op, $changedAt, $device),
+            'update' => $this->update($user, $record, $op, $changedAt, $device),
             'delete' => $this->delete($user, $record, $changedAt),
             'restore' => $this->restore($user, $record, $changedAt),
             'purge' => $this->purge($user, $record),
@@ -135,7 +137,7 @@ class SyncService
      * @param  class-string<Model&SyncableModel>  $model
      * @param  array<string, mixed>  $op
      */
-    private function create(User $user, string $model, (Model&SyncableModel)|null $existing, array $op, CarbonImmutable $changedAt): string
+    private function create(User $user, string $model, (Model&SyncableModel)|null $existing, array $op, CarbonImmutable $changedAt, ?string $device): string
     {
         if ($existing !== null) {
             throw new RejectedSyncOperation('already_exists');
@@ -159,6 +161,7 @@ class SyncService
             'deleted_at' => null,
             'version' => 1,
             'field_stamps' => array_fill_keys(array_keys($fields), $this->stamp($changedAt)),
+            ...($record instanceof Note ? ['text_version' => 1, 'text_device' => $device] : []),
         ], $changedAt);
 
         return 'applied';
@@ -167,11 +170,12 @@ class SyncService
     /**
      * On a conflict, each field keeps its most recent value; fields the device didn't
      * touch are never affected. Even if every field loses, the record gets a new `rev`,
-     * so the device pulls the values that won.
+     * so the device pulls the values that won. A note's text that loses is kept as a copy
+     * (App\Services\NoteConflicts).
      *
      * @param  array<string, mixed>  $op
      */
-    private function update(User $user, (Model&SyncableModel)|null $record, array $op, CarbonImmutable $changedAt): string
+    private function update(User $user, (Model&SyncableModel)|null $record, array $op, CarbonImmutable $changedAt, ?string $device): string
     {
         if ($record === null) {
             throw new RejectedSyncOperation('not_found');
@@ -179,15 +183,27 @@ class SyncService
 
         $this->authorizeEdit($user, $record);
 
+        $fields = $this->validated($record, $op['payload'], $record->syncFields(), partial: true);
+
         if ($record->deleted_at !== null) {
+            // Written on a device that didn't know the note was gone: kept as a copy.
+            if ($record instanceof Note && NoteConflicts::textFields($fields) !== []) {
+                $text = NoteConflicts::deviceText($record, $fields);
+                if (! NoteConflicts::same($text, NoteConflicts::serverText($record))) {
+                    $this->copyNote($user, $record, $text, $changedAt);
+                }
+
+                return 'merged';
+            }
+
             throw new RejectedSyncOperation('deleted');
         }
 
-        $fields = $this->validated($record, $op['payload'], $record->syncFields(), partial: true);
         $conflict = (int) $op['base_version'] !== $record->version;
         $stamps = $record->field_stamps ?? [];
         $stamp = $this->stamp($changedAt);
 
+        $sent = $fields;
         if ($conflict) {
             $fields = array_filter(
                 $fields,
@@ -196,13 +212,73 @@ class SyncService
             );
         }
 
+        $copy = $record instanceof Note ? $this->losingNoteText($record, $sent, $fields, $op, $device) : null;
+        $textChanged = $record instanceof Note && NoteConflicts::textFields($fields) !== [];
+
         $this->save($record, [
             ...$fields,
             'version' => $record->version + 1,
             'field_stamps' => [...$stamps, ...array_fill_keys(array_keys($fields), $stamp)],
+            ...($textChanged ? ['text_version' => $record->version + 1, 'text_device' => $device] : []),
         ], $changedAt);
 
+        if ($copy !== null) {
+            $this->copyNote($user, $record, $copy['text'], $copy['changed_at'] ?? $changedAt);
+        }
+
         return $conflict ? 'merged' : 'applied';
+    }
+
+    /**
+     * The note's text that loses to this change, when another device changed it meanwhile and
+     * the two differ: the device's own version if any of its text fields lost, else the one
+     * on the server. Call before saving the change.
+     *
+     * @param  array<string, mixed>  $sent  the device's changes
+     * @param  array<string, mixed>  $won  those that won
+     * @param  array<string, mixed>  $op
+     * @return array{text: array{title: ?string, content: ?string}, changed_at: ?CarbonImmutable}|null
+     */
+    private function losingNoteText(Note $note, array $sent, array $won, array $op, ?string $device): ?array
+    {
+        $sentText = NoteConflicts::textFields($sent);
+        if ($sentText === [] || ! NoteConflicts::textChangedElsewhere($note, (int) $op['base_version'], $device)) {
+            return null;
+        }
+
+        $deviceText = NoteConflicts::deviceText($note, $sent);
+        $serverText = NoteConflicts::serverText($note);
+        if (NoteConflicts::same($deviceText, $serverText)) {
+            return null;
+        }
+
+        if (count(NoteConflicts::textFields($won)) < count($sentText)) {
+            return ['text' => $deviceText, 'changed_at' => null];
+        }
+
+        $stamps = array_filter(array_map(fn (string $field) => $note->field_stamps[$field] ?? null, NoteConflicts::TEXT_FIELDS));
+
+        return ['text' => $serverText, 'changed_at' => $stamps === [] ? null : CarbonImmutable::parse(max($stamps))];
+    }
+
+    /**
+     * A new note next to the original, holding text that would otherwise be lost. It is not
+     * pinned or archived, so it shows up in the list.
+     *
+     * @param  array{title: ?string, content: ?string}  $text
+     */
+    private function copyNote(User $user, Note $original, array $text, CarbonImmutable $changedAt): void
+    {
+        $copy = new Note;
+        $copy->space_id = $original->space_id;
+
+        $this->recordServerCreate($copy, $user, [
+            'folder_id' => $original->folder_id,
+            'title' => NoteConflicts::copyTitle($text, $changedAt, $user),
+            'content' => $text['content'],
+            'pinned' => false,
+            'archived' => false,
+        ]);
     }
 
     private function delete(User $user, (Model&SyncableModel)|null $record, CarbonImmutable $changedAt): string

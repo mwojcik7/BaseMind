@@ -75,7 +75,8 @@ async function post(path: string, body: unknown) {
   return response
 }
 
-const postOperations: PostOperations = async (ops) => (await post('/api/sync/push', { ops })).json()
+const postOperations: PostOperations = async (ops, deviceId) =>
+  (await post('/api/sync/push', { ops, device_id: deviceId })).json()
 
 interface PushPayload {
   title: string
