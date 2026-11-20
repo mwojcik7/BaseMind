@@ -59,3 +59,11 @@ export const gridModules = modules.filter((module) => !TABBED.includes(module.id
 export function getModule(id: string): AppModule | undefined {
   return modules.find((module) => module.id === id)
 }
+
+/** Where a module's link goes: its own screen once built, the placeholder until then. */
+export function moduleLink(id: ModuleId) {
+  if (id === 'notes') {
+    return { to: '/notes' } as const
+  }
+  return { to: '/$moduleId', params: { moduleId: id } } as const
+}

@@ -169,6 +169,7 @@ function TaskForm({
   const {
     register,
     control,
+    setValue,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<TaskFormValues>({
@@ -271,6 +272,7 @@ function TaskForm({
         registration={register('notes')}
         value={notes}
         error={errors.notes?.message}
+        onChange={(next) => setValue('notes', next, { shouldDirty: true })}
       />
 
       {/* Subtasks are one level deep. Checked on parent_id, not on a live parent: the server

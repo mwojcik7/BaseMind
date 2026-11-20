@@ -180,8 +180,10 @@ export const pl = {
   markdown: {
     edit: 'Edytuj',
     preview: 'Podgląd',
-    hint: 'Możesz używać Markdown: **pogrubienie**, - lista, - [ ] do zrobienia, [link](adres).',
+    hint: 'Możesz używać Markdown: **pogrubienie**, - lista, [ ] do zrobienia, [link](adres).',
     empty: 'Brak notatki.',
+    tick: 'Odhacz',
+    untick: 'Cofnij odhaczenie',
   },
   trash: {
     title: 'Kosz',
@@ -439,6 +441,85 @@ export const pl = {
       seriesEnded: 'Zrobione. To było ostatnie powtórzenie.',
       subtaskHint: 'Podzadania nie mogą się powtarzać.',
       icon: 'Powtarza się',
+    },
+  },
+  notes: {
+    tabs: { all: 'Wszystkie', folders: 'Foldery', archive: 'Archiwum' },
+    pinned: 'Przypięte',
+    others: 'Pozostałe',
+    untitled: 'Pusta notatka',
+    inbox: 'Skrzynka',
+    today: 'dziś',
+    yesterday: 'wczoraj',
+    newNote: 'Nowa notatka',
+    emptyAll: 'Nie ma jeszcze notatek. Dodaj pierwszą przyciskiem +.',
+    emptyFolder: 'W tym folderze nie ma notatek.',
+    emptyArchive: 'Tu trafią zarchiwizowane notatki.',
+    archive: 'Archiwizuj',
+    unarchive: 'Przywróć z archiwum',
+    archivedCount: (count: number) =>
+      count === 1
+        ? 'Zarchiwizowano notatkę'
+        : `Zarchiwizowano ${count} ${plural(count, 'notatkę', 'notatki', 'notatek')}`,
+    unarchivedCount: (count: number) =>
+      count === 1
+        ? 'Przywrócono notatkę z archiwum'
+        : `Przywrócono z archiwum ${count} ${plural(count, 'notatkę', 'notatki', 'notatek')}`,
+    delete: 'Usuń',
+    deletedCount: (count: number) =>
+      count === 1
+        ? 'Usunięto notatkę'
+        : `Usunięto ${count} ${plural(count, 'notatkę', 'notatki', 'notatek')}`,
+    select: 'Zaznacz',
+    selectedCount: (count: number) => `Zaznaczone: ${count}`,
+    endSelection: 'Zakończ zaznaczanie',
+    selectHint: (title: string) => `Zaznacz: ${title}`,
+    unselectHint: (title: string) => `Odznacz: ${title}`,
+    optionsFor: (title: string) => `Opcje notatki: ${title}`,
+    view: {
+      button: 'Sortowanie i filtry',
+      title: 'Sortowanie i filtry',
+      order: 'Kolejność',
+      orders: {
+        changed: 'Ostatnio zmienione',
+        created: 'Ostatnio utworzone',
+        title: 'Tytuł A–Z',
+        oldest: 'Najstarsze najpierw',
+      },
+      pinnedFirst: 'Przypięte zawsze są na górze.',
+      filters: 'Filtry',
+      folder: 'Folder',
+      anyFolder: 'Wszystkie foldery',
+      pinnedOnly: 'Tylko przypięte',
+      openItemsOnly: 'Z listą do zrobienia',
+      openItemsHint: 'Notatki z nieodhaczonymi polami [ ].',
+      clear: 'Wyczyść filtry',
+      noMatch: 'Żadna notatka nie pasuje do filtrów.',
+      active: (count: number) => `Filtry: ${count}`,
+    },
+    pin: 'Przypnij',
+    unpin: 'Odepnij',
+    pinnedMark: 'Przypięta',
+    move: 'Przenieś do folderu',
+    moved: (folder: string) => `Przeniesiono do: ${folder}`,
+    currentFolder: 'Obecny folder',
+    options: 'Opcje notatki',
+    back: 'Wróć do notatek',
+    title: 'Tytuł',
+    content: 'Treść notatki',
+    contentPlaceholder: 'Zacznij pisać…',
+    notFound: 'Nie ma takiej notatki. Mogła zostać usunięta na innym urządzeniu.',
+    folders: {
+      new: 'Nowy folder',
+      name: 'Nazwa folderu',
+      rename: 'Zmień nazwę folderu',
+      delete: 'Usuń folder',
+      deleteTitle: (name: string) => `Usunąć folder „${name}”?`,
+      deleteDescription:
+        'Notatki z tego folderu trafią do Skrzynki. Przez 30 dni możesz przywrócić folder z kosza razem z nimi.',
+      deleted: 'Usunięto folder',
+      back: 'Wróć do folderów',
+      save: 'Zapisz',
     },
   },
   search: {

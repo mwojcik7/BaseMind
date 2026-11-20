@@ -3,7 +3,7 @@ import { Calendar, CheckSquare, Settings, Sun, type LucideIcon } from 'lucide-re
 import type { ComponentProps } from 'react'
 import { QuickAddDialog } from '@/components/QuickAddDialog'
 import { pl } from '@/i18n/pl'
-import { gridModules } from '@/modules/registry'
+import { gridModules, moduleLink } from '@/modules/registry'
 
 const LINK_CLASS =
   'flex min-h-9 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground data-[status=active]:bg-brand-soft data-[status=active]:text-brand-text'
@@ -51,7 +51,7 @@ export function Sidebar() {
       <p className="mt-4 px-3 pb-1 text-xs font-medium text-muted-foreground">{pl.nav.modules}</p>
       <div className="flex flex-col gap-1">
         {gridModules.map(({ id, icon }) => (
-          <Link key={id} to="/$moduleId" params={{ moduleId: id }} className={LINK_CLASS}>
+          <Link key={id} {...moduleLink(id)} className={LINK_CLASS}>
             <SidebarIcon icon={icon} />
             {pl.modules[id]}
           </Link>

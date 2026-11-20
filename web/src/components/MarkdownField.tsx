@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react'
 import type { UseFormRegisterReturn } from 'react-hook-form'
 import { Label } from '@/components/ui/label'
 import { pl } from '@/i18n/pl'
+import { toggleTaskLine } from '@/lib/task-items'
 
 // Loaded only when the preview is opened: the Markdown parser is the biggest part.
 const MarkdownPreview = lazy(() => import('@/components/MarkdownPreview'))
@@ -16,12 +17,15 @@ export function MarkdownField({
   registration,
   value,
   error,
+  onChange,
 }: {
   id: string
   label: string
   registration: UseFormRegisterReturn
   value: string
   error?: string
+  /** With it, boxes can be ticked in the preview; gets the whole new text. */
+  onChange?: (value: string) => void
 }) {
   const [preview, setPreview] = useState(false)
 
@@ -57,7 +61,10 @@ export function MarkdownField({
         <div className="min-h-24 rounded-md border border-input px-3 py-2">
           {value.trim() ? (
             <Suspense fallback={null}>
-              <MarkdownPreview text={value} />
+              <MarkdownPreview
+                text={value}
+                onToggle={onChange && ((line) => onChange(toggleTaskLine(value, line)))}
+              />
             </Suspense>
           ) : (
             <p className="text-sm text-muted-foreground">{pl.markdown.empty}</p>

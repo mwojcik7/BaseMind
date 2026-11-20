@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { ChevronRight, Settings, Trash2 } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { pl } from '@/i18n/pl'
-import { gridModules } from '@/modules/registry'
+import { gridModules, moduleLink } from '@/modules/registry'
 
 export function MorePage() {
   return (
@@ -12,8 +12,7 @@ export function MorePage() {
         {gridModules.map(({ id, icon: Icon }) => (
           <Link
             key={id}
-            to="/$moduleId"
-            params={{ moduleId: id }}
+            {...moduleLink(id)}
             className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-lg bg-card p-2 text-center text-xs font-medium text-card-foreground transition-transform active:scale-95"
           >
             <Icon aria-hidden className="size-6 text-brand-text" />

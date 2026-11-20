@@ -9,6 +9,7 @@ import {
 import { AppLayout } from '@/components/AppLayout'
 import { NotFound } from '@/components/NotFound'
 import { AuthLayout } from '@/modules/auth/AuthLayout'
+import { validateNoteSearch, validateNotesSearch } from '@/modules/notes/search'
 
 const rootRoute = createRootRoute({
   component: Outlet,
@@ -127,6 +128,26 @@ const eventDetailRoute = createRoute({
   component: lazyRouteComponent(() => import('@/modules/calendar/EventDetail'), 'EventDetail'),
 })
 
+const notesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/notes',
+})
+
+const notesIndexRoute = createRoute({
+  getParentRoute: () => notesRoute,
+  path: '/',
+  validateSearch: validateNotesSearch,
+  component: lazyRouteComponent(() => import('@/modules/notes/NotesPage'), 'NotesPage'),
+})
+
+/** `new` for a note not written yet; ?folder= is where it goes. */
+const noteDetailRoute = createRoute({
+  getParentRoute: () => notesRoute,
+  path: '$noteId',
+  validateSearch: validateNoteSearch,
+  component: lazyRouteComponent(() => import('@/modules/notes/NoteDetail'), 'NoteDetail'),
+})
+
 const moreRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/more',
@@ -189,6 +210,7 @@ const routeTree = rootRoute.addChildren([
     todayRoute,
     tasksRoute.addChildren([taskDetailRoute]),
     calendarRoute.addChildren([newEventRoute, eventDetailRoute]),
+    notesRoute.addChildren([notesIndexRoute, noteDetailRoute]),
     moreRoute,
     settingsRoute,
     sessionsRoute,

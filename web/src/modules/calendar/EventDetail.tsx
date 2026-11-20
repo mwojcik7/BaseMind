@@ -593,6 +593,7 @@ function EventForm({
         registration={register('description')}
         value={description}
         error={errors.description?.message}
+        onChange={(next) => setValue('description', next, { shouldDirty: true })}
       />
 
       {event?.rrule && !opened && (

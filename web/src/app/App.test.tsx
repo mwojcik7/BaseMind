@@ -9,6 +9,7 @@ import { pl } from '@/i18n/pl'
 import { startAuth, type Account } from '@/lib/auth'
 import { usePwa, type BeforeInstallPromptEvent } from '@/lib/pwa'
 import { getTheme } from '@/lib/theme'
+import { noteFolders, notes, type Note } from '@/modules/notes/repo'
 import { taskLists, tasks, type Task } from '@/modules/tasks/repo'
 import { search } from '@/search/client'
 import { getRecentSearches, rememberSearch } from '@/search/recent'
@@ -1032,5 +1033,228 @@ describe('app shell', () => {
         screen.getByRole('button', { name: pl.dashboardSettings.moveDown(pl.today.expenses) }),
       ).toBeDisabled()
     })
+  })
+})
+
+describe('notes', () => {
+  /** Toasts of earlier tests may still be on screen: the undo button of the one with this text. */
+  async function undoIn(message: string) {
+    const toast = (await screen.findAllByText(message)).at(-1)!.closest('li')!
+    return within(toast).getByRole('button', { name: pl.common.undo })
+  }
+
+  function newNote(fields: Partial<Note> = {}) {
+    return notes.create({
+      folder_id: null,
+      title: 'Prezenty',
+      content: '- szal dla mamy',
+      pinned: false,
+      archived: false,
+      ...fields,
+    })
+  }
+
+  /** The titles of the cards shown, in order. */
+  function cardTitles() {
+    // Also while a sheet is open, which hides the page from assistive technology.
+    return within(screen.getByRole('main', { hidden: true }))
+      .queryAllByRole('listitem', { hidden: true })
+      .map((item) => item.querySelector('button span')?.textContent)
+  }
+
+  async function openNotes(path = '/notes') {
+    const router = renderAt(path)
+    await heading(pl.modules.notes)
+    return router
+  }
+
+  it('writes a new note as you type and lists it with its first line', async () => {
+    const user = userEvent.setup()
+    const router = await openNotes()
+    expect(bottomNav().getByRole('link', { name: pl.nav.more })).toHaveAttribute(
+      'data-force-active',
+    )
+
+    await user.click(page().getByRole('button', { name: pl.notes.newNote }))
+    await user.type(await page().findByLabelText(pl.notes.content), '# Zakupy{Enter}mleko')
+
+    await waitFor(async () => expect(await notes.list()).toHaveLength(1))
+    const [note] = await notes.list()
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/notes/${note.id}`))
+    await waitFor(async () => expect((await notes.get(note.id))?.content).toBe('# Zakupy\nmleko'))
+    expect(note).toMatchObject({ title: null, folder_id: null, pinned: false })
+
+    await user.click(page().getByRole('button', { name: pl.notes.back }))
+    expect(await page().findByRole('button', { name: /^Zakupy/ })).toHaveTextContent('mleko')
+  })
+
+  it('keeps nothing of a new note left empty', async () => {
+    const user = userEvent.setup()
+    await openNotes()
+
+    await user.click(page().getByRole('button', { name: pl.notes.newNote }))
+    const content = await page().findByLabelText(pl.notes.content)
+    await user.type(content, 'x')
+    await waitFor(async () => expect(await notes.list()).toHaveLength(1))
+    await user.clear(content)
+    await user.click(page().getByRole('button', { name: pl.notes.back }))
+
+    await heading(pl.modules.notes)
+    await waitFor(async () => expect(await db.table('notes').count()).toBe(0))
+  })
+
+  it('shows pinned notes first and archives one from the card menu, with undo', async () => {
+    const user = userEvent.setup()
+    await openNotes()
+    await newNote({ title: 'Zwykła' })
+    await newNote({ title: 'Ważna', pinned: true })
+
+    await page().findByRole('button', { name: /^Zwykła/ })
+    await waitFor(() => expect(cardTitles()).toEqual(['Ważna', 'Zwykła']))
+
+    await user.click(page().getByRole('button', { name: pl.notes.optionsFor('Zwykła') }))
+    await user.click(await screen.findByRole('button', { name: pl.notes.archive }))
+    await waitFor(() => expect(cardTitles()).toEqual(['Ważna']))
+    await user.click(screen.getByRole('tab', { name: pl.notes.tabs.archive }))
+    expect(await page().findByRole('button', { name: /^Zwykła/ })).toBeInTheDocument()
+
+    await user.click(await undoIn(pl.notes.archivedCount(1)))
+    await waitFor(() => expect(cardTitles()).toEqual([]))
+  })
+
+  it('picks notes with a long press and deletes them together, with one undo', async () => {
+    const user = userEvent.setup()
+    await openNotes()
+    for (const title of ['Pierwsza', 'Druga', 'Trzecia']) await newNote({ title })
+    const first = await page().findByRole('button', { name: /^Pierwsza/ })
+
+    fireEvent.pointerDown(first, { clientX: 10, clientY: 10 })
+    expect(
+      await screen.findByRole('heading', { name: pl.notes.selectedCount(1) }, { timeout: 2000 }),
+    ).toBeInTheDocument()
+    fireEvent.pointerUp(first)
+    fireEvent.click(first)
+    await user.click(page().getByRole('button', { name: pl.notes.selectHint('Druga') }))
+    expect(screen.getByRole('heading', { name: pl.notes.selectedCount(2) })).toBeInTheDocument()
+
+    await user.click(page().getByRole('button', { name: pl.notes.delete }))
+    await waitFor(() => expect(cardTitles()).toEqual(['Trzecia']))
+    expect(await heading(pl.modules.notes)).toBeInTheDocument()
+
+    await user.click(await undoIn(pl.notes.deletedCount(2)))
+    await waitFor(() => expect(cardTitles()).toHaveLength(3))
+  })
+
+  it('moves the picked notes to a folder', async () => {
+    const user = userEvent.setup()
+    await openNotes()
+    const folder = await noteFolders.create({ name: 'Dom' })
+    const a = await newNote({ title: 'A' })
+    const b = await newNote({ title: 'B' })
+
+    await user.click(await page().findByRole('button', { name: pl.notes.optionsFor('A') }))
+    await user.click(await screen.findByRole('button', { name: pl.notes.select }))
+    await user.click(page().getByRole('button', { name: pl.notes.selectHint('B') }))
+    await user.click(page().getByRole('button', { name: pl.notes.move }))
+    await user.click(await screen.findByRole('button', { name: 'Dom' }))
+
+    await waitFor(async () =>
+      expect([(await notes.get(a.id))?.folder_id, (await notes.get(b.id))?.folder_id]).toEqual([
+        folder.id,
+        folder.id,
+      ]),
+    )
+    expect(await heading(pl.modules.notes)).toBeInTheDocument()
+  })
+
+  it('sorts by title and filters pinned notes and those with boxes to tick', async () => {
+    const user = userEvent.setup()
+    await openNotes()
+    await newNote({ title: 'Żagle', content: '- [ ] zszyć' })
+    await newNote({ title: 'Auto', content: '- [x] przegląd' })
+    await newNote({ title: 'ćwiczenia', pinned: true })
+    await page().findByRole('button', { name: /^Auto/ })
+
+    await user.click(page().getByRole('button', { name: pl.notes.view.button }))
+    const sheet = within(await screen.findByRole('dialog', { name: pl.notes.view.title }))
+    await user.click(sheet.getByRole('radio', { name: pl.notes.view.orders.title }))
+    await waitFor(() => expect(cardTitles()).toEqual(['ćwiczenia', 'Auto', 'Żagle']))
+
+    await user.click(sheet.getByRole('switch', { name: pl.notes.view.openItemsOnly }))
+    await waitFor(() => expect(cardTitles()).toEqual(['Żagle']))
+    await user.click(sheet.getByRole('switch', { name: pl.notes.view.openItemsOnly }))
+    await user.click(sheet.getByRole('switch', { name: pl.notes.view.pinnedOnly }))
+    await waitFor(() => expect(cardTitles()).toEqual(['ćwiczenia']))
+
+    await user.click(sheet.getByRole('button', { name: pl.notes.view.clear }))
+    await waitFor(() => expect(cardTitles()).toHaveLength(3))
+  })
+
+  it('opens a note, pins it and moves it to a folder from the menu', async () => {
+    const user = userEvent.setup()
+    const router = await openNotes()
+    const folder = await noteFolders.create({ name: 'Dom' })
+    const note = await newNote()
+    await act(() => router.navigate({ to: '/notes/$noteId', params: { noteId: note.id } }))
+
+    expect(await page().findByDisplayValue('Prezenty')).toBeInTheDocument()
+    await user.click(page().getByRole('button', { name: pl.notes.options }))
+    await user.click(await screen.findByRole('button', { name: pl.notes.pin }))
+    await waitFor(async () => expect((await notes.get(note.id))?.pinned).toBe(true))
+
+    await user.click(page().getByRole('button', { name: pl.notes.options }))
+    await user.click(await screen.findByRole('button', { name: pl.notes.move }))
+    await user.click(await screen.findByRole('button', { name: 'Dom' }))
+    await waitFor(async () => expect((await notes.get(note.id))?.folder_id).toBe(folder.id))
+  })
+
+  it('adds a note to the folder open on the folders tab', async () => {
+    const user = userEvent.setup()
+    const router = await openNotes()
+    const folder = await noteFolders.create({ name: 'Dom' })
+    await act(() =>
+      router.navigate({ to: '/notes', search: { tab: 'folders', folder: folder.id } }),
+    )
+
+    await page().findByText(pl.notes.emptyFolder)
+    await user.click(page().getByRole('button', { name: pl.notes.newNote }))
+    await user.type(await page().findByLabelText(pl.notes.content), 'Rachunki')
+
+    await waitFor(async () => expect((await notes.list())[0]?.folder_id).toBe(folder.id))
+    await user.click(page().getByRole('button', { name: pl.notes.back }))
+    expect(await page().findByRole('button', { name: /^Rachunki/ })).toBeInTheDocument()
+  })
+
+  it('deletes a note from its menu, with undo', async () => {
+    const user = userEvent.setup()
+    const router = await openNotes()
+    const note = await newNote()
+    await act(() => router.navigate({ to: '/notes/$noteId', params: { noteId: note.id } }))
+
+    await page().findByDisplayValue('Prezenty')
+    await user.click(page().getByRole('button', { name: pl.notes.options }))
+    await user.click(await screen.findByRole('button', { name: pl.notes.delete }))
+
+    await waitFor(async () => expect(await notes.list()).toHaveLength(0))
+    await user.click(await undoIn(pl.notes.deletedCount(1)))
+    await waitFor(async () => expect(await notes.list()).toHaveLength(1))
+  })
+
+  it('ticks a box typed without a dash in the preview, and saves it', async () => {
+    const user = userEvent.setup()
+    const router = await openNotes()
+    const note = await newNote({ content: 'Zakupy\n[ ] mleko\n[x] chleb' })
+    await act(() => router.navigate({ to: '/notes/$noteId', params: { noteId: note.id } }))
+
+    await page().findByDisplayValue('Prezenty')
+    await user.click(page().getByRole('button', { name: pl.markdown.preview }))
+    const boxes = await page().findAllByRole('checkbox')
+    expect(boxes.map((box) => (box as HTMLInputElement).checked)).toEqual([false, true])
+
+    await user.click(boxes[0])
+
+    await waitFor(async () =>
+      expect((await notes.get(note.id))?.content).toBe('Zakupy\n[x] mleko\n[x] chleb'),
+    )
   })
 })
