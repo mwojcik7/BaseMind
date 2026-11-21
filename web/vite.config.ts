@@ -49,7 +49,7 @@ export default defineConfig({
         shortcuts: [
           { name: 'Szybki wydatek', url: '/finance' },
           { name: 'Nowe zadanie', url: '/tasks' },
-          { name: 'Szybka notatka', url: '/notes' },
+          { name: 'Szybka notatka', url: '/notes/new' },
           { name: 'Dodaj link', url: '/bookmarks' },
         ],
       },

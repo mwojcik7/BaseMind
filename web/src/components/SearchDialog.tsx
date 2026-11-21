@@ -17,7 +17,7 @@ import {
 } from '@/search/recent'
 import { searchSources } from '@/search/sources'
 
-const ROW_CLASS = 'flex min-h-11 w-full items-center gap-3 rounded-md px-2 text-left text-sm'
+const ROW_CLASS = 'flex min-h-11 w-full items-center gap-3 rounded-md px-2 py-1 text-left text-sm'
 
 function ResultContent({ hit }: { hit: SearchHit }) {
   const Icon = searchGroups[hit.entity]?.icon
@@ -27,6 +27,15 @@ function ResultContent({ hit }: { hit: SearchHit }) {
       {Icon && <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground" />}
       <span className="min-w-0">
         <span className="block truncate">{hit.title}</span>
+        {hit.snippet && (
+          <span className="line-clamp-2 text-xs text-muted-foreground">
+            {hit.snippet.before}
+            {hit.snippet.match && (
+              <strong className="font-semibold text-foreground">{hit.snippet.match}</strong>
+            )}
+            {hit.snippet.after}
+          </span>
+        )}
         {hit.subtitle && (
           <span className="block truncate text-xs text-muted-foreground">{hit.subtitle}</span>
         )}

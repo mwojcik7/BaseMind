@@ -988,7 +988,12 @@ describe('app shell', () => {
       await heading(TODAY_HEADING)
 
       await waitFor(() =>
-        expect(widgetTitles()).toEqual([pl.today.tasks, pl.today.events, pl.today.expenses]),
+        expect(widgetTitles()).toEqual([
+          pl.today.tasks,
+          pl.today.events,
+          pl.today.quickNote,
+          pl.today.expenses,
+        ]),
       )
     })
 
@@ -1006,7 +1011,7 @@ describe('app shell', () => {
       await user.click(moveTasksDown)
       await waitFor(async () =>
         expect((await db.meta.get('dashboard_layout'))?.value).toMatchObject({
-          order: ['events', 'tasks', 'expenses'],
+          order: ['events', 'tasks', 'quick_note', 'expenses'],
         }),
       )
 
@@ -1020,7 +1025,9 @@ describe('app shell', () => {
       await act(() => router.navigate({ to: '/' }))
       await heading(TODAY_HEADING)
 
-      await waitFor(() => expect(widgetTitles()).toEqual([pl.today.events, pl.today.tasks]))
+      await waitFor(() =>
+        expect(widgetTitles()).toEqual([pl.today.events, pl.today.tasks, pl.today.quickNote]),
+      )
     })
 
     it('cannot move the first widget up or the last one down', async () => {
@@ -1274,5 +1281,57 @@ describe('notes', () => {
     await waitFor(async () =>
       expect((await notes.get(note.id))?.content).toBe('Zakupy\n[x] mleko\n[x] chleb'),
     )
+  })
+
+  describe('quick notes', () => {
+    beforeEach(() => localStorage.removeItem('notes_quick_folder'))
+
+    it('adds a note from [+] to the folder open on the notes screen and remembers it', async () => {
+      const user = userEvent.setup()
+      const router = await openNotes()
+      const work = await noteFolders.create({ name: 'Praca' })
+      await noteFolders.create({ name: 'Dom' })
+      await act(() =>
+        router.navigate({ to: '/notes', search: { tab: 'folders', folder: work.id } }),
+      )
+
+      await user.click(bottomNav().getByRole('button', { name: pl.nav.add }))
+      const sheet = within(await screen.findByRole('dialog', { name: pl.quickAdd.title }))
+      expect(sheet.getByRole('button', { name: pl.notes.quickAddLabel })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+      expect(sheet.getByRole('combobox', { name: pl.notes.folder })).toHaveTextContent('Praca')
+      await user.type(sheet.getByLabelText(pl.notes.content), 'Plan na poniedziałek')
+      await user.click(sheet.getByRole('button', { name: pl.notes.save }))
+
+      await waitFor(async () => expect(await notes.list()).toHaveLength(1))
+      const [note] = await notes.list()
+      expect(note).toMatchObject({
+        folder_id: work.id,
+        title: null,
+        content: 'Plan na poniedziałek',
+      })
+      expect(localStorage.getItem('notes_quick_folder')).toBe(work.id)
+    })
+
+    it('jots a note down on "Dziś" and lists it among the recent ones', async () => {
+      const user = userEvent.setup()
+      renderAt('/')
+      await heading(TODAY_HEADING)
+      const field = await page().findByRole('textbox', { name: pl.today.quickNote })
+
+      await user.type(field, 'Kod do bramy{Enter}1234')
+      await user.click(page().getByRole('button', { name: pl.notes.save }))
+
+      await waitFor(async () => expect(await notes.list()).toHaveLength(1))
+      expect((await notes.list())[0]).toMatchObject({
+        folder_id: null,
+        title: null,
+        content: 'Kod do bramy\n1234',
+      })
+      expect(field).toHaveValue('')
+      expect(await page().findByRole('link', { name: /^Kod do bramy/ })).toBeInTheDocument()
+    })
   })
 })

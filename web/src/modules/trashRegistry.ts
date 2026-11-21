@@ -1,8 +1,17 @@
 import { parseISO } from 'date-fns'
-import { CalendarDays, CheckSquare, ListTodo, type LucideIcon } from 'lucide-react'
+import {
+  CalendarDays,
+  CheckSquare,
+  Folder,
+  ListTodo,
+  NotebookPen,
+  type LucideIcon,
+} from 'lucide-react'
 import { db } from '@/db/db'
 import { pl } from '@/i18n/pl'
 import { events, removableEvents } from '@/modules/calendar/repo'
+import { noteFolders, notes } from '@/modules/notes/repo'
+import { noteHeading } from '@/modules/notes/selectors'
 import { removableTasks, taskLists, tasks, type Task } from '@/modules/tasks/repo'
 
 /** Days a deleted item stays in the trash; the server's config/trash.php says the same. */
@@ -119,5 +128,50 @@ const eventSource: TrashSource = {
   purge: removableEvents.purge,
 }
 
+const noteSource: TrashSource = {
+  id: 'notes',
+  label: pl.trash.note,
+  icon: NotebookPen,
+  entries: async () => {
+    const folders = new Map((await noteFolders.list()).map((folder) => [folder.id, folder.name]))
+
+    return (await notes.listDeleted()).map((note) => ({
+      id: note.id,
+      title: noteHeading(note),
+      detail: (note.folder_id && folders.get(note.folder_id)) || pl.notes.inbox,
+      deletedAt: note.deleted_at!,
+    }))
+  },
+  restore: notes.restore,
+  purge: notes.purge,
+}
+
+// Notes of a deleted folder wait in the inbox and go back to it when it is restored.
+const noteFolderSource: TrashSource = {
+  id: 'note_folders',
+  label: pl.trash.noteFolder,
+  icon: Folder,
+  entries: async () => {
+    const live = await notes.list()
+
+    return (await noteFolders.listDeleted()).map((folder) => {
+      const waiting = live.filter((note) => note.folder_id === folder.id).length
+      return {
+        id: folder.id,
+        title: folder.name,
+        detail: waiting > 0 ? pl.trash.folderNotes(waiting) : undefined,
+        deletedAt: folder.deleted_at!,
+      }
+    })
+  },
+  restore: noteFolders.restore,
+  purge: noteFolders.purge,
+}
 /** Everything that can be restored from the trash. A module adds one entry here. */
-export const trashSources: readonly TrashSource[] = [taskSource, taskListSource, eventSource]
+export const trashSources: readonly TrashSource[] = [
+  taskSource,
+  taskListSource,
+  eventSource,
+  noteSource,
+  noteFolderSource,
+]

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { pl } from '@/i18n/pl'
 import { useAuth, type Account } from '@/lib/auth'
 import { events } from '@/modules/calendar/repo'
+import { noteFolders, notes } from '@/modules/notes/repo'
 import { createTask, removableTasks, taskLists, type Task } from '@/modules/tasks/repo'
 import { daysLeft, trashSources } from '@/modules/trashRegistry'
 
@@ -79,6 +80,42 @@ describe('trash', () => {
 
     await source('events').restore(event.id)
     expect(await source('events').entries()).toEqual([])
+  })
+
+  it('shows a deleted note with its folder, the first line standing in for a title', async () => {
+    const folder = await noteFolders.create({ name: 'Dom' })
+    const note = (folderId: string | null, content: string) =>
+      notes.create({ folder_id: folderId, title: null, content, pinned: false, archived: false })
+    const inFolder = await note(folder.id, '# Pomysły\ntreść')
+    const inInbox = await note(null, 'Zakupy')
+    await notes.softDelete(inFolder.id)
+    await notes.softDelete(inInbox.id)
+
+    const entries = await source('notes').entries()
+
+    expect(entries.map((entry) => [entry.title, entry.detail]).sort()).toEqual([
+      ['Pomysły', 'Dom'],
+      ['Zakupy', pl.notes.inbox],
+    ])
+
+    await source('notes').restore(inFolder.id)
+    expect(await source('notes').entries()).toHaveLength(1)
+  })
+
+  it('shows a deleted note folder with the notes waiting for it in the inbox', async () => {
+    const folder = await noteFolders.create({ name: 'Praca' })
+    await notes.create({
+      folder_id: folder.id,
+      title: 'Plan',
+      content: null,
+      pinned: false,
+      archived: false,
+    })
+    await noteFolders.softDelete(folder.id)
+
+    const [entry] = await source('note_folders').entries()
+
+    expect(entry).toMatchObject({ id: folder.id, title: 'Praca', detail: pl.trash.folderNotes(1) })
   })
 
   it('counts the days left until removal', () => {

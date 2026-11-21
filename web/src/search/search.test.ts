@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalize, SearchIndex, type SearchDocument } from '@/search/engine'
+import { normalize, SearchIndex, snippetFor, type SearchDocument } from '@/search/engine'
 import {
   clearRecentSearches,
   getRecentSearches,
@@ -105,7 +105,7 @@ describe('search index', () => {
     expect(titles(index, 'tajne')).toEqual([])
   })
 
-  it('returns what the results screen needs and no searchable body', () => {
+  it('returns what the results screen needs: a snippet instead of the whole body', () => {
     const [hit] = indexOf({ ...document('1', 'Tytuł', 'treść'), href: '/notes' }).search('tytul')
 
     expect(hit).toEqual({
@@ -114,6 +114,7 @@ describe('search index', () => {
       title: 'Tytuł',
       subtitle: null,
       href: '/notes',
+      snippet: { before: 'treść', match: '', after: '' },
     })
   })
 
@@ -157,6 +158,70 @@ describe('search sources', () => {
       href: '/calendar/events/e',
       text: 'Gabinet Uśmiech',
     })
+  })
+
+  it('turn a note into a document: plain text, the first line as the title when untitled', () => {
+    const notes = searchSources.find((source) => source.entity === 'notes')!
+    const note = (fields: object) =>
+      toDocument(notes, {
+        id: 'n',
+        title: null,
+        archived: false,
+        ...fields,
+      } as unknown as SyncedRecord)
+
+    expect(note({ content: '# Zakupy\n- **mleko**\n- [ ] [[chleb]]' })).toEqual({
+      id: 'notes:n',
+      entity: 'notes',
+      title: 'Zakupy',
+      subtitle: null,
+      href: '/notes/n',
+      text: 'mleko chleb',
+    })
+    expect(note({ title: 'Lista', content: 'jeden', archived: true })).toMatchObject({
+      title: 'Lista',
+      subtitle: 'Archiwum',
+      text: 'jeden',
+    })
+    expect(note({ content: '' }).title).toBe('Pusta notatka')
+  })
+})
+
+describe('snippets', () => {
+  const hit = (title: string, text: string, query: string) =>
+    indexOf(document('1', title, text)).search(query)[0]
+
+  it('show the matched word in its words, cut at spaces', () => {
+    const text = `${'słowo '.repeat(10)}kupić mleko i masło do ciasta ${'dalej '.repeat(15)}`
+
+    expect(hit('Zakupy', text, 'masło').snippet).toEqual({
+      before: '…słowo słowo kupić mleko i ',
+      match: 'masło',
+      after: ' do ciasta dalej dalej dalej dalej dalej dalej…',
+    })
+  })
+
+  it('find the word whatever the case, Polish letters or a typo', () => {
+    expect(hit('Zakupy', 'Kupić MASŁO', 'maslo').snippet?.match).toBe('MASŁO')
+    expect(hit('Zakupy', 'ubezpieczenie auta', 'ubezpieczanie').snippet?.match).toBe(
+      'ubezpieczenie',
+    )
+  })
+
+  it('show the start of the text when only the title matched', () => {
+    expect(hit('Zakupy', 'mleko, chleb', 'zakupy').snippet).toEqual({
+      before: 'mleko, chleb',
+      match: '',
+      after: '',
+    })
+  })
+
+  it('are left out without text', () => {
+    expect(hit('Zakupy', '', 'zakupy').snippet).toBeNull()
+  })
+
+  it('cut the start of a long text', () => {
+    expect(snippetFor('a '.repeat(100), [])?.before).toMatch(/…$/)
   })
 })
 

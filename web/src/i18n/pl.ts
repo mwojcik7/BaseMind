@@ -215,6 +215,10 @@ export const pl = {
     list: 'Lista zadań',
     listTasks: (count: number) =>
       `${count} ${plural(count, 'zadanie', 'zadania', 'zadań')} w Skrzynce`,
+    note: 'Notatka',
+    noteFolder: 'Folder notatek',
+    folderNotes: (count: number) =>
+      `${count} ${plural(count, 'notatka', 'notatki', 'notatek')} w Skrzynce`,
   },
   notifications: {
     push: 'Powiadomienia na tym urządzeniu',
@@ -315,6 +319,7 @@ export const pl = {
     eventsMore: (count: number) => `Pozostałe wydarzenia: ${count}`,
     eventsCalendar: 'Kalendarz',
     expenses: 'Ostatnie wydatki',
+    quickNote: 'Szybka notatka',
     expensesEmpty: 'Brak wydatków',
   },
   quickAdd: {
@@ -508,6 +513,15 @@ export const pl = {
     title: 'Tytuł',
     content: 'Treść notatki',
     contentPlaceholder: 'Zacznij pisać…',
+    folder: 'Folder',
+    quickAddLabel: 'Notatka',
+    titleOptional: 'Tytuł (opcjonalnie)',
+    quickPlaceholder: 'Zapisz myśl…',
+    saved: 'Notatka zapisana',
+    open: 'Otwórz',
+    save: 'Zapisz',
+    recent: 'Ostatnie',
+    showAll: 'Wszystkie notatki',
     editor: {
       toolbar: 'Formatowanie',
       heading: 'Nagłówek',
@@ -549,6 +563,7 @@ export const pl = {
     groups: {
       tasks: 'Zadania',
       events: 'Wydarzenia',
+      notes: 'Notatki',
       tags: 'Tagi',
     },
   },

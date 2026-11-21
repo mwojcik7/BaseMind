@@ -11,9 +11,22 @@ export interface SearchDocument {
   text: string
 }
 
-export type SearchHit = Omit<SearchDocument, 'text'>
+/** A piece of the text under the title, with the matched word apart to show it in bold. */
+export interface Snippet {
+  before: string
+  /** Empty when only the title matched: the snippet is then the start of the text. */
+  match: string
+  after: string
+}
+
+export type SearchHit = Omit<SearchDocument, 'text'> & { snippet?: Snippet | null }
 
 const RESULT_LIMIT = 50
+
+/** Characters of context around the matched word, and of the text when only the title matched. */
+const SNIPPET_BEFORE = 30
+const SNIPPET_AFTER = 50
+const SNIPPET_LEAD = 80
 
 /** Lets "zolc" find "żółć". NFD does not split "ł", so it needs its own replacement. */
 export function normalize(text: string) {
@@ -45,6 +58,47 @@ function swappedLetters(word: string) {
   return [...variants]
 }
 
+const WORD = /[^\n\r\p{Z}\p{P}]+/gu
+
+/** Cuts `text` to at most `length` characters at a space, with "…" where it was cut. */
+function cutEnd(text: string, length: number) {
+  if (text.length <= length) return text
+  const cut = text.slice(0, length)
+  const space = cut.lastIndexOf(' ')
+  return `${(space > length / 2 ? cut.slice(0, space) : cut).trimEnd()}…`
+}
+
+function cutStart(text: string, length: number) {
+  if (text.length <= length) return text
+  const cut = text.slice(text.length - length)
+  const space = cut.indexOf(' ')
+  return `…${(space >= 0 && space < length / 2 ? cut.slice(space) : cut).trimStart()}`
+}
+
+/**
+ * The words around the first word of `text` among `terms` (normalised whole words, as the
+ * index keeps them). Without one, the start of the text; null for no text.
+ */
+export function snippetFor(text: string, terms: readonly string[]): Snippet | null {
+  const flat = text.replace(/\s+/g, ' ').trim()
+  if (!flat) return null
+
+  const wanted = new Set(terms)
+  for (const word of flat.matchAll(WORD)) {
+    if (wanted.has(normalize(word[0]))) {
+      const start = word.index
+      const end = start + word[0].length
+      return {
+        before: cutStart(flat.slice(0, start), SNIPPET_BEFORE),
+        match: word[0],
+        after: cutEnd(flat.slice(end), SNIPPET_AFTER),
+      }
+    }
+  }
+
+  return { before: cutEnd(flat, SNIPPET_LEAD), match: '', after: '' }
+}
+
 /** Full-text index in memory. Holds decrypted data, so it is never written anywhere. */
 export class SearchIndex {
   private readonly index = new MiniSearch<SearchDocument>({
@@ -55,6 +109,9 @@ export class SearchIndex {
 
   // What each indexed document looked like, to re-index only what changed.
   private readonly indexed = new Map<string, string>()
+
+  // The searchable text of each document, to cut snippets from.
+  private readonly texts = new Map<string, string>()
 
   /** Makes the index match `documents`: adds, replaces and removes only what differs. */
   sync(documents: SearchDocument[]) {
@@ -75,11 +132,13 @@ export class SearchIndex {
         this.index.replace(document)
       }
       this.indexed.set(document.id, signature)
+      this.texts.set(document.id, document.text)
     }
 
     for (const id of stale) {
       this.index.discard(id)
       this.indexed.delete(id)
+      this.texts.delete(id)
     }
   }
 
@@ -111,6 +170,7 @@ export class SearchIndex {
         title: result.title as string,
         subtitle: result.subtitle as string | null,
         href: result.href as string | null,
+        snippet: snippetFor(this.texts.get(result.id as string) ?? '', result.terms),
       }))
   }
 }

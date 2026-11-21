@@ -1,30 +1,15 @@
 import { differenceInCalendarDays, format, parseISO } from 'date-fns'
 import { pl as dateLocale } from 'date-fns/locale'
 import { pl } from '@/i18n/pl'
+import { contentLines, noteTitleText, plainLine } from '@/lib/markdown-plain'
 import { hasOpenTaskItems, taskItem } from '@/lib/task-items'
 import type { Note, NoteFolder } from '@/modules/notes/repo'
+
+export { plainLine }
 
 /** More than a card can show; CSS cuts the rest. */
 const CARD_LINES = 12
 
-/** One line of Markdown as plain text: no heading marks, emphasis, list markers or link targets. */
-export function plainLine(line: string): string {
-  const box = taskItem(line)
-  return (
-    (box ? box.text : line)
-      .replace(/^\s{0,3}#{1,6}\s+/, '')
-      .replace(/^\s*>\s?/, '')
-      .replace(/^\s*(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s+)?/, '')
-      // [[Note]] and [text](url) leave their text; images their description.
-      .replace(/!?\[\[([^\]]+)\]\]/g, '$1')
-      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
-      .replace(/(\*\*|__|~~|`)/g, '')
-      .replace(/(^|\W)[*_](\S(?:.*?\S)?)[*_](?=\W|$)/g, '$1$2')
-      .trim()
-  )
-}
-
-const RULE = /^\s*[-*_]{3,}\s*$/
 const BULLET = /^\s*[-*+]\s+/
 const NUMBERED = /^\s*(\d+[.)])\s+/
 
@@ -38,17 +23,9 @@ function cardLine(line: string): string {
   return number ? `${number[1]} ${text}` : text
 }
 
-/** Lines worth showing: an empty box counts, an empty line or a rule doesn't. */
-function contentLines(content: string | null): string[] {
-  return (content ?? '')
-    .split('\n')
-    .filter((line) => !RULE.test(line) && (taskItem(line) !== null || plainLine(line) !== ''))
-}
-
 /** What a note is called in lists: its title, or else its first line. */
 export function noteHeading(note: Pick<Note, 'title' | 'content'>): string {
-  const first = contentLines(note.content)[0]
-  return note.title?.trim() || (first && plainLine(first)) || pl.notes.untitled
+  return noteTitleText(note) || pl.notes.untitled
 }
 
 /** The text under the heading on a card, without the line already used as the heading. */
@@ -145,4 +122,12 @@ export function changedLabel(updatedAt: string, now: Date): string {
 /** By name, as Polish sorts it. */
 export function sortFolders(folders: readonly NoteFolder[]): NoteFolder[] {
   return [...folders].sort((a, b) => a.name.localeCompare(b.name, 'pl'))
+}
+
+/** The notes changed last, outside the archive and leaving out empty ones. */
+export function recentNotes(notes: readonly Note[], count: number): Note[] {
+  return notes
+    .filter((note) => !note.archived && !isEmptyNote(note))
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+    .slice(0, count)
 }

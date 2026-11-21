@@ -11,6 +11,7 @@ import { FolderPicker } from '@/modules/notes/NoteActions'
 import { NoteFoldersTab } from '@/modules/notes/NoteFoldersTab'
 import { NoteGrid, type NoteSelection } from '@/modules/notes/NoteGrid'
 import { NoteViewSheet } from '@/modules/notes/NoteViewSheet'
+import { useActiveNoteFolder } from '@/modules/notes/quick'
 import {
   deleteNotes,
   noteFolders,
@@ -51,6 +52,13 @@ export function NotesPage() {
   const visibleIds = new Set(records.map((note) => note.id))
   const picked = [...selected].filter((id) => visibleIds.has(id))
   const selecting = picked.length > 0
+
+  // The [+] sheet adds a note to the folder open here.
+  const activeFolder = insideFolder ? selectedFolder : undefined
+  useEffect(() => {
+    useActiveNoteFolder.setState({ folderId: activeFolder })
+    return () => useActiveNoteFolder.setState({ folderId: undefined })
+  }, [activeFolder])
 
   // The back button removed the marker: picking ends. A marker without a selection (e.g.
   // after a reload) is dropped.

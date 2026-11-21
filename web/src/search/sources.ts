@@ -1,7 +1,11 @@
-// Loaded inside the search worker: type-only imports, and nothing from React.
+// Loaded inside the search worker: besides types only plain modules (texts, Markdown to
+// text), nothing from React or the DOM.
 import type { SyncedRecord } from '@/db/repository'
 import type { Tag } from '@/db/tags'
+import { pl } from '@/i18n/pl'
+import { markdownToPlain, noteBodyText, noteTitleText } from '@/lib/markdown-plain'
 import type { CalendarEvent } from '@/modules/calendar/repo'
+import type { Note } from '@/modules/notes/repo'
 import type { Task } from '@/modules/tasks/repo'
 import type { SearchDocument } from '@/search/engine'
 
@@ -28,17 +32,25 @@ export const searchSources: readonly SearchSource[] = [
   source<Task>({
     entity: 'tasks',
     title: (task) => task.title,
-    text: (task) => task.notes ?? '',
+    text: (task) => markdownToPlain(task.notes),
     subtitle: (task) => task.due_date?.split('-').reverse().join('.') ?? null,
     href: (task) => `/tasks/${task.id}`,
   }),
   source<CalendarEvent>({
     entity: 'events',
     title: (event) => event.title,
-    text: (event) => [event.location, event.description].filter(Boolean).join('\n'),
+    text: (event) =>
+      [event.location, markdownToPlain(event.description)].filter(Boolean).join(' · '),
     subtitle: (event) =>
       [event.start_date.split('-').reverse().join('.'), event.start_time].filter(Boolean).join(' '),
     href: (event) => `/calendar/events/${event.id}`,
+  }),
+  source<Note>({
+    entity: 'notes',
+    title: (note) => noteTitleText(note) || pl.notes.untitled,
+    text: noteBodyText,
+    subtitle: (note) => (note.archived ? pl.notes.tabs.archive : null),
+    href: (note) => `/notes/${note.id}`,
   }),
   source<Tag>({ entity: 'tags', title: (tag) => tag.name }),
 ]

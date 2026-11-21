@@ -1,7 +1,8 @@
-import { CalendarDays, CheckSquare, type LucideIcon } from 'lucide-react'
+import { CalendarDays, CheckSquare, NotebookPen, type LucideIcon } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { pl } from '@/i18n/pl'
 import { EventQuickAddForm } from '@/modules/calendar/EventQuickAddForm'
+import { NoteQuickAddForm } from '@/modules/notes/NoteQuickAddForm'
 import { TaskQuickAddForm } from '@/modules/tasks/TaskQuickAddForm'
 
 export interface QuickAddType {
@@ -23,6 +24,13 @@ export const quickAddTypes: readonly QuickAddType[] = [
     icon: CalendarDays,
     Form: EventQuickAddForm,
     home: '/calendar',
+  },
+  {
+    id: 'note',
+    label: pl.notes.quickAddLabel,
+    icon: NotebookPen,
+    Form: NoteQuickAddForm,
+    home: '/notes',
   },
 ]
 
