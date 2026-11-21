@@ -5,6 +5,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { pl } from '@/i18n/pl'
 import { toggleTaskLine } from '@/lib/task-items'
+import { FormattingHelp } from '@/modules/notes/FormattingHelp'
 import { NoteMenu } from '@/modules/notes/NoteActions'
 import {
   deleteNotes,
@@ -74,6 +75,7 @@ function NoteEditor({
   }))
   const [preview, setPreview] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
 
   const latest = useRef(draft)
   const noteId = useRef(note?.id ?? null)
@@ -234,6 +236,7 @@ function NoteEditor({
             // A new note opens ready for typing.
             autoFocus={note === null}
             onChange={(content) => change({ content })}
+            onHelp={() => setHelpOpen(true)}
           />
         </Suspense>
       )}
@@ -244,8 +247,10 @@ function NoteEditor({
           open={menuOpen}
           onOpenChange={setMenuOpen}
           onDelete={() => void handleDelete()}
+          onHelp={() => setHelpOpen(true)}
         />
       )}
+      <FormattingHelp open={helpOpen} onOpenChange={setHelpOpen} />
     </div>
   )
 }

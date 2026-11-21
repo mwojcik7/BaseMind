@@ -3,6 +3,7 @@ import {
   ArchiveRestore,
   Check,
   CheckSquare,
+  CircleHelp,
   Folder,
   FolderInput,
   Inbox,
@@ -97,6 +98,7 @@ export function NoteMenu({
   onOpenChange,
   onDelete,
   onSelect,
+  onHelp,
 }: {
   note: Note
   open: boolean
@@ -104,6 +106,8 @@ export function NoteMenu({
   onDelete: () => void
   /** On a card: starts picking several notes, for those without a long press. */
   onSelect?: () => void
+  /** On the note's screen: opens "Jak formatować". */
+  onHelp?: () => void
 }) {
   const folders = useRecords(noteFolders)
   const [moving, setMoving] = useState(false)
@@ -149,6 +153,17 @@ export function NoteMenu({
               }}
             >
               {pl.notes.select}
+            </MenuButton>
+          )}
+          {onHelp && (
+            <MenuButton
+              icon={CircleHelp}
+              onClick={() => {
+                onOpenChange(false)
+                onHelp()
+              }}
+            >
+              {pl.notes.help.title}
             </MenuButton>
           )}
           <MenuButton

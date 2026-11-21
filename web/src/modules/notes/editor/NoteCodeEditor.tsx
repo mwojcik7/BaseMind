@@ -12,6 +12,7 @@ import {
   Redo2,
   Undo2,
   type LucideIcon,
+  CircleHelp,
 } from 'lucide-react'
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { pl } from '@/i18n/pl'
@@ -85,10 +86,12 @@ const TOOLS: Tool[] = [
 
 function Toolbar({
   view,
+  onHelp,
   className,
   style,
 }: {
   view: EditorView
+  onHelp?: () => void
   className?: string
   style?: CSSProperties
 }) {
@@ -131,6 +134,19 @@ function Toolbar({
           </button>
         )
       })}
+      {onHelp && (
+        <button
+          type="button"
+          aria-label={words.help}
+          title={words.help}
+          onPointerDown={(event) => event.preventDefault()}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={onHelp}
+          className="flex h-10 max-w-10 min-w-8 flex-1 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <CircleHelp aria-hidden className="size-5" />
+        </button>
+      )}
     </div>
   )
 }
@@ -141,6 +157,8 @@ export interface NoteCodeEditorProps {
   onChange: (text: string) => void
   autoFocus?: boolean
   maxLength: number
+  /** Opens "Jak formatować" from the last toolbar button. */
+  onHelp?: () => void
 }
 
 /**
@@ -151,6 +169,7 @@ export default function NoteCodeEditor({
   initial,
   onChange,
   autoFocus,
+  onHelp,
   maxLength,
 }: NoteCodeEditorProps) {
   const host = useRef<HTMLDivElement>(null)
@@ -209,6 +228,7 @@ export default function NoteCodeEditor({
       {view && !touch && (
         <Toolbar
           view={view}
+          onHelp={onHelp}
           className="sticky top-[var(--app-bar,0px)] z-10 -mx-2 mt-2 border-b border-border px-1 py-1"
         />
       )}
@@ -224,6 +244,7 @@ export default function NoteCodeEditor({
       {view && overKeyboard && (
         <Toolbar
           view={view}
+          onHelp={onHelp}
           className="fixed inset-x-0 z-40 border-t border-border px-1 py-1 pl-[max(0.25rem,env(safe-area-inset-left))]"
           style={{ bottom: keyboardInset }}
         />

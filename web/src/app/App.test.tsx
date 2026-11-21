@@ -1283,6 +1283,29 @@ describe('notes', () => {
     )
   })
 
+  it('explains formatting from the toolbar and the note menu', async () => {
+    const user = userEvent.setup()
+    const router = await openNotes()
+    const note = await newNote()
+    await act(() => router.navigate({ to: '/notes/$noteId', params: { noteId: note.id } }))
+
+    await user.click(await page().findByRole('button', { name: pl.notes.editor.help }))
+    let help = within(await screen.findByRole('dialog', { name: pl.notes.help.title }))
+    expect(help.getByText('**pogrubiony**', { selector: 'td' })).toBeInTheDocument()
+    expect(await help.findByText('pogrubiony', { selector: 'strong' })).toBeInTheDocument()
+    expect(help.getByText(pl.notes.help.tips[0])).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: pl.notes.help.title })).not.toBeInTheDocument(),
+    )
+
+    await user.click(page().getByRole('button', { name: pl.notes.options }))
+    const menu = within(await screen.findByRole('dialog', { name: pl.notes.options }))
+    await user.click(menu.getByRole('button', { name: pl.notes.help.title }))
+    help = within(await screen.findByRole('dialog', { name: pl.notes.help.title }))
+    expect(help.getByText(pl.notes.help.noteLink, { selector: 'td' })).toBeInTheDocument()
+  })
+
   describe('quick notes', () => {
     beforeEach(() => localStorage.removeItem('notes_quick_folder'))
 
